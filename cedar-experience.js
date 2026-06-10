@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.0.0 · built by Origin · loaded site-wide from the page <head>
+ * v1.0.1 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader · lenis smooth scroll · work-grid hover video · project modals
  *          view-other-projects carousel · about accordion (height-animated)
  * Every module is page-aware and honors prefers-reduced-motion.
@@ -227,7 +227,7 @@
   };
   var STANDARD = { label: 'The Cedar Standard', copy: 'Cedar’s creative perspective is its sharpest competitive edge. Ideas overflow naturally. The creative is the easy part. That ease is the product of deep talent, relentless curiosity, and a team that never stops sharpening its craft.' };
   var MODALS = {
-    '/childrens-hospital': [
+    '/work/childrens-hospital': [
       { match: 'read more', nth: 0, title: 'The Situation', body: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there every single day. We wanted to imbue the film with a sense of scale to capture the incredible scope of the life saving work that Children’s Hospital is engaged in every single day. Along the way we met Doctors, nurses, technicians and staff who serve the children and families of Alabama.', standard: true },
       { match: 'read more', nth: 1, title: 'Behind the Scenes', body: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there every single day. We wanted to imbue the film with a sense of scale to capture the incredible scope of the life saving work that Children’s Hospital is engaged in every single day. Along the way we met Doctors, nurses, technicians and staff who serve the children and families of Alabama.', gallery: true }
     ],
@@ -310,7 +310,7 @@
    * ======================================================= */
   var PROJECTS = {
     'city-hardwoods': { label: 'City Hardwoods', href: '/work/city-hardwoods', d: 'We partnered with the local artisans at City Hardwoods to produce a video explaining the concept behind their business and their passion for making great things.' },
-    'childrens-hospital': { label: 'Children’s Hospital', href: '/childrens-hospital', d: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there around the clock.' },
+    'childrens-hospital': { label: 'Children’s Hospital', href: '/work/childrens-hospital', d: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there around the clock.' },
     'shine-alabama': { label: 'Shine Alabama', href: '/work/shine-alabama', d: 'Shine Alabama approached us with a desire to create a piece to help Alabama communicate, remember, and memorialize the loss experienced across the state in the year 2020.' }
   };
   var VO_IMG = {
