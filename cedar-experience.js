@@ -1,7 +1,7 @@
 /* Cedar Creative — experience layer
- * v1.0.1 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader · lenis smooth scroll · work-grid hover video · project modals
- *          view-other-projects carousel · about accordion (height-animated)
+ * v1.1.0 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader · lenis · work-grid hover video (Home) · about accordion
+ *          /work CMS template: situation+results modals · BTS slider · view-other slider · inline gallery video
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -34,31 +34,35 @@
     '#cedar-modal-root.is-open{display:flex;}',
     '.cedar-modal-backdrop{position:absolute;inset:0;background:rgba(244,244,242,.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;transition:opacity .6s ' + EASE + ';}',
     '#cedar-modal-root.is-in .cedar-modal-backdrop{opacity:1;}',
-    '.cedar-modal{position:relative;background:#fff;border-radius:14px;width:min(440px,92vw);max-height:86vh;overflow:auto;padding:28px 26px 26px;color:' + CHARCOAL + ';box-shadow:0 18px 60px rgba(41,34,27,.18);opacity:0;transform:translateY(14px) scale(.985);transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + ';}',
+    '.cedar-modal{position:relative;background:#fff;border-radius:14px;width:min(560px,92vw);max-height:86vh;overflow:auto;padding:28px 26px 26px;color:' + CHARCOAL + ';box-shadow:0 18px 60px rgba(41,34,27,.18);opacity:0;transform:translateY(14px) scale(.985);transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + ';}',
     '#cedar-modal-root.is-in .cedar-modal{opacity:1;transform:none;}',
     '.cedar-modal h3{font-size:19px;font-weight:500;text-align:center;margin:0 0 18px;}',
     '.cedar-modal .cm-body{font-size:12.5px;line-height:1.55;text-align:center;margin:0 auto;max-width:300px;white-space:pre-line;}',
-    '.cedar-modal .cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:24px 0 4px;}',
+    '.cedar-modal .cm-rich{white-space:normal;text-align:left;font-size:13px;line-height:1.6;max-width:none;}',
+    '.cedar-modal .cm-rich p{margin:0 0 12px;}',
+    '.cedar-modal .cm-rich p:last-child{margin-bottom:0;}',
+    '.cedar-modal .cm-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:24px 0 4px;}',
     '.cedar-modal .cm-grid img{width:100%;height:118px;object-fit:cover;border-radius:6px;display:block;}',
-    '.cedar-modal .cm-std{border-top:1px solid rgba(41,34,27,.15);margin-top:28px;padding-top:16px;}',
-    '.cedar-modal .cm-std-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0 0 10px;}',
-    '.cedar-modal .cm-std-copy{font-size:11.5px;line-height:1.5;margin:0 0 16px;}',
-    '.cedar-modal .cm-std-pills{display:flex;gap:8px;}',
-    '.cedar-modal .cm-pill{display:inline-flex;align-items:center;gap:7px;background:' + YELLOW + ';border-radius:12px;padding:7px 12px;font-size:13px;color:' + CHARCOAL + ';}',
-    '.cedar-modal .cm-pill img{width:22px;height:16px;display:block;}',
     '.cedar-modal .cm-close{position:absolute;top:14px;right:14px;width:26px;height:26px;cursor:pointer;background:none;border:0;padding:0;line-height:1;font-size:20px;color:' + CHARCOAL + ';opacity:.6;}',
     '.cedar-modal .cm-close:hover{opacity:1;}',
     'body.cedar-modal-open{overflow:hidden;}',
-    /* carousel arrows */
-    '.cedar-vo-arrows{display:inline-flex;gap:10px;margin-top:14px;}',
+    /* inline gallery video */
+    '.cedar-play{position:absolute;inset:0;margin:auto;width:54px;height:54px;border-radius:50%;background:rgba(244,244,242,.88);border:0;cursor:pointer;z-index:3;font-size:15px;color:' + CHARCOAL + ';display:flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ';}',
+    '.cedar-play:hover{transform:scale(1.08);}',
+    /* BTS slider */
+    '.cedar-bts-thumb{cursor:pointer;transition:opacity .3s ' + EASE + ';opacity:.5;}',
+    '.cedar-bts-thumb.cedar-bts-sel,.cedar-bts-thumb:hover{opacity:1;}',
+    '.cedar-bts-gallery-btn{cursor:pointer;display:inline-flex;align-items:center;border:1px solid rgba(41,34,27,.35);border-radius:14px;padding:6px 14px;font-size:13px;color:' + CHARCOAL + ';transition:background-color .3s ' + EASE + ';}',
+    '.cedar-bts-gallery-btn:hover{background-color:rgba(41,34,27,.07);}',
+    /* shared arrow controls + view-other slider */
+    '.cedar-vo-arrows{display:inline-flex;gap:10px;margin-top:14px;align-items:center;}',
     '.cedar-vo-arrow{width:30px;height:30px;border:1px solid rgba(41,34,27,.35);border-radius:50%;background:none;cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(41,34,27,.07);}',
-    '.cedar-vo-swap{transition:opacity .45s ' + EASE + ',transform .45s ' + EASE + ';}',
-    '.cedar-vo-swap.is-out{opacity:0;transform:translateX(-14px);}',
+    '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     /* accordion */
     '.acc-body{overflow:hidden;}',
     /* reduced motion: kill transitions */
-    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-swap{transition:none!important;}}'
+    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play{transition:none!important;}}'
   ].join('');
   var styleEl = document.createElement('style');
   styleEl.id = 'cedar-experience-css';
@@ -218,167 +222,150 @@
   });
 
   /* =========================================================
-   * 4. PROJECT MODALS — JS-rendered, buttons matched by text
+   * 4. /WORK CMS TEMPLATE — modals · BTS slider · view-other · inline video
+   *    (supersedes the old static-page modal + carousel modules; those
+   *     /project-examples/* pages lose this JS until they are retired/redirected)
    * ======================================================= */
-  var ICONS = {
-    vision: 'https://cdn.prod.website-files.com/6a2027613280b41b9b3c3276/6a28eb16e8396d5d82be88d9_Vision_Outlined.svg',
-    quality: 'https://cdn.prod.website-files.com/6a2027613280b41b9b3c3276/6a28eb1662ef6635c7fd0f56_Quality_Outlined.svg',
-    sustainability: 'https://cdn.prod.website-files.com/6a2027613280b41b9b3c3276/6a28eb1662ef6635c7fd0f6b_Sustainability_Outlined.svg'
-  };
-  var STANDARD = { label: 'The Cedar Standard', copy: 'Cedar’s creative perspective is its sharpest competitive edge. Ideas overflow naturally. The creative is the easy part. That ease is the product of deep talent, relentless curiosity, and a team that never stops sharpening its craft.' };
-  var MODALS = {
-    '/work/childrens-hospital': [
-      { match: 'read more', nth: 0, title: 'The Situation', body: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there every single day. We wanted to imbue the film with a sense of scale to capture the incredible scope of the life saving work that Children’s Hospital is engaged in every single day. Along the way we met Doctors, nurses, technicians and staff who serve the children and families of Alabama.', standard: true },
-      { match: 'read more', nth: 1, title: 'Behind the Scenes', body: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there every single day. We wanted to imbue the film with a sense of scale to capture the incredible scope of the life saving work that Children’s Hospital is engaged in every single day. Along the way we met Doctors, nurses, technicians and staff who serve the children and families of Alabama.', gallery: true }
-    ],
-    '/work/city-hardwoods': [
-      { match: 'the results', nth: 0, title: 'The Results', body: '[COPY PENDING: City Hardwoods / Results modal]\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris pharetra cursus ex, eget sagittis elit auctor vitae. Morbi sed consequat tortor, a bibendum eros. Vestibulum blandit velit at arcu aliquam condimentum.', standard: true }
-    ]
-  };
-  onReady(function () {
-    var path = location.pathname.replace(/\/$/, '') || '/';
-    var defs = MODALS[path];
-    if (!defs) return;
+  function makeModal() {
     var root = el('div', null, '<div class="cedar-modal-backdrop"></div>');
     root.id = 'cedar-modal-root';
-    var backdrop = root.firstChild;
     document.body.appendChild(root);
     var current = null;
     function close() {
-      root.classList.remove('is-in');
-      document.body.classList.remove('cedar-modal-open');
+      root.classList.remove('is-in'); document.body.classList.remove('cedar-modal-open');
       setTimeout(function () { root.classList.remove('is-open'); if (current) { current.remove(); current = null; } }, RM ? 0 : 620);
     }
-    function open(def) {
+    function open(build) {
       if (current) current.remove();
       var m = el('div', 'cedar-modal', '');
-      m.appendChild(el('button', 'cm-close', '×'));
-      m.lastChild.setAttribute('aria-label', 'Close');
-      m.appendChild(el('h3', null, def.title));
-      m.appendChild(el('p', 'cm-body', def.body));
-      if (def.gallery) {
-        var imgs = document.querySelectorAll('.work-grid img');
-        if (imgs.length) {
-          var g = el('div', 'cm-grid', '');
-          Array.prototype.slice.call(imgs, 0, 4).forEach(function (im) {
-            var c = document.createElement('img'); c.src = im.currentSrc || im.src; c.alt = im.alt || ''; g.appendChild(c);
-          });
-          m.appendChild(g);
-        }
-      }
-      if (def.standard) {
-        var s = el('div', 'cm-std',
-          '<p class="cm-std-label">' + STANDARD.label + '</p>' +
-          '<p class="cm-std-copy">' + STANDARD.copy + '</p>' +
-          '<div class="cm-std-pills">' +
-          '<span class="cm-pill"><img src="' + ICONS.vision + '" alt=""/>Vision</span>' +
-          '<span class="cm-pill"><img src="' + ICONS.quality + '" alt=""/></span>' +
-          '<span class="cm-pill"><img src="' + ICONS.sustainability + '" alt=""/></span>' +
-          '</div>');
-        m.appendChild(s);
-      }
-      m.querySelector('.cm-close').addEventListener('click', close);
-      root.appendChild(m);
-      current = m;
-      root.classList.add('is-open');
-      document.body.classList.add('cedar-modal-open');
+      var x = el('button', 'cm-close', '×'); x.setAttribute('aria-label', 'Close'); m.appendChild(x);
+      build(m);
+      x.addEventListener('click', close);
+      root.appendChild(m); current = m;
+      root.classList.add('is-open'); document.body.classList.add('cedar-modal-open');
       requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.add('is-in'); }); });
     }
-    backdrop.addEventListener('click', close);
+    root.firstChild.addEventListener('click', close);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('is-open')) close(); });
-    /* wire buttons: pills matched by text, in document order per match-text */
-    var counts = {};
-    var pills = document.querySelectorAll('a.filter-pill, .filter-pill');
-    pills.forEach(function (p) {
-      var txt = (p.textContent || '').trim().toLowerCase();
-      defs.forEach(function (def) {
-        if (txt === def.match) {
-          counts[def.match] = counts[def.match] || 0;
-          if (counts[def.match] === (def.nth || 0)) {
-            p.addEventListener('click', function (e) { e.preventDefault(); open(def); });
-            p.style.cursor = 'pointer';
-          }
-          if (def.nth === undefined || counts[def.match] === def.nth) {} /* no-op */
-        }
-      });
-      if (defs.some(function (d) { return txt === d.match; })) counts[txt] = (counts[txt] || 0) + 1;
-    });
-  });
+    return { open: open, close: close };
+  }
 
-  /* =========================================================
-   * 5. VIEW-OTHER-PROJECTS CAROUSEL — arrows cycle previews
-   * ======================================================= */
-  var PROJECTS = {
-    'city-hardwoods': { label: 'City Hardwoods', href: '/work/city-hardwoods', d: 'We partnered with the local artisans at City Hardwoods to produce a video explaining the concept behind their business and their passion for making great things.' },
-    'childrens-hospital': { label: 'Children’s Hospital', href: '/work/childrens-hospital', d: 'We partnered Children’s Hospital to give their supporters a glimpse into the incredible work that takes place there around the clock.' },
-    'shine-alabama': { label: 'Shine Alabama', href: '/work/shine-alabama', d: 'Shine Alabama approached us with a desire to create a piece to help Alabama communicate, remember, and memorialize the loss experienced across the state in the year 2020.' }
-  };
-  var VO_IMG = {
-    'city-hardwoods': '', 'childrens-hospital': '', 'shine-alabama': '' /* resolved at runtime from the card already on the page */
-  };
-  var VO_ORDER = ['city-hardwoods', 'childrens-hospital', 'shine-alabama'];
   onReady(function () {
     var path = location.pathname.replace(/\/$/, '') || '/';
-    var selfKey = VO_ORDER.find(function (k) { return path.indexOf(k) !== -1; });
-    if (!selfKey) return;
-    /* the view-other section is the section-vh containing a split-row with a work-card */
-    var section = null;
-    document.querySelectorAll('.section-vh').forEach(function (s) { if (s.querySelector('.split-row .work-card, .split-row')) section = s; });
-    if (!section) return;
-    var row = section.querySelector('.split-row');
-    if (!row) return;
-    var label = row.querySelector('.card-label, p');
-    var card = row.querySelector('.work-card');
-    var img = card ? card.querySelector('img') : null;
-    var link = card ? card.querySelector('a') : null;
-    var descEl = null;
-    row.querySelectorAll('p').forEach(function (p) { var t = (p.textContent || '').trim(); if (t.length > 60 && !descEl) descEl = p; });
-    var titleEl = null;
-    row.querySelectorAll('p, h3, h4, div').forEach(function (n) {
-      var t = (n.textContent || '').trim();
-      if (!titleEl && n.children.length === 0 && t.length > 3 && t.length < 30 && /hardwoods|children|shine/i.test(t)) titleEl = n;
-    });
-    if (!card || !img) return;
-    var others = VO_ORDER.filter(function (k) { return k !== selfKey; });
-    /* seed image map with the preview already on the page */
-    var initialKey = others.find(function (k) { return PROJECTS[k] && titleEl && new RegExp(k.split('-')[0], 'i').test(titleEl.textContent); }) || others[0];
-    VO_IMG[initialKey] = img.currentSrc || img.src;
-    /* prefetch the other project's preview image from its page */
-    var otherKey = others.find(function (k) { return k !== initialKey; });
-    fetch(PROJECTS[otherKey].href).then(function (r) { return r.text(); }).then(function (html) {
-      var doc = new DOMParser().parseFromString(html, 'text/html');
-      /* take that page's hero gallery first still as preview */
-      var pi = doc.querySelector('.work-grid img, .photo-band img');
-      if (pi) VO_IMG[otherKey] = pi.getAttribute('src');
-    }).catch(function () {});
-    var idx = others.indexOf(initialKey);
-    /* arrows go beside the heading column (first child of split-row) */
-    var headCol = row.firstElementChild;
-    var arrows = el('div', 'cedar-vo-arrows',
-      '<button class="cedar-vo-arrow" aria-label="Previous project">‹</button>' +
-      '<button class="cedar-vo-arrow" aria-label="Next project">›</button>');
-    (headCol || section).appendChild(arrows);
-    [card, titleEl, descEl].forEach(function (n) { if (n) n.classList.add('cedar-vo-swap'); });
-    function show(nextIdx) {
-      idx = (nextIdx + others.length) % others.length;
-      var key = others[idx], p = PROJECTS[key];
-      [card, titleEl, descEl].forEach(function (n) { if (n) n.classList.add('is-out'); });
-      setTimeout(function () {
-        if (titleEl) titleEl.textContent = p.label;
-        if (descEl) descEl.textContent = p.d;
-        if (VO_IMG[key]) img.src = VO_IMG[key];
-        if (img.srcset) img.removeAttribute('srcset');
-        if (img.sizes) img.removeAttribute('sizes');
-        if (link) link.href = p.href;
-        [card, titleEl, descEl].forEach(function (n) { if (n) n.classList.remove('is-out'); });
-      }, RM ? 0 : 460);
+    if (path.indexOf('/work/') !== 0) return;            /* CMS project detail pages only */
+    var main = document.querySelector('.main-content');
+    if (!main) return;
+    var modal = makeModal();
+
+    /* ---- W2: situation / results modals — content from hidden CMS blocks ---- */
+    function richOf(id) { var n = document.getElementById(id); return (n && n.textContent.trim()) ? n.innerHTML : ''; }
+    function pillByText(t) {
+      var found = null;
+      main.querySelectorAll('.filter-pill').forEach(function (p) { if (!found && (p.textContent || '').trim().toLowerCase() === t) found = p; });
+      return found;
     }
-    arrows.children[0].addEventListener('click', function () { show(idx - 1); });
-    arrows.children[1].addEventListener('click', function () { show(idx + 1); });
+    [['the situation', 'The Situation', 'cms-situation-modal'],
+     ['the results', 'The Results', 'cms-results-modal']].forEach(function (cfg) {
+      var pill = pillByText(cfg[0]); if (!pill) return;
+      var html = richOf(cfg[2]);
+      var section = pill.closest('section');
+      if (!html) {                                       /* conditional visibility: no copy -> hide pill */
+        pill.style.display = 'none';
+        if (cfg[0] === 'the results' && section) {       /* hide whole results CTA if its heading is also empty */
+          var hd = section.querySelector('.heading-2, h1, h2');
+          if (!hd || !hd.textContent.trim()) section.style.display = 'none';
+        }
+        return;
+      }
+      pill.style.cursor = 'pointer';
+      pill.addEventListener('click', function (e) {
+        e.preventDefault();
+        modal.open(function (m) { m.appendChild(el('h3', null, cfg[1])); m.appendChild(el('div', 'cm-body cm-rich', html)); });
+      });
+    });
+
+    /* ---- W5: inline gallery video — remove broken copied hero embeds, play on click ---- */
+    document.querySelectorAll('.work-grid .video-card-item, .more-projects .video-card-item').forEach(function (e) { e.remove(); });
+    document.querySelectorAll('.work-grid .work-card[data-vimeo-url]').forEach(function (card) {
+      var url = (card.getAttribute('data-vimeo-url') || '').trim();
+      if (!url) return;                                  /* empty = image-only gallery item */
+      card.style.cursor = 'pointer';
+      var play = el('button', 'cedar-play', '►'); play.setAttribute('aria-label', 'Play video'); card.appendChild(play);
+      function start(e) {
+        if (e) e.preventDefault();
+        if (card.querySelector('iframe.cedar-card-video')) return;
+        var ifr = document.createElement('iframe');
+        ifr.className = 'cedar-card-video'; ifr.style.opacity = '1'; ifr.style.pointerEvents = 'auto';
+        ifr.allow = 'autoplay; fullscreen; picture-in-picture'; ifr.setAttribute('allowfullscreen', '');
+        ifr.src = url + (url.indexOf('?') > -1 ? '&' : '?') + 'autoplay=1&loop=0';
+        card.appendChild(ifr); play.remove();
+      }
+      play.addEventListener('click', start); card.addEventListener('click', start);
+    });
+
+    /* ---- W3: BTS slider — feature swap + thumbnails + arrows + gallery modal ---- */
+    (function () {
+      var feature = document.querySelector('.bts-feature');
+      var strip = document.querySelector('.bts-images');
+      var btsSection = feature && feature.closest('section');
+      var fItems = feature ? feature.querySelectorAll('.w-dyn-item') : [];
+      var thumbs = strip ? strip.querySelectorAll('.w-dyn-item') : [];
+      if (!fItems.length || !thumbs.length) { if (btsSection) btsSection.style.display = 'none'; return; }
+      var active = -1;
+      function setActive(i) {
+        active = (i + fItems.length) % fItems.length;
+        fItems.forEach(function (it, n) { it.style.display = n === active ? '' : 'none'; });
+        thumbs.forEach(function (t, n) { t.classList.toggle('cedar-bts-sel', n === active); });
+      }
+      thumbs.forEach(function (t, n) { t.classList.add('cedar-bts-thumb'); t.addEventListener('click', function () { setActive(n); }); });
+      var controls = document.querySelector('.bts-controls');
+      if (controls) {
+        var bar = el('div', 'cedar-vo-arrows', '<button class="cedar-vo-arrow" aria-label="Previous">‹</button><button class="cedar-vo-arrow" aria-label="Next">›</button>');
+        var gal = el('a', 'cedar-bts-gallery-btn', 'View the gallery'); gal.setAttribute('role', 'button');
+        bar.appendChild(gal); controls.appendChild(bar);
+        bar.children[0].addEventListener('click', function () { setActive(active - 1); });
+        bar.children[1].addEventListener('click', function () { setActive(active + 1); });
+        gal.addEventListener('click', function () {
+          modal.open(function (m) {
+            m.appendChild(el('h3', null, 'Behind the scenes'));
+            var g = el('div', 'cm-grid', '');
+            thumbs.forEach(function (t) { var im = t.querySelector('img'); if (im) { var c = document.createElement('img'); c.src = im.currentSrc || im.src; c.alt = im.alt || ''; g.appendChild(c); } });
+            m.appendChild(g);
+          });
+        });
+      }
+      setActive(0);
+    })();
+
+    /* ---- W4: view-other — whole card links via data-slug + arrow slider ---- */
+    (function () {
+      var wrap = document.querySelector('.more-projects'); if (!wrap) return;
+      var cards = wrap.querySelectorAll('.project-preview');
+      cards.forEach(function (card) {
+        var sl = card.querySelector('[data-slug]'); var slug = sl && sl.getAttribute('data-slug');
+        if (!slug) return;
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function () { window.location.href = '/work/' + slug; });
+      });
+      var track = wrap.querySelector('.w-dyn-items');
+      var controls = wrap.querySelector('.slider-controls');
+      if (!track || !controls || cards.length < 2) return;
+      var horizontal = cards[1].offsetLeft > cards[0].offsetLeft + 2;   /* only slide a horizontal row */
+      if (!horizontal) return;                                          /* vertical layout: cards still clickable */
+      var viewport = track.parentElement; if (viewport) viewport.style.overflow = 'hidden';
+      track.classList.add('cedar-vo-track');
+      var idx = 0;
+      function go(n) { idx = Math.max(0, Math.min(cards.length - 1, n)); var w = cards[0].getBoundingClientRect().width + 16; track.style.transform = 'translateX(' + (-idx * w) + 'px)'; }
+      var arrows = el('div', 'cedar-vo-arrows', '<button class="cedar-vo-arrow" aria-label="Previous project">‹</button><button class="cedar-vo-arrow" aria-label="Next project">›</button>');
+      controls.appendChild(arrows);
+      arrows.children[0].addEventListener('click', function () { go(idx - 1); });
+      arrows.children[1].addEventListener('click', function () { go(idx + 1); });
+      window.addEventListener('resize', function () { go(idx); });
+    })();
   });
 
   /* =========================================================
-   * 6. ABOUT ACCORDION — height-animated open/close
+   * 5. ABOUT ACCORDION — height-animated open/close
    * (supersedes the cedaraccordion inline script)
    * ======================================================= */
   onReady(function () {
