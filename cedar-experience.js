@@ -1,7 +1,7 @@
 /* Cedar Creative — experience layer
- * v1.1.0 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader · lenis · work-grid hover video (Home) · about accordion
- *          /work CMS template: situation+results modals · BTS slider · view-other slider · inline gallery video
+ * v1.1.1 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home) · about accordion
+ *          /work CMS template: situation+results modals · BTS slider · view-other slider (horizontal) · inline gallery video
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -59,6 +59,9 @@
     '.cedar-vo-arrow{width:30px;height:30px;border:1px solid rgba(41,34,27,.35);border-radius:50%;background:none;cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(41,34,27,.07);}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
+    '.cedar-vo-track > .project-preview{flex:0 0 calc((100% - 32px) / 3);box-sizing:border-box;}',
+    '@media (max-width:991px){.cedar-vo-track > .project-preview{flex-basis:calc((100% - 16px) / 2);}}',
+    '@media (max-width:767px){.cedar-vo-track > .project-preview{flex-basis:100%;}}',
     /* accordion */
     '.acc-body{overflow:hidden;}',
     /* reduced motion: kill transitions */
@@ -83,10 +86,9 @@
   /* =========================================================
    * 1. SITE LOADER — once per session, skipped on reduced motion
    * ======================================================= */
-  var LOADER_MIN = 1800, LOADER_MAX = 6000;
-  var showLoader = !RM && !sessionStorage.getItem('cedarLoaderSeen');
+  var LOADER_MIN = 1500, LOADER_MAX = 7000;
+  var showLoader = !RM;                       /* every page (was once-per-session) */
   if (showLoader) {
-    sessionStorage.setItem('cedarLoaderSeen', '1');
     var loader = el('div', null, '');
     loader.id = 'cedar-loader';
     var top = el('div', 'cl-top', 'CEDAR CREATIVE');
@@ -152,17 +154,36 @@
       } catch (e) { /* wireframe is decorative — loader still works without it */ }
     })(40);
 
-    var t0 = Date.now();
-    function exitLoader() {
+    var t0 = Date.now(), done = false;
+    function finish() {
+      if (done) return; done = true;
       var wait = Math.max(0, LOADER_MIN - (Date.now() - t0));
       setTimeout(function () {
         loader.classList.add('is-done');
         setTimeout(function () { if (spin) cancelAnimationFrame(spin); loader.remove(); }, 700);
       }, wait);
     }
-    if (document.readyState === 'complete') exitLoader();
-    else window.addEventListener('load', exitLoader);
-    setTimeout(exitLoader, LOADER_MAX); /* hard cap */
+    /* hold the loader until the hero background video is actually playing (masks the
+       buffer flash); fall back to full page load, then a hard cap */
+    function waitForContent() {
+      var hero = document.querySelector('.hero-band iframe, .photo-band iframe, #vimeo-bg');
+      if (!hero) { finish(); return; }
+      var played = false;
+      function onMsg(e) {
+        if ((e.origin || '').indexOf('vimeo') === -1) return;
+        var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
+        if (d && (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend')) {
+          played = true; window.removeEventListener('message', onMsg); finish();
+        }
+      }
+      window.addEventListener('message', onMsg);
+      function subscribe() { try { hero.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*'); } catch (_) {} }
+      subscribe(); hero.addEventListener('load', subscribe);
+      setTimeout(function () { if (!played) finish(); }, 4000); /* video never reported -> exit anyway */
+    }
+    if (document.readyState === 'complete') waitForContent();
+    else window.addEventListener('load', waitForContent);
+    setTimeout(finish, LOADER_MAX); /* hard cap */
   }
 
   /* =========================================================
@@ -349,17 +370,23 @@
       });
       var track = wrap.querySelector('.w-dyn-items');
       var controls = wrap.querySelector('.slider-controls');
-      if (!track || !controls || cards.length < 2) return;
-      var horizontal = cards[1].offsetLeft > cards[0].offsetLeft + 2;   /* only slide a horizontal row */
-      if (!horizontal) return;                                          /* vertical layout: cards still clickable */
+      if (!track || cards.length < 2) return;
       var viewport = track.parentElement; if (viewport) viewport.style.overflow = 'hidden';
-      track.classList.add('cedar-vo-track');
-      var idx = 0;
-      function go(n) { idx = Math.max(0, Math.min(cards.length - 1, n)); var w = cards[0].getBoundingClientRect().width + 16; track.style.transform = 'translateX(' + (-idx * w) + 'px)'; }
-      var arrows = el('div', 'cedar-vo-arrows', '<button class="cedar-vo-arrow" aria-label="Previous project">‹</button><button class="cedar-vo-arrow" aria-label="Next project">›</button>');
-      controls.appendChild(arrows);
-      arrows.children[0].addEventListener('click', function () { go(idx - 1); });
-      arrows.children[1].addEventListener('click', function () { go(idx + 1); });
+      track.classList.add('cedar-vo-track');                  /* impose horizontal row — see CSS (3/2/1-up) */
+      var GAP = 16, idx = 0;
+      function perView() { return window.innerWidth <= 767 ? 1 : (window.innerWidth <= 991 ? 2 : 3); }
+      function go(n) {
+        var maxIdx = Math.max(0, cards.length - perView());
+        idx = Math.max(0, Math.min(maxIdx, n));
+        var w = cards[0].getBoundingClientRect().width + GAP;
+        track.style.transform = 'translateX(' + (-idx * w) + 'px)';
+      }
+      if (controls) {
+        var arrows = el('div', 'cedar-vo-arrows', '<button class="cedar-vo-arrow" aria-label="Previous project">‹</button><button class="cedar-vo-arrow" aria-label="Next project">›</button>');
+        controls.appendChild(arrows);
+        arrows.children[0].addEventListener('click', function () { go(idx - 1); });
+        arrows.children[1].addEventListener('click', function () { go(idx + 1); });
+      }
       window.addEventListener('resize', function () { go(idx); });
     })();
   });
