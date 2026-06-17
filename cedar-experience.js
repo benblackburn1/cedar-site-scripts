@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.1.2 · built by Origin · loaded site-wide from the page <head>
+ * v1.1.3 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home) · about accordion
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  * Every module is page-aware and honors prefers-reduced-motion.
@@ -60,6 +60,9 @@
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(41,34,27,.07);}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
+    '.cedar-vo-track .project-preview *{max-width:100%;min-width:0;}',   /* cap fixed-width inner card so it fits one-up */
+    /* /post dark-green page (.cedar-bg) — lift body text off the green */
+    '.cedar-bg .caption,.cedar-bg .body-sm{color:#f4f4f2;}',
     /* accordion */
     '.acc-body{overflow:hidden;}',
     /* reduced motion: kill transitions */
