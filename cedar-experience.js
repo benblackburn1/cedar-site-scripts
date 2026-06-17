@@ -1,7 +1,7 @@
 /* Cedar Creative — experience layer
- * v1.1.1 · built by Origin · loaded site-wide from the page <head>
+ * v1.1.2 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home) · about accordion
- *          /work CMS template: situation+results modals · BTS slider · view-other slider (horizontal) · inline gallery video
+ *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -59,9 +59,7 @@
     '.cedar-vo-arrow{width:30px;height:30px;border:1px solid rgba(41,34,27,.35);border-radius:50%;background:none;cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(41,34,27,.07);}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
-    '.cedar-vo-track > .project-preview{flex:0 0 calc((100% - 32px) / 3);box-sizing:border-box;}',
-    '@media (max-width:991px){.cedar-vo-track > .project-preview{flex-basis:calc((100% - 16px) / 2);}}',
-    '@media (max-width:767px){.cedar-vo-track > .project-preview{flex-basis:100%;}}',
+    '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
     /* accordion */
     '.acc-body{overflow:hidden;}',
     /* reduced motion: kill transitions */
@@ -371,13 +369,12 @@
       var track = wrap.querySelector('.w-dyn-items');
       var controls = wrap.querySelector('.slider-controls');
       if (!track || cards.length < 2) return;
-      var viewport = track.parentElement; if (viewport) viewport.style.overflow = 'hidden';
-      track.classList.add('cedar-vo-track');                  /* impose horizontal row — see CSS (3/2/1-up) */
+      var viewport = track.parentElement;
+      if (viewport) { viewport.style.overflow = 'hidden'; viewport.style.minWidth = '0'; viewport.style.maxWidth = '100%'; viewport.style.width = '100%'; }
+      track.classList.add('cedar-vo-track');                  /* one full-width card per view — see CSS */
       var GAP = 16, idx = 0;
-      function perView() { return window.innerWidth <= 767 ? 1 : (window.innerWidth <= 991 ? 2 : 3); }
       function go(n) {
-        var maxIdx = Math.max(0, cards.length - perView());
-        idx = Math.max(0, Math.min(maxIdx, n));
+        idx = Math.max(0, Math.min(cards.length - 1, n));
         var w = cards[0].getBoundingClientRect().width + GAP;
         track.style.transform = 'translateX(' + (-idx * w) + 'px)';
       }
