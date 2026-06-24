@@ -1,7 +1,8 @@
 /* Cedar Creative — experience layer
- * v1.1.3 · built by Origin · loaded site-wide from the page <head>
+ * v1.2.0 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home) · about accordion
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
+ *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -65,6 +66,8 @@
     '.cedar-bg .caption,.cedar-bg .body-sm{color:#f4f4f2;}',
     /* accordion */
     '.acc-body{overflow:hidden;}',
+    /* line draw-in: SVG overlay sits on the host edge, line strokes in */
+    '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
     /* reduced motion: kill transitions */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play{transition:none!important;}}'
   ].join('');
@@ -434,6 +437,116 @@
         if (openItem) { var ob = openItem.querySelector('.acc-body'); if (ob) { ob.style.height = ob.scrollHeight + 'px'; ob.offsetHeight; setH(ob, false); } }
         if (!isOpen) { setH(b, true); openItem = it; } else { openItem = null; }
       });
+    });
+  });
+
+  /* =========================================================
+   * 6. LINE DRAW-IN — site-wide hairline rules become stroked SVGs
+   *    that draw on scroll-in: horizontal left→right, vertical top→down.
+   *    Reads each rule's COMPUTED border (color/width auto-match), hides
+   *    the CSS border (keeps its 1px for layout), overlays an inline SVG.
+   *    Reduced-motion: no-ops — original borders stay static + visible.
+   * ======================================================= */
+  onReady(function () {
+    if (RM) return;
+    var SVGNS = 'http://www.w3.org/2000/svg';
+    /* class → lined edge(s); orientation derives from the edge */
+    var MAP = {
+      'value-col': ['top'], 'acc-item': ['top'], 'fs-acc': ['bottom'],
+      'flex-block': ['top'], 'service-item': ['bottom'],
+      'fs-left': ['left', 'right'], 'gib-left': ['left', 'right'], 'gib-right': ['right'],
+      'split-row': ['left'], 'more-projects': ['left'], 'bts-controls': ['left']
+    };
+    var seen = [], hosts = [];
+    function addHost(elm, edges) {
+      var i = seen.indexOf(elm);
+      if (i === -1) { seen.push(elm); hosts.push({ el: elm, edges: edges.slice() }); }
+      else { var h = hosts[i]; edges.forEach(function (e) { if (h.edges.indexOf(e) === -1) h.edges.push(e); }); }
+    }
+    Object.keys(MAP).forEach(function (cls) {
+      document.querySelectorAll('.' + cls).forEach(function (elm) { addHost(elm, MAP[cls]); });
+    });
+    document.querySelectorAll('[data-line], .cedar-line').forEach(function (elm) {     /* future-proof opt-in */
+      var v = (elm.getAttribute('data-line') || 'top').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      addHost(elm, v);
+    });
+    if (!hosts.length) return;
+
+    function cap(e) { return e.charAt(0).toUpperCase() + e.slice(1); }
+    function colorOf(cs, e) { return cs['border' + cap(e) + 'Color']; }
+    function widthOf(cs, e) { return parseFloat(cs['border' + cap(e) + 'Width']) || 0; }
+    function isTransparent(c) { return !c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)'; }
+    function isV(e) { return e === 'left' || e === 'right'; }
+
+    var built = [];
+    hosts.forEach(function (h) {
+      var elm = h.el, cs = getComputedStyle(elm);
+      var edges = h.edges.filter(function (e) { return widthOf(cs, e) > 0 && !isTransparent(colorOf(cs, e)); });
+      if (!edges.length) return;                          /* no real line at this breakpoint */
+      if (cs.position === 'static') elm.style.position = 'relative';
+      var svg = document.createElementNS(SVGNS, 'svg');
+      svg.setAttribute('class', 'cedar-line-svg');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      var lines = [];
+      edges.forEach(function (e) {
+        var ln = document.createElementNS(SVGNS, 'line');
+        ln.setAttribute('vector-effect', 'non-scaling-stroke');
+        ln.setAttribute('stroke', colorOf(cs, e));
+        ln.setAttribute('stroke-width', String(widthOf(cs, e)));
+        svg.appendChild(ln); lines.push({ el: ln, edge: e });
+        elm.style['border' + cap(e) + 'Color'] = 'transparent';   /* hide CSS line, keep 1px layout */
+      });
+      elm.appendChild(svg);
+      var rec = { host: elm, svg: svg, lines: lines, drawn: false };
+      built.push(rec); geom(rec);
+    });
+    if (!built.length) return;
+
+    function geom(rec) {
+      var w = rec.host.clientWidth, hgt = rec.host.clientHeight;
+      rec.svg.setAttribute('viewBox', '0 0 ' + w + ' ' + hgt);
+      rec.lines.forEach(function (L) {
+        var x1, y1, x2, y2;
+        if (L.edge === 'top') { x1 = 0; y1 = 0; x2 = w; y2 = 0; }
+        else if (L.edge === 'bottom') { x1 = 0; y1 = hgt; x2 = w; y2 = hgt; }
+        else if (L.edge === 'left') { x1 = 0; y1 = 0; x2 = 0; y2 = hgt; }   /* y1=0 → draws top→down */
+        else { x1 = w; y1 = 0; x2 = w; y2 = hgt; }
+        L.el.setAttribute('x1', x1); L.el.setAttribute('y1', y1);
+        L.el.setAttribute('x2', x2); L.el.setAttribute('y2', y2);
+        L.len = isV(L.edge) ? hgt : w;                    /* H: x1=0 → draws left→right */
+        L.el.style.strokeDasharray = L.len;
+        L.el.style.transition = 'none';
+        L.el.style.strokeDashoffset = rec.drawn ? '0' : L.len;
+      });
+    }
+    function draw(rec, delay) {
+      if (rec.drawn) return; rec.drawn = true;
+      rec.lines.forEach(function (L) {
+        L.el.style.transition = 'stroke-dashoffset .6s ' + EASE + ' ' + delay + 'ms';
+        requestAnimationFrame(function () { L.el.style.strokeDashoffset = '0'; });
+      });
+    }
+    function recFor(node) { for (var i = 0; i < built.length; i++) if (built[i].host === node) return built[i]; return null; }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        var k = 0;
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          var rec = recFor(en.target); if (!rec || rec.drawn) return;
+          draw(rec, (k++) * 80);                          /* stagger rules revealing together */
+          io.unobserve(en.target);
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+      built.forEach(function (rec) { io.observe(rec.host); });
+    } else {
+      built.forEach(function (rec) { draw(rec, 0); });
+    }
+
+    var rt;
+    window.addEventListener('resize', function () {
+      clearTimeout(rt);
+      rt = setTimeout(function () { built.forEach(geom); }, 150);   /* lengths are layout-dependent */
     });
   });
 })();
