@@ -1,6 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.2.0 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home) · about accordion
+ * v1.3.0 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven) · about accordion
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  * Every module is page-aware and honors prefers-reduced-motion.
@@ -203,36 +203,45 @@
   });
 
   /* =========================================================
-   * 3. WORK-GRID HOVER VIDEO (Home) — config by card order
+   * 3. WORK-GRID HOVER VIDEO (Home) — CMS-driven (per-card data-vimeo-url + bound .card-label text)
+   *    No hardcoded card list: clip comes from each card's data-vimeo-url (bind to the
+   *    Works `thumbnail-clip` field in Designer); overlay title/desc come from the card's
+   *    own CMS-bound .card-label. Add/remove/reorder Works items freely — it stays in sync.
    * ======================================================= */
-  var CARDS = [
-    { t: 'Loss for Words', d: 'How do you put a place like Samford University into words? The university commissioned Cedar to explore that feeling.', v: '1119587661', h: 'c79197ce43' },
-    { t: 'Little Light', d: 'A glimpse into the incredible work that takes place at Children’s Hospital of Alabama around the clock.', v: '1011036305', h: '' },
-    { t: 'City Hardwoods', d: 'Follow the process of making a custom table while hearing the history of the maker, John Graves.', v: '687208192', h: '0ec4e2aea0' },
-    { t: 'Apply Boldly', d: 'A campaign for Samford University that dares prospective students to take the leap.', v: '1010453013', h: 'd1c2726c7a' },
-    { t: 'Shine Alabama', d: 'A piece to help Alabama communicate, remember, and memorialize the loss experienced across the state in 2020.', v: '687200430', h: 'b17b6873bf' },
-    { t: 'Nelson Brothers', d: 'A brand anthem for Nelson Brothers, told through the people who build it every day.', v: '797411531', h: '02f843f906' }
-  ];
+  function vimeoEmbed(url) {
+    if (!url) return null;
+    var id = (url.match(/vimeo\.com\/(?:video\/)?(\d+)/i) || [])[1];
+    if (!id) return null;
+    var h = (url.match(/[?&]h=([0-9a-z]+)/i) || [])[1] ||
+            (url.match(/vimeo\.com\/(?:video\/)?\d+\/([0-9a-z]+)/i) || [])[1] || '';
+    return 'https://player.vimeo.com/video/' + id + '?' + (h ? 'h=' + h + '&' : '') +
+           'background=1&autoplay=1&muted=1&loop=1&autopause=0';
+  }
   onReady(function () {
     var path = location.pathname.replace(/\/$/, '') || '/';
     if (path !== '/') return;
     var cards = document.querySelectorAll('.work-grid .work-card');
     if (!cards.length || TOUCH) return; /* mobile: tap navigates, no preview */
-    cards.forEach(function (card, i) {
-      var cfg = CARDS[i];
-      if (!cfg) return;
-      var meta = el('div', 'cedar-card-meta', '<p class="ccm-t">' + cfg.t + '</p><p class="ccm-d">' + cfg.d + '</p>');
+    cards.forEach(function (card) {
+      var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
+      var labels = card.querySelectorAll('.card-label .caption');
+      var t = labels[0] ? labels[0].textContent.trim() : '';
+      var d = labels[1] ? labels[1].textContent.trim() : '';
+      if (!t && !src) return;                         /* nothing to overlay or play */
+      var meta = el('div', 'cedar-card-meta', '');     /* CMS text → textContent (XSS-safe) */
+      if (t) { var pt = el('p', 'ccm-t', ''); pt.textContent = t; meta.appendChild(pt); }
+      if (d) { var pd = el('p', 'ccm-d', ''); pd.textContent = d; meta.appendChild(pd); }
       card.appendChild(meta);
       var iframe = null, leaveTimer = null;
       card.addEventListener('mouseenter', function () {
         clearTimeout(leaveTimer);
-        if (RM) { card.classList.add('cedar-hover'); return; } /* overlay only */
+        if (RM || !src) { card.classList.add('cedar-hover'); return; } /* overlay only (or no clip yet) */
         if (!iframe) {
           iframe = document.createElement('iframe');
           iframe.className = 'cedar-card-video';
           iframe.allow = 'autoplay';
-          iframe.title = cfg.t + ' preview';
-          iframe.src = 'https://player.vimeo.com/video/' + cfg.v + '?' + (cfg.h ? 'h=' + cfg.h + '&' : '') + 'background=1&autoplay=1&muted=1&loop=1&autopause=0';
+          iframe.title = t + ' preview';
+          iframe.src = src;
           var label = card.querySelector('.card-label');
           card.insertBefore(iframe, meta);
           if (label) label.style.zIndex = 3;
