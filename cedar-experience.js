@@ -1,8 +1,9 @@
 /* Cedar Creative — experience layer
- * v1.3.0 · built by Origin · loaded site-wide from the page <head>
+ * v1.4.0 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven) · about accordion
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
+ *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -68,8 +69,20 @@
     '.acc-body{overflow:hidden;}',
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
     '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
-    /* reduced motion: kill transitions */
-    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play{transition:none!important;}}'
+    /* nav: transparent by default, blur veil fades in on hover/focus (links flip light) */
+    '.navbar{transition:background-color .4s ' + EASE + ',backdrop-filter .4s ' + EASE + ';}',
+    '.navbar:hover,.navbar:focus-within{background-color:rgba(41,52,26,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}',
+    '.navbar:hover .nav-link,.navbar:focus-within .nav-link{color:#f4f4f2;}',
+    /* section reveals — JS adds .cedar-reveal (so no-JS shows everything) */
+    '.cedar-reveal{opacity:0;transform:translateY(44px);will-change:opacity,transform;}',
+    '.cedar-reveal.cedar-in{opacity:1;transform:none;transition:opacity .8s ' + EASE + ',transform .8s ' + EASE + ';}',
+    /* logo marquee */
+    '.cedar-marquee{overflow:hidden;width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);}',
+    '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
+    '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
+    '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
+    /* reduced motion: kill transitions + reveals + marquee */
+    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
   var styleEl = document.createElement('style');
   styleEl.id = 'cedar-experience-css';
@@ -224,9 +237,13 @@
     if (!cards.length || TOUCH) return; /* mobile: tap navigates, no preview */
     cards.forEach(function (card) {
       var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
-      var labels = card.querySelectorAll('.card-label .caption');
-      var t = labels[0] ? labels[0].textContent.trim() : '';
-      var d = labels[1] ? labels[1].textContent.trim() : '';
+      var t = (card.getAttribute('data-title') || '').trim();   /* CMS via data-attr (preferred) ... */
+      var d = (card.getAttribute('data-desc') || '').trim();
+      if (!t || !d) {                                            /* ... or via bound .card-label captions */
+        var labels = card.querySelectorAll('.card-label .caption');
+        if (!t && labels[0]) t = labels[0].textContent.trim();
+        if (!d && labels[1]) d = labels[1].textContent.trim();
+      }
       if (!t && !src) return;                         /* nothing to overlay or play */
       var meta = el('div', 'cedar-card-meta', '');     /* CMS text → textContent (XSS-safe) */
       if (t) { var pt = el('p', 'ccm-t', ''); pt.textContent = t; meta.appendChild(pt); }
@@ -556,6 +573,69 @@
     window.addEventListener('resize', function () {
       clearTimeout(rt);
       rt = setTimeout(function () { built.forEach(geom); }, 150);   /* lengths are layout-dependent */
+    });
+  });
+
+  /* =========================================================
+   * 7. SECTION REVEALS — fade + rise as elements enter view
+   *    JS applies the pre-hidden class, so with no JS everything
+   *    is visible. Above-the-fold reveals on load; the rest on
+   *    scroll-in with a light stagger. Reduced motion: skipped.
+   * ======================================================= */
+  onReady(function () {
+    if (RM) return;
+    var SEL = '.hero-statement,.heading-1,.heading-2,.display-title,.intro-lead,' +
+              '.post-card,.work-card,.value-col,.photo-band,.gib-left,.gib-right,' +
+              '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack';
+    var nodes = [].slice.call(document.querySelectorAll(SEL)).filter(function (n) {
+      return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee'); /* never hide chrome/logos */
+    });
+    if (!nodes.length) return;
+    nodes.forEach(function (n) { n.classList.add('cedar-reveal'); });
+    function show(n, d) {
+      if (n.classList.contains('cedar-in')) return;
+      n.style.transitionDelay = (d || 0) + 'ms';
+      n.classList.add('cedar-in');
+    }
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        var k = 0;
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          show(en.target, (k++) * 90);                 /* stagger items entering together */
+          io.unobserve(en.target);
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+      nodes.forEach(function (n) {
+        var r = n.getBoundingClientRect();
+        if (r.top < vh * 0.9) show(n, 0);              /* already in view -> reveal on load */
+        else io.observe(n);
+      });
+      setTimeout(function () { nodes.forEach(function (n) { show(n, 0); }); }, 4500); /* safety: never stay hidden */
+    } else {
+      nodes.forEach(function (n) { show(n, 0); });
+    }
+  });
+
+  /* =========================================================
+   * 8. LOGO MARQUEE — partner-logos auto-scroll, seamless loop
+   *    Moves the slots into a flex track, clones the set once,
+   *    CSS animates -50%. Pause on hover; reduced motion = static.
+   * ======================================================= */
+  onReady(function () {
+    document.querySelectorAll('.partner-logos').forEach(function (row) {
+      if (row.classList.contains('cedar-marquee')) return;
+      var slots = [].slice.call(row.children);
+      if (slots.length < 2) return;
+      var track = el('div', 'cedar-marquee-track', '');
+      var cs = getComputedStyle(row);
+      track.style.gap = (cs.columnGap && cs.columnGap !== 'normal') ? cs.columnGap : '64px';
+      slots.forEach(function (s) { track.appendChild(s); });
+      var clone = track.cloneNode(true);                /* second identical set -> seamless -50% */
+      [].slice.call(clone.children).forEach(function (c) { c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
+      row.classList.add('cedar-marquee');
+      row.appendChild(track);
     });
   });
 })();
