@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.4.1 · built by Origin · loaded site-wide from the page <head>
+ * v1.4.2 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -484,7 +484,7 @@
     var SVGNS = 'http://www.w3.org/2000/svg';
     /* class → lined edge(s); orientation derives from the edge */
     var MAP = {
-      'value-col': ['top'], 'acc-item': ['top'], 'fs-acc': ['bottom'],
+      'value-col': ['top'], 'acc-item': ['top'], 'fs-acc': ['bottom', 'left'],
       'flex-block': ['top'], 'service-item': ['bottom'],
       'fs-left': ['left', 'right'], 'gib-left': ['left', 'right'], 'gib-right': ['right'],
       'split-row': ['left'], 'more-projects': ['left'], 'bts-controls': ['left']
@@ -554,13 +554,14 @@
     function draw(rec, delay) {
       if (rec.drawn) return; rec.drawn = true;
       rec.lines.forEach(function (L) {
-        L.el.style.transition = 'stroke-dashoffset .6s ' + EASE + ' ' + delay + 'ms';
+        L.el.style.transition = 'stroke-dashoffset 1.1s ' + EASE + ' ' + delay + 'ms';
         requestAnimationFrame(function () { L.el.style.strokeDashoffset = '0'; });
       });
     }
     function recFor(node) { for (var i = 0; i < built.length; i++) if (built[i].host === node) return built[i]; return null; }
 
     afterLoader(function () {                              /* don't draw behind the loader overlay */
+      built.forEach(geom);                                /* refresh lengths post-layout (heights settle after reveals) */
       if ('IntersectionObserver' in window) {
         var io = new IntersectionObserver(function (entries) {
           var k = 0;
