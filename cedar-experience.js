@@ -1,9 +1,10 @@
 /* Cedar Creative — experience layer
- * v1.4.0 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven) · about accordion
+ * v1.4.1 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
+ * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
 (function () {
@@ -25,8 +26,8 @@
     '#cedar-loader .cl-stage{flex:1;width:100%;max-width:560px;min-height:0;}',
     '#cedar-loader canvas{display:block;width:100%;height:100%;}',
     /* work-grid hover */
-    '.work-card{position:relative;}',
-    '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
+    '.work-card{position:relative;overflow:hidden;}',
+    '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
     '.cedar-card-meta{position:absolute;left:16px;bottom:16px;right:16px;z-index:2;opacity:0;transform:translateY(8px);transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + ';pointer-events:none;color:#f4f4f2;text-shadow:0 1px 14px rgba(0,0,0,.35);}',
     '.cedar-card-meta .ccm-t{font-size:17px;font-weight:500;margin:0 0 4px;}',
     '.cedar-card-meta .ccm-d{font-size:12px;line-height:1.4;margin:0;max-width:340px;}',
@@ -65,8 +66,17 @@
     '.cedar-vo-track .project-preview *{max-width:100%;min-width:0;}',   /* cap fixed-width inner card so it fits one-up */
     /* /post dark-green page (.cedar-bg) — lift body text off the green */
     '.cedar-bg .caption,.cedar-bg .body-sm{color:#f4f4f2;}',
-    /* accordion */
-    '.acc-body{overflow:hidden;}',
+    /* accordion — smooth grid-rows reveal + animated +/- icon (scoped to .cedar-acc-init so no-JS shows all open) */
+    '.acc-head{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;}',
+    '.acc-ico{position:relative;width:13px;height:13px;flex:0 0 auto;}',
+    '.acc-ico::before,.acc-ico::after{content:"";position:absolute;background:currentColor;transition:transform .4s ' + EASE + ';}',
+    '.acc-ico::before{top:50%;left:0;width:100%;height:1.5px;transform:translateY(-50%);}',
+    '.acc-ico::after{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%);}',
+    '.cedar-acc-init .acc-item.cedar-open .acc-ico::after{transform:translateX(-50%) scaleY(0);}',  /* + -> - */
+    '.cedar-acc-init .acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .55s ' + EASE + ';}',
+    '.cedar-acc-init .acc-item.cedar-open .acc-body{grid-template-rows:1fr;}',
+    '.cedar-acc-init .acc-body > .acc-inner{overflow:hidden;min-height:0;opacity:0;transition:opacity .45s ' + EASE + ';}',
+    '.cedar-acc-init .acc-item.cedar-open .acc-body > .acc-inner{opacity:1;}',
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
     '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
     /* nav: transparent by default, blur veil fades in on hover/focus (links flip light) */
@@ -82,7 +92,7 @@
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
     /* reduced motion: kill transitions + reveals + marquee */
-    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
+    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
   var styleEl = document.createElement('style');
   styleEl.id = 'cedar-experience-css';
@@ -98,6 +108,15 @@
     if (cls) n.className = cls;
     if (html != null) n.innerHTML = html;
     return n;
+  }
+  /* run fn once the site loader has lifted, so above-the-fold motion isn't spent
+     behind the overlay (IntersectionObserver counts viewport intersection, not
+     visual occlusion). Fires immediately if the loader is already gone / never shows. */
+  function afterLoader(fn) {
+    if (window.__cedarReady) { fn(); return; }
+    var ran = false, go = function () { if (ran) return; ran = true; fn(); };
+    document.addEventListener('cedar:ready', go, { once: true });
+    setTimeout(go, 8000); /* safety: loader hard-caps ~7s; never strand motion */
   }
 
   /* =========================================================
@@ -177,6 +196,8 @@
       var wait = Math.max(0, LOADER_MIN - (Date.now() - t0));
       setTimeout(function () {
         loader.classList.add('is-done');
+        window.__cedarReady = true;                                   /* release gated scroll motion */
+        document.dispatchEvent(new CustomEvent('cedar:ready'));
         setTimeout(function () { if (spin) cancelAnimationFrame(spin); loader.remove(); }, 700);
       }, wait);
     }
@@ -421,47 +442,32 @@
   });
 
   /* =========================================================
-   * 5. ABOUT ACCORDION — height-animated open/close
-   * (supersedes the cedaraccordion inline script)
+   * 5. ABOUT / SUITE-SPECS ACCORDION — smooth grid-rows open/close
+   *    + animated +/- icon. JS sets .cedar-acc-init so that WITHOUT
+   *    JS every panel stays open (no hidden content). Replaces the
+   *    height-animated version that jittered against Lenis reflow.
    * ======================================================= */
   onReady(function () {
     var items = document.querySelectorAll('.acc-item');
     if (!items.length) return;
-    function setH(b, open, instant) {
-      b.style.display = 'flex';
-      var target = open ? b.scrollHeight : 0;
-      if (instant || RM) {
-        b.style.transition = 'none';
-        b.style.height = open ? 'auto' : '0px';
-        b.style.opacity = open ? '1' : '0';
-        if (!open) b.style.display = 'none';
-        return;
-      }
-      b.style.transition = 'height .6s ' + EASE + ', opacity .6s ' + EASE;
-      b.style.height = b.style.height || '0px';
-      requestAnimationFrame(function () {
-        b.style.height = target + 'px';
-        b.style.opacity = open ? '1' : '0';
-      });
-      b.addEventListener('transitionend', function te(e) {
-        if (e.propertyName !== 'height') return;
-        b.removeEventListener('transitionend', te);
-        if (open) b.style.height = 'auto';
-        else b.style.display = 'none';
-      });
-    }
-    var openItem = items[0];
+    document.documentElement.classList.add('cedar-acc-init');
+    var open = null;
     items.forEach(function (it, i) {
-      var b = it.querySelector('.acc-body');
-      if (!b) return;
-      b.style.rowGap = '';
-      setH(b, i === 0, true);
-      var h = it.querySelector('.acc-head');
-      if (!h) return;
-      h.addEventListener('click', function () {
-        var isOpen = it === openItem;
-        if (openItem) { var ob = openItem.querySelector('.acc-body'); if (ob) { ob.style.height = ob.scrollHeight + 'px'; ob.offsetHeight; setH(ob, false); } }
-        if (!isOpen) { setH(b, true); openItem = it; } else { openItem = null; }
+      var head = it.querySelector('.acc-head');
+      var body = it.querySelector('.acc-body');
+      if (!head || !body) return;
+      if (!body.querySelector('.acc-inner')) {          /* one collapsible child for the grid-rows transition */
+        var inner = el('div', 'acc-inner', '');
+        while (body.firstChild) inner.appendChild(body.firstChild);
+        body.appendChild(inner);
+      }
+      if (!head.querySelector('.acc-ico')) head.appendChild(el('span', 'acc-ico', ''));
+      if (i === 0) { it.classList.add('cedar-open'); open = it; } /* first panel open */
+      head.addEventListener('click', function () {
+        var isOpen = it.classList.contains('cedar-open');
+        if (open && open !== it) open.classList.remove('cedar-open');
+        if (isOpen) { it.classList.remove('cedar-open'); open = null; }
+        else { it.classList.add('cedar-open'); open = it; }
       });
     });
   });
@@ -554,20 +560,22 @@
     }
     function recFor(node) { for (var i = 0; i < built.length; i++) if (built[i].host === node) return built[i]; return null; }
 
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (entries) {
-        var k = 0;
-        entries.forEach(function (en) {
-          if (!en.isIntersecting) return;
-          var rec = recFor(en.target); if (!rec || rec.drawn) return;
-          draw(rec, (k++) * 80);                          /* stagger rules revealing together */
-          io.unobserve(en.target);
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-      built.forEach(function (rec) { io.observe(rec.host); });
-    } else {
-      built.forEach(function (rec) { draw(rec, 0); });
-    }
+    afterLoader(function () {                              /* don't draw behind the loader overlay */
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          var k = 0;
+          entries.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            var rec = recFor(en.target); if (!rec || rec.drawn) return;
+            draw(rec, (k++) * 80);                        /* stagger rules revealing together */
+            io.unobserve(en.target);
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+        built.forEach(function (rec) { io.observe(rec.host); });
+      } else {
+        built.forEach(function (rec) { draw(rec, 0); });
+      }
+    });
 
     var rt;
     window.addEventListener('resize', function () {
@@ -597,25 +605,27 @@
       n.style.transitionDelay = (d || 0) + 'ms';
       n.classList.add('cedar-in');
     }
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (entries) {
-        var k = 0;
-        entries.forEach(function (en) {
-          if (!en.isIntersecting) return;
-          show(en.target, (k++) * 90);                 /* stagger items entering together */
-          io.unobserve(en.target);
+    afterLoader(function () {                            /* reveal only after the loader lifts */
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          var k = 0;
+          entries.forEach(function (en) {
+            if (!en.isIntersecting) return;
+            show(en.target, (k++) * 90);               /* stagger items entering together */
+            io.unobserve(en.target);
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+        nodes.forEach(function (n) {
+          var r = n.getBoundingClientRect();
+          if (r.top < vh * 0.9) show(n, 0);            /* already in view -> reveal as loader lifts */
+          else io.observe(n);
         });
-      }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
-      nodes.forEach(function (n) {
-        var r = n.getBoundingClientRect();
-        if (r.top < vh * 0.9) show(n, 0);              /* already in view -> reveal on load */
-        else io.observe(n);
-      });
-      setTimeout(function () { nodes.forEach(function (n) { show(n, 0); }); }, 4500); /* safety: never stay hidden */
-    } else {
-      nodes.forEach(function (n) { show(n, 0); });
-    }
+        setTimeout(function () { nodes.forEach(function (n) { show(n, 0); }); }, 4500); /* safety */
+      } else {
+        nodes.forEach(function (n) { show(n, 0); });
+      }
+    });
   });
 
   /* =========================================================
