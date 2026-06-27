@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.4.3 · built by Origin · loaded site-wide from the page <head>
+ * v1.4.4 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -606,27 +606,27 @@
       n.style.transitionDelay = (d || 0) + 'ms';
       n.classList.add('cedar-in');
     }
-    afterLoader(function () {                            /* reveal only after the loader lifts */
-      var vh = window.innerHeight || document.documentElement.clientHeight;
-      if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (entries) {
-          var k = 0;
-          entries.forEach(function (en) {
-            if (!en.isIntersecting) return;
-            show(en.target, (k++) * 90);               /* stagger items entering together */
-            io.unobserve(en.target);
-          });
-        }, { threshold: 0.12, rootMargin: '0px 0px -12% 0px' });
-        nodes.forEach(function (n) {
-          var r = n.getBoundingClientRect();
-          if (r.top < vh && r.bottom > 0) show(n, 0);  /* genuinely in view now -> reveal; everything else waits for scroll */
-          else io.observe(n);
-        });
-        /* no blanket timeout sweep — it revealed below-fold sections before the user scrolled to them.
-           No-JS safety is already covered: the hidden state is added by JS, so without JS all content shows. */
-      } else {
-        nodes.forEach(function (n) { show(n, 0); });
+    /* Scroll-position driven (not one-shot IO): an element reveals once its top crosses
+       85% of the viewport — i.e. as it scrolls into view from the bottom. Anything already
+       above that line (incl. scrolled-past on a fast flick) reveals too, so nothing is ever
+       stranded hidden. No time sweep, so below-fold sections never animate before you reach them. */
+    afterLoader(function () {
+      var pending = nodes.slice(), ticking = false;
+      function sweep() {
+        ticking = false;
+        var line = (window.innerHeight || document.documentElement.clientHeight) * 0.85;
+        var batch = 0, any = false;
+        for (var i = 0; i < pending.length; i++) {
+          var n = pending[i]; if (!n) continue;
+          if (n.getBoundingClientRect().top < line) { show(n, (batch++) * 90); pending[i] = null; any = true; }
+        }
+        if (any) pending = pending.filter(Boolean);
+        if (!pending.length) { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); }
       }
+      function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(sweep); } }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      sweep();                                           /* reveal whatever is already in view on load */
     });
   });
 
