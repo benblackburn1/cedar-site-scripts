@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.4.2 · built by Origin · loaded site-wide from the page <head>
+ * v1.4.3 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -616,13 +616,14 @@
             show(en.target, (k++) * 90);               /* stagger items entering together */
             io.unobserve(en.target);
           });
-        }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+        }, { threshold: 0.12, rootMargin: '0px 0px -12% 0px' });
         nodes.forEach(function (n) {
           var r = n.getBoundingClientRect();
-          if (r.top < vh * 0.9) show(n, 0);            /* already in view -> reveal as loader lifts */
+          if (r.top < vh && r.bottom > 0) show(n, 0);  /* genuinely in view now -> reveal; everything else waits for scroll */
           else io.observe(n);
         });
-        setTimeout(function () { nodes.forEach(function (n) { show(n, 0); }); }, 4500); /* safety */
+        /* no blanket timeout sweep — it revealed below-fold sections before the user scrolled to them.
+           No-JS safety is already covered: the hidden state is added by JS, so without JS all content shows. */
       } else {
         nodes.forEach(function (n) { show(n, 0); });
       }
