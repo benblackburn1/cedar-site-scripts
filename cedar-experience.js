@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.4.7 · built by Origin · loaded site-wide from the page <head>
+ * v1.4.8 · built by Origin · loaded site-wide from the page <head>
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover (Home, CMS-driven; fixed-iframe video, smooth) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -64,8 +64,6 @@
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
     '.cedar-vo-track .project-preview *{max-width:100%;min-width:0;}',   /* cap fixed-width inner card so it fits one-up */
-    /* /post dark-green page (.cedar-bg) — lift body text off the green */
-    '.cedar-bg .caption,.cedar-bg .body-sm{color:#f4f4f2;}',
     /* accordion — smooth grid-rows reveal + animated +/- icon (scoped to .cedar-acc-init so no-JS shows all open) */
     '.acc-head{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;}',
     '.acc-ico{position:relative;width:13px;height:13px;flex:0 0 auto;}',
