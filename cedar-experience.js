@@ -1,6 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.4.8 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover (Home, CMS-driven; fixed-iframe video, smooth) · accordion (grid-rows + animated +/- icon)
+ * v1.4.9 · built by Origin · loaded site-wide (footer)
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover (Home; label reveal, black-backed clip, debounced hover, in-row reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
@@ -29,8 +29,9 @@
     '.work-card{position:relative;overflow:hidden;}',
     '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
     '.work-card.cedar-hover .cedar-card-video{opacity:1;}',
-    /* hover video layer: fixed, oversized, centered → the card clips it, so it never reflows while the width animates */
-    '.cedar-cardvid{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;opacity:0;transition:opacity .55s ' + EASE + ';pointer-events:none;}',
+    /* hover clip layer: black fill backs a fixed, oversized, centered iframe (clipped by the card) so letterboxed / non-covering films get a clean black backdrop; never reflows while the card width animates */
+    '.cedar-cardvid{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .55s ' + EASE + ';pointer-events:none;overflow:hidden;}',
+    '.cedar-cardvid iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;background:#000;}',
     '.work-card.cedar-hover .cedar-cardvid{opacity:1;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
@@ -258,13 +259,18 @@
     if (path !== '/' || RM || TOUCH) return;          /* desktop + motion only */
     var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
     if (cards.length < 2) return;
-    var container = cards[0].parentElement;
     var TRANS = 'flex-basis .55s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
     var rest = [];
     function baseline() {                              /* lock each card to its natural px width so flex-basis can animate cleanly (no snap from grow) */
       cards.forEach(function (c) { c.style.transition = 'none'; c.style.flex = ''; });
       rest = cards.map(function (c) { return c.getBoundingClientRect().width; });
-      cards.forEach(function (c, i) { c.style.boxSizing = 'border-box'; c.style.flex = '0 0 ' + Math.round(rest[i]) + 'px'; });
+      cards.forEach(function (c, i) {
+        c.style.boxSizing = 'border-box';
+        c.style.minWidth = '0';                       /* let it shrink to the basis so row-mates resize in place, never wrap to the next row */
+        c.style.flex = '0 0 ' + Math.round(rest[i]) + 'px';
+        var lb = c.querySelector('.card-label');       /* reveal the CMS-bound title/situation on hover (your Webflow styling, just toggled visible) */
+        if (lb) { lb.classList.remove('hidden'); lb.style.opacity = '0'; lb.style.pointerEvents = 'none'; lb.style.zIndex = '4'; lb.style.transition = 'opacity .5s ' + EASE; }
+      });
       requestAnimationFrame(function () { cards.forEach(function (c) { c.style.transition = TRANS; }); });
     }
     baseline();
@@ -279,7 +285,7 @@
       var avail = row.reduce(function (s, c) { return s + rest[cards.indexOf(c)]; }, 0);
       var floors = row.reduce(function (s, c) { return s + (c === card ? 0 : Math.round(rest[cards.indexOf(c)] * 0.5)); }, 0);
       var target = Math.round(Math.max(restW, Math.min(h * 16 / 9, avail - floors)));
-      var factor = (avail - target) / ((avail - restW) || 1);   /* shrink each row-mate proportionally to its own width */
+      var factor = (avail - target) / ((avail - restW) || 1);   /* shrink each row-mate proportionally to its own width — sum stays constant so nothing wraps */
       row.forEach(function (c) {
         c.style.flex = '0 0 ' + (c === card ? target : Math.round(rest[cards.indexOf(c)] * factor)) + 'px';
       });
@@ -289,20 +295,44 @@
       if ('_cv' in card) return;
       var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
       if (!src) { card._cv = null; return; }
+      card._src = src;
       var h = card.getBoundingClientRect().height || 600;
+      var wrap = document.createElement('div'); wrap.className = 'cedar-cardvid';
       var f = document.createElement('iframe');
-      f.className = 'cedar-cardvid'; f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
-      f.style.width = (Math.ceil(h * 16 / 9) + 4) + 'px'; f.style.height = h + 'px'; f.src = src;
-      var ov = card.querySelector('.overlay');
-      if (ov) card.insertBefore(f, ov); else card.appendChild(f);
-      card._cv = f;
+      f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+      f.style.width = (Math.ceil(h * 16 / 9) + 4) + 'px'; f.style.height = h + 'px';   /* src set on hover (restarts each time) */
+      wrap.appendChild(f);
+      var anchor = card.querySelector('.card-label') || card.querySelector('.overlay');
+      if (anchor) card.insertBefore(wrap, anchor); else card.appendChild(wrap);
+      card._cv = wrap;
+    }
+    function playVid(card) { if (card && card._cv) { var f = card._cv.querySelector('iframe'); if (f && card._src) f.src = card._src; } }  /* (re)load → restarts from 0 each hover */
+    function stopVid(card) { if (card && card._cv) { var f = card._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; } }             /* stop playback off-hover (no continuous loop) */
+    function label(card, on) { var l = card && card.querySelector('.card-label'); if (l) l.style.opacity = on ? '1' : '0'; }
+    /* single active card + debounced hover (intent-in, settle-out) so the moving edges can't ping-pong expand/collapse */
+    var active = null, enterT, leaveT;
+    function setActive(card) {
+      if (active === card) return;
+      if (active) { active.classList.remove('cedar-hover'); label(active, false); stopVid(active); }
+      active = card;
+      collapse();
+      if (card) { mountVideo(card); card.classList.add('cedar-hover'); label(card, true); playVid(card); expand(card); }
     }
     cards.forEach(function (card) {
-      card.addEventListener('mouseenter', function () { mountVideo(card); card.classList.add('cedar-hover'); expand(card); });
-      card.addEventListener('mouseleave', function () { card.classList.remove('cedar-hover'); collapse(); });
+      card.addEventListener('mouseenter', function () {
+        clearTimeout(leaveT);
+        if (active === card) return;                  /* already active: ignore re-entries */
+        clearTimeout(enterT);
+        enterT = setTimeout(function () { setActive(card); }, 80);    /* hover intent before it grows */
+      });
+      card.addEventListener('mouseleave', function () {
+        clearTimeout(enterT);                          /* cancel a pending grow */
+        clearTimeout(leaveT);
+        leaveT = setTimeout(function () { setActive(null); }, 130);   /* settle before collapsing */
+      });
     });
     var rz;
-    window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!container.querySelector('.cedar-hover')) baseline(); }, 160); });
+    window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!active) baseline(); }, 160); });
   });
 
   /* =========================================================
