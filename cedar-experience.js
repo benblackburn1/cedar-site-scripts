@@ -1,6 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.4.6 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-card Vimeo embed builder (Home, CMS-driven, lazy; hover/animation native) · accordion (grid-rows + animated +/- icon)
+ * v1.4.7 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover (Home, CMS-driven; fixed-iframe video, smooth) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
@@ -28,10 +28,10 @@
     /* work-grid hover */
     '.work-card{position:relative;overflow:hidden;}',
     '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
-    '.cedar-card-meta{position:absolute;left:16px;bottom:16px;right:16px;z-index:2;opacity:0;transform:translateY(8px);transition:opacity .6s ' + EASE + ',transform .6s ' + EASE + ';pointer-events:none;color:#f4f4f2;text-shadow:0 1px 14px rgba(0,0,0,.35);}',
-    '.cedar-card-meta .ccm-t{font-size:17px;font-weight:500;margin:0 0 4px;}',
-    '.cedar-card-meta .ccm-d{font-size:12px;line-height:1.4;margin:0;max-width:340px;}',
-    '.work-card.cedar-hover .cedar-card-video,.work-card.cedar-hover .cedar-card-meta{opacity:1;transform:none;}',
+    '.work-card.cedar-hover .cedar-card-video{opacity:1;}',
+    /* hover video layer: fixed, oversized, centered → the card clips it, so it never reflows while the width animates */
+    '.cedar-cardvid{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;opacity:0;transition:opacity .55s ' + EASE + ';pointer-events:none;}',
+    '.work-card.cedar-hover .cedar-cardvid{opacity:1;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
     '#cedar-modal-root.is-open{display:flex;}',
@@ -237,11 +237,14 @@
   });
 
   /* =========================================================
-   * 3. WORK-CARD VIDEO EMBED (Home) — builds a covering Vimeo background
-   *    iframe from each .cedar-card-video-embed[data-vimeo] (bind the Works
-   *    Vimeo field inside a Webflow Embed placed in the card). Built lazily
-   *    on scroll-in. Hover reveal + grid animation are handled NATIVELY in
-   *    Webflow — this module no longer touches hover or layout.
+   * 3. WORK-GRID HOVER VIDEO + EXPAND (Home) — per-card Vimeo from
+   *    data-vimeo-url (bound to Works `thumbnail-clip`). On hover the clip
+   *    fades in and the card widens toward 16:9 while its row-mates shrink
+   *    proportionally (floor: 50% of each card's own width). Smooth by
+   *    design: the video iframe is a FIXED, oversized, centered layer the
+   *    card clips (overflow hidden) so it never reflows while the width
+   *    animates. Desktop + motion only; touch / reduced-motion keep the
+   *    static thumbnail. No text styling here — typography is yours in Webflow.
    * ======================================================= */
   function vimeoEmbed(url) {
     if (!url) return null;
@@ -253,27 +256,55 @@
            'background=1&autoplay=1&muted=1&loop=1&autopause=0';
   }
   onReady(function () {
-    var boxes = [].slice.call(document.querySelectorAll('.cedar-card-video-embed[data-vimeo]'));
-    if (!boxes.length || TOUCH || RM) return;         /* touch / reduced-motion: keep the static thumbnail */
-    function build(box) {
-      if (box.getAttribute('data-cedar-built')) return;
-      var src = vimeoEmbed((box.getAttribute('data-vimeo') || '').trim());
-      if (!src) return;                               /* empty / invalid clip: leave the thumbnail */
-      box.setAttribute('data-cedar-built', '1');
-      if (getComputedStyle(box).position === 'static') box.style.position = 'absolute';
+    var path = location.pathname.replace(/\/$/, '') || '/';
+    if (path !== '/' || RM || TOUCH) return;          /* desktop + motion only */
+    var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
+    if (cards.length < 2) return;
+    var container = cards[0].parentElement;
+    var TRANS = 'flex-basis .55s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
+    var rest = [];
+    function baseline() {                              /* lock each card to its natural px width so flex-basis can animate cleanly (no snap from grow) */
+      cards.forEach(function (c) { c.style.transition = 'none'; c.style.flex = ''; });
+      rest = cards.map(function (c) { return c.getBoundingClientRect().width; });
+      cards.forEach(function (c, i) { c.style.boxSizing = 'border-box'; c.style.flex = '0 0 ' + Math.round(rest[i]) + 'px'; });
+      requestAnimationFrame(function () { cards.forEach(function (c) { c.style.transition = TRANS; }); });
+    }
+    baseline();
+    function rowOf(card) {
+      var top = card.getBoundingClientRect().top;
+      return cards.filter(function (c) { return Math.abs(c.getBoundingClientRect().top - top) < 8; });
+    }
+    function expand(card) {
+      var row = rowOf(card); if (row.length < 2) return;
+      var h = card.getBoundingClientRect().height;
+      var restW = rest[cards.indexOf(card)];
+      var avail = row.reduce(function (s, c) { return s + rest[cards.indexOf(c)]; }, 0);
+      var floors = row.reduce(function (s, c) { return s + (c === card ? 0 : Math.round(rest[cards.indexOf(c)] * 0.5)); }, 0);
+      var target = Math.round(Math.max(restW, Math.min(h * 16 / 9, avail - floors)));
+      var factor = (avail - target) / ((avail - restW) || 1);   /* shrink each row-mate proportionally to its own width */
+      row.forEach(function (c) {
+        c.style.flex = '0 0 ' + (c === card ? target : Math.round(rest[cards.indexOf(c)] * factor)) + 'px';
+      });
+    }
+    function collapse() { cards.forEach(function (c, i) { c.style.flex = '0 0 ' + Math.round(rest[i]) + 'px'; }); }
+    function mountVideo(card) {
+      if ('_cv' in card) return;
+      var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
+      if (!src) { card._cv = null; return; }
+      var h = card.getBoundingClientRect().height || 600;
       var f = document.createElement('iframe');
-      f.src = src; f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
-      f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;pointer-events:none;';
-      box.appendChild(f);
+      f.className = 'cedar-cardvid'; f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+      f.style.width = (Math.ceil(h * 16 / 9) + 4) + 'px'; f.style.height = h + 'px'; f.src = src;
+      var ov = card.querySelector('.overlay');
+      if (ov) card.insertBefore(f, ov); else card.appendChild(f);
+      card._cv = f;
     }
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) { build(e.target); io.unobserve(e.target); } });
-      }, { rootMargin: '200px' });                    /* build just before it scrolls into view */
-      boxes.forEach(function (b) { io.observe(b); });
-    } else {
-      boxes.forEach(build);
-    }
+    cards.forEach(function (card) {
+      card.addEventListener('mouseenter', function () { mountVideo(card); card.classList.add('cedar-hover'); expand(card); });
+      card.addEventListener('mouseleave', function () { card.classList.remove('cedar-hover'); collapse(); });
+    });
+    var rz;
+    window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!container.querySelector('.cedar-hover')) baseline(); }, 160); });
   });
 
   /* =========================================================
