@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.0 · built by Origin · loaded site-wide (footer)
+ * v1.5.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -332,7 +332,7 @@
 
     /* ---------- FILTER: yellow hover panel, faceted (AND across groups, OR within), FLIP reflow ---------- */
     var controls = document.querySelector('.filter-controls'), pill = document.querySelector('.filter-pill');
-    var caption = pill && pill.querySelector('.caption');
+    var caption = document.querySelector('.filter-pill .caption');   /* there are two .filter-pill; the caption lives in the second */
     if (controls && pill) {
       var GROUPS = [
         { key: 'Project Type', get: function (c) { return [].map.call(c.querySelectorAll('.pt-tag'), function (t) { return t.textContent.trim(); }).filter(Boolean); } },
