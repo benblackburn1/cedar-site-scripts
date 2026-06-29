@@ -1,6 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.4.4 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
+ * v1.4.5 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover row reflow (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
@@ -291,6 +291,68 @@
         leaveTimer = setTimeout(function () { if (iframe) { iframe.remove(); iframe = null; } }, 700);
       });
     });
+
+    /* ---- expand-on-hover: hovered card grows to a crop-free 16:9; row peers shrink to a floor ---- */
+    if (RM) return;                                            /* reduced motion: overlay only, no reflow */
+    var EXP = [].slice.call(cards);
+    var container = null, anc = EXP[0].parentElement;
+    while (anc) {                                              /* nearest ancestor holding >=2 cards in separate cells */
+      var hit = 0, kids = anc.children;
+      for (var ci = 0; ci < kids.length; ci++) {
+        if (kids[ci].classList && kids[ci].classList.contains('work-card')) hit++;
+        else if (kids[ci].querySelector && kids[ci].querySelector('.work-card')) hit++;
+      }
+      if (hit >= 2) { container = anc; break; }
+      anc = anc.parentElement;
+    }
+    if (!container) return;
+    function cellOf(card) { var n = card; while (n && n.parentElement !== container) n = n.parentElement; return n; }
+    var cells = [], seenCells = [];
+    EXP.forEach(function (card) { var c = cellOf(card); if (c && seenCells.indexOf(c) === -1) { seenCells.push(c); cells.push({ cell: c, card: card }); } });
+    if (cells.length < 2) return;
+    var ccs = getComputedStyle(container);
+    var gap = parseFloat(ccs.columnGap) || parseFloat(ccs.gap) || 0;
+    var TW = 'flex-basis .55s ' + EASE;
+    container.style.display = 'flex';
+    container.style.flexWrap = 'wrap';
+    container.style.alignItems = 'stretch';
+    cells.forEach(function (o) { if (o.cell !== o.card) o.card.style.width = '100%'; });   /* card fills its cell so the clip covers */
+    var basis = '';
+    function setBasis() {                                      /* derive column count from a neutral equal layout, then lock an exact N-up basis */
+      var probe = Math.max(160, (cells[0].cell.getBoundingClientRect().width || 240) - 1);
+      cells.forEach(function (o) { o.cell.style.transition = 'none'; o.cell.style.boxSizing = 'border-box'; o.cell.style.flex = '1 1 ' + probe + 'px'; });
+      var top = cells[0].cell.getBoundingClientRect().top, N = 0;
+      cells.forEach(function (o) { if (Math.abs(o.cell.getBoundingClientRect().top - top) < 6) N++; });
+      N = Math.max(1, N);
+      basis = 'calc((100% - ' + ((N - 1) * gap) + 'px) / ' + N + ')';
+      cells.forEach(function (o) { o.cell.style.flex = '0 0 ' + basis; });
+      requestAnimationFrame(function () { cells.forEach(function (o) { o.cell.style.transition = TW; }); });
+    }
+    setBasis();
+    function peersOf(o) {
+      var top = o.cell.getBoundingClientRect().top;
+      return cells.filter(function (p) { return Math.abs(p.cell.getBoundingClientRect().top - top) < 6; });
+    }
+    function expand(o) {
+      var peers = peersOf(o); if (peers.length < 2) return;     /* lone card on its row: leave it */
+      var pad = (parseFloat(ccs.paddingLeft) || 0) + (parseFloat(ccs.paddingRight) || 0);
+      var avail = container.clientWidth - pad - (peers.length - 1) * gap;
+      var rest = o.cell.getBoundingClientRect().width;
+      var h = (o.card || o.cell).getBoundingClientRect().height;
+      var minW = Math.max(120, rest * 0.5);
+      var target = Math.max(rest, Math.min(h * 16 / 9, avail - (peers.length - 1) * minW));
+      var others = peers.filter(function (p) { return p !== o; });
+      var nW = Math.max(minW, (avail - target) / others.length);
+      o.cell.style.flexBasis = target + 'px';
+      others.forEach(function (p) { p.cell.style.flexBasis = nW + 'px'; });
+    }
+    function collapse() { cells.forEach(function (o) { o.cell.style.flex = '0 0 ' + basis; }); }
+    cells.forEach(function (o) {
+      o.cell.addEventListener('mouseenter', function () { expand(o); });
+      o.cell.addEventListener('mouseleave', collapse);
+    });
+    var rsz;
+    window.addEventListener('resize', function () { clearTimeout(rsz); rsz = setTimeout(setBasis, 160); });
   });
 
   /* =========================================================
