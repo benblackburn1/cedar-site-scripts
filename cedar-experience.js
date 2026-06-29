@@ -1,6 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.4.4 · built by Origin · loaded site-wide from the page <head>
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video (Home, CMS-driven, cover-fill) · accordion (grid-rows + animated +/- icon)
+ * v1.4.6 · built by Origin · loaded site-wide from the page <head>
+ * Modules: loader (every page, waits for hero video) · lenis · work-card Vimeo embed builder (Home, CMS-driven, lazy; hover/animation native) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
@@ -237,10 +237,11 @@
   });
 
   /* =========================================================
-   * 3. WORK-GRID HOVER VIDEO (Home) — CMS-driven (per-card data-vimeo-url + bound .card-label text)
-   *    No hardcoded card list: clip comes from each card's data-vimeo-url (bind to the
-   *    Works `thumbnail-clip` field in Designer); overlay title/desc come from the card's
-   *    own CMS-bound .card-label. Add/remove/reorder Works items freely — it stays in sync.
+   * 3. WORK-CARD VIDEO EMBED (Home) — builds a covering Vimeo background
+   *    iframe from each .cedar-card-video-embed[data-vimeo] (bind the Works
+   *    Vimeo field inside a Webflow Embed placed in the card). Built lazily
+   *    on scroll-in. Hover reveal + grid animation are handled NATIVELY in
+   *    Webflow — this module no longer touches hover or layout.
    * ======================================================= */
   function vimeoEmbed(url) {
     if (!url) return null;
@@ -252,45 +253,27 @@
            'background=1&autoplay=1&muted=1&loop=1&autopause=0';
   }
   onReady(function () {
-    var path = location.pathname.replace(/\/$/, '') || '/';
-    if (path !== '/') return;
-    var cards = document.querySelectorAll('.work-grid .work-card');
-    if (!cards.length || TOUCH) return; /* mobile: tap navigates, no preview */
-    cards.forEach(function (card) {
-      var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
-      var t = (card.getAttribute('data-title') || '').trim();   /* CMS via data-attr (preferred) ... */
-      var d = (card.getAttribute('data-desc') || '').trim();
-      if (!t || !d) {                                            /* ... or via bound .card-label captions */
-        var labels = card.querySelectorAll('.card-label .caption');
-        if (!t && labels[0]) t = labels[0].textContent.trim();
-        if (!d && labels[1]) d = labels[1].textContent.trim();
-      }
-      if (!t && !src) return;                         /* nothing to overlay or play */
-      var meta = el('div', 'cedar-card-meta', '');     /* CMS text → textContent (XSS-safe) */
-      if (t) { var pt = el('p', 'ccm-t', ''); pt.textContent = t; meta.appendChild(pt); }
-      if (d) { var pd = el('p', 'ccm-d', ''); pd.textContent = d; meta.appendChild(pd); }
-      card.appendChild(meta);
-      var iframe = null, leaveTimer = null;
-      card.addEventListener('mouseenter', function () {
-        clearTimeout(leaveTimer);
-        if (RM || !src) { card.classList.add('cedar-hover'); return; } /* overlay only (or no clip yet) */
-        if (!iframe) {
-          iframe = document.createElement('iframe');
-          iframe.className = 'cedar-card-video';
-          iframe.allow = 'autoplay';
-          iframe.title = t + ' preview';
-          iframe.src = src;
-          var label = card.querySelector('.card-label');
-          card.insertBefore(iframe, meta);
-          if (label) label.style.zIndex = 3;
-        }
-        card.classList.add('cedar-hover');
-      });
-      card.addEventListener('mouseleave', function () {
-        card.classList.remove('cedar-hover');
-        leaveTimer = setTimeout(function () { if (iframe) { iframe.remove(); iframe = null; } }, 700);
-      });
-    });
+    var boxes = [].slice.call(document.querySelectorAll('.cedar-card-video-embed[data-vimeo]'));
+    if (!boxes.length || TOUCH || RM) return;         /* touch / reduced-motion: keep the static thumbnail */
+    function build(box) {
+      if (box.getAttribute('data-cedar-built')) return;
+      var src = vimeoEmbed((box.getAttribute('data-vimeo') || '').trim());
+      if (!src) return;                               /* empty / invalid clip: leave the thumbnail */
+      box.setAttribute('data-cedar-built', '1');
+      if (getComputedStyle(box).position === 'static') box.style.position = 'absolute';
+      var f = document.createElement('iframe');
+      f.src = src; f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+      f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;pointer-events:none;';
+      box.appendChild(f);
+    }
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { build(e.target); io.unobserve(e.target); } });
+      }, { rootMargin: '200px' });                    /* build just before it scrolls into view */
+      boxes.forEach(function (b) { io.observe(b); });
+    } else {
+      boxes.forEach(build);
+    }
   });
 
   /* =========================================================
