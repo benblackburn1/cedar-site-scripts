@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.2 · built by Origin · loaded site-wide (footer)
+ * v1.5.3 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -694,9 +694,9 @@
     if (RM) return;
     var SEL = '.hero-statement,.heading-1,.heading-2,.display-title,.intro-lead,' +
               '.post-card,.work-card,.value-col,.photo-band,.gib-left,.gib-right,' +
-              '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack';
+              '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack,.light-green';
     var nodes = [].slice.call(document.querySelectorAll(SEL)).filter(function (n) {
-      return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee'); /* never hide chrome/logos */
+      return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee,.acc-inner'); /* never hide chrome/logos, or accordion body copy (it opens on click) */
     });
     if (!nodes.length) return;
     nodes.forEach(function (n) { n.classList.add('cedar-reveal'); });
