@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.1 · built by Origin · loaded site-wide (footer)
+ * v1.5.2 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -45,6 +45,9 @@
     '.cedar-filter-panel .cfp-chip.is-on{background:' + CHARCOAL + ';color:' + YELLOW + ';border-color:' + CHARCOAL + ';}',
     '.cedar-filter-panel .cfp-clear{cursor:pointer;border:0;background:none;color:' + CHARCOAL + ';opacity:.55;font-size:11px;padding:2px 0;text-decoration:underline;transition:opacity .2s ' + EASE + ';}',
     '.cedar-filter-panel .cfp-clear:hover{opacity:1;}',
+    '.filter-pill .cfp-x{display:inline-flex;align-items:center;justify-content:center;margin-left:7px;width:15px;height:15px;border:0;background:none;padding:0;cursor:pointer;color:' + CHARCOAL + ';font-size:15px;line-height:1;opacity:0;transform:scale(.7);pointer-events:none;vertical-align:middle;transition:opacity .25s ' + EASE + ',transform .25s ' + EASE + ';}',
+    '.filter-pill .cfp-x.on{opacity:.65;transform:none;pointer-events:auto;}',
+    '.filter-pill .cfp-x:hover{opacity:1;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
     '#cedar-modal-root.is-open{display:flex;}',
@@ -352,14 +355,18 @@
         });
         grp.appendChild(chips); panel.appendChild(grp);
       });
+      function clearAll() { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); apply(); }
       var clr = el('button', 'cfp-clear', 'Clear'); clr.type = 'button';
-      clr.addEventListener('click', function () { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); apply(); });
+      clr.addEventListener('click', clearAll);
       panel.appendChild(clr); controls.appendChild(panel);
+      var pillEl = caption && caption.parentElement;   /* the .filter-pill that holds the caption */
+      var xbtn = null;
+      if (pillEl) { xbtn = el('button', 'cfp-x', '×'); xbtn.type = 'button'; xbtn.setAttribute('aria-label', 'Clear filters'); xbtn.addEventListener('click', function (e) { e.stopPropagation(); clearAll(); }); pillEl.appendChild(xbtn); }
       var closeT;
       controls.addEventListener('mouseenter', function () { clearTimeout(closeT); controls.classList.add('cfp-open'); });
       controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
       function match(c) { return GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }
-      function capUpd() { if (!caption) return; var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); }
+      function capUpd() { var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); if (caption) caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); if (xbtn) xbtn.classList.toggle('on', picks.length > 0); }
       function apply() {
         var keep = cards.filter(match);
         if (!keep.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); keep = cards.slice(); }  /* never empty the grid */
