@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.4 · built by Origin · loaded site-wide (footer)
+ * v1.5.5 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -45,8 +45,9 @@
     '.cedar-filter-panel .cfp-chip.is-on{background:' + CHARCOAL + ';color:' + YELLOW + ';border-color:' + CHARCOAL + ';}',
     '.cedar-filter-panel .cfp-clear{cursor:pointer;border:0;background:none;color:' + CHARCOAL + ';opacity:.55;font-size:11px;padding:2px 0;text-decoration:underline;transition:opacity .2s ' + EASE + ';}',
     '.cedar-filter-panel .cfp-clear:hover{opacity:1;}',
-    '.filter-pill .cfp-x{display:inline-flex;align-items:center;justify-content:center;width:0;min-width:0;height:15px;margin-left:0;border:0;background:none;padding:0;cursor:pointer;color:' + CHARCOAL + ';font-size:15px;line-height:1;opacity:0;transform:scale(.7);pointer-events:none;vertical-align:middle;overflow:hidden;transition:opacity .25s ' + EASE + ',transform .25s ' + EASE + ',width .25s ' + EASE + ',margin-left .25s ' + EASE + ';}',
-    '.filter-pill .cfp-x.on{width:15px;margin-left:7px;opacity:.65;transform:none;pointer-events:auto;}',
+    '.filter-controls .filter-pill{column-gap:0;}',   /* drop the pill flex gap so the caption + collapsed x hug tight (scoped: not the /work .filter-pill) */
+    '.filter-pill .cfp-x{display:inline-flex;align-items:center;justify-content:center;flex:0 0 0px;width:0;min-width:0;height:15px;margin-left:0;border:0;background:none;padding:0;cursor:pointer;color:' + CHARCOAL + ';font-size:15px;line-height:1;opacity:0;transform:scale(.7);pointer-events:none;vertical-align:middle;overflow:hidden;transition:opacity .25s ' + EASE + ',transform .25s ' + EASE + ',flex-basis .25s ' + EASE + ',margin-left .25s ' + EASE + ';}',
+    '.filter-pill .cfp-x.on{flex:0 0 15px;width:15px;margin-left:6px;opacity:.65;transform:none;pointer-events:auto;}',
     '.filter-pill .cfp-x:hover{opacity:1;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
