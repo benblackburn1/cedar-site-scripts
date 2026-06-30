@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.8 · built by Origin · loaded site-wide (footer)
+ * v1.5.9 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -294,13 +294,19 @@
     function expand(card) {
       var row = rowOf(card); if (row.length < 2) return;
       var h = card.getBoundingClientRect().height, restW = card._rw;
-      var avail = row.reduce(function (s, c) { return s + c._rw; }, 0);
+      var total = row.reduce(function (s, c) { return s + c._rw; }, 0);
+      var avail = total - 2;                                            /* tiny end-state margin so the row never sits exactly at the wrap boundary */
       var floors = row.reduce(function (s, c) { return s + (c === card ? 0 : c._rw * 0.5); }, 0);
       var target = Math.max(restW, Math.min(h * 16 / 9, avail - floors));
-      var remain = avail - target, otherRest = (avail - restW) || 1;   /* row-mates share the exact remainder, proportional to their own width */
-      row.forEach(function (c) { c.style.flex = '0 1 ' + (c === card ? target : remain * c._rw / otherRest) + 'px'; });   /* sums to avail exactly + shrink:1 → never wraps */
+      var remain = avail - target, otherRest = (total - restW) || 1;   /* row-mates share the exact remainder, proportional to their own width */
+      row.forEach(function (c) {
+        var isH = c === card;
+        /* row-mates start shrinking immediately; the hovered card grows 90ms later so it can never push them off the row (flex decides wrapping on basis BEFORE shrink) */
+        c.style.transition = 'flex-basis .55s ' + EASE + (isH ? ' .09s' : '') + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
+        c.style.flex = '0 1 ' + (isH ? target : remain * c._rw / otherRest) + 'px';
+      });
     }
-    function collapse() { visible().forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; }); }
+    function collapse() { visible().forEach(function (c) { c.style.transition = TRANS; c.style.flex = '0 1 ' + c._rw + 'px'; }); }
     function mountVideo(card) {
       if ('_cv' in card) return;
       var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
