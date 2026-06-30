@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.5.7 · built by Origin · loaded site-wide (footer)
+ * v1.5.8 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -286,7 +286,7 @@
       var vis = visible();
       vis.forEach(function (c) { c.style.transition = 'none'; c.style.flex = '1 1 ' + Math.round(c._nat) + 'px'; });
       vis.forEach(function (c) { c._rw = c.getBoundingClientRect().width; });
-      vis.forEach(function (c) { c.style.flex = '0 0 ' + Math.round(c._rw) + 'px'; });
+      vis.forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; });   /* shrink:1 + exact (unrounded) so a sub-pixel total never wraps a card to the next row */
       if (enableTrans !== false) requestAnimationFrame(function () { vis.forEach(function (c) { c.style.transition = TRANS; }); });
     }
     relock();
@@ -295,12 +295,12 @@
       var row = rowOf(card); if (row.length < 2) return;
       var h = card.getBoundingClientRect().height, restW = card._rw;
       var avail = row.reduce(function (s, c) { return s + c._rw; }, 0);
-      var floors = row.reduce(function (s, c) { return s + (c === card ? 0 : Math.round(c._rw * 0.5)); }, 0);
-      var target = Math.round(Math.max(restW, Math.min(h * 16 / 9, avail - floors)));
-      var factor = (avail - target) / ((avail - restW) || 1);   /* shrink each row-mate proportionally — sum stays constant, nothing wraps */
-      row.forEach(function (c) { c.style.flex = '0 0 ' + (c === card ? target : Math.round(c._rw * factor)) + 'px'; });
+      var floors = row.reduce(function (s, c) { return s + (c === card ? 0 : c._rw * 0.5); }, 0);
+      var target = Math.max(restW, Math.min(h * 16 / 9, avail - floors));
+      var remain = avail - target, otherRest = (avail - restW) || 1;   /* row-mates share the exact remainder, proportional to their own width */
+      row.forEach(function (c) { c.style.flex = '0 1 ' + (c === card ? target : remain * c._rw / otherRest) + 'px'; });   /* sums to avail exactly + shrink:1 → never wraps */
     }
-    function collapse() { visible().forEach(function (c) { c.style.flex = '0 0 ' + Math.round(c._rw) + 'px'; }); }
+    function collapse() { visible().forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; }); }
     function mountVideo(card) {
       if ('_cv' in card) return;
       var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
