@@ -1,9 +1,9 @@
 /* Cedar Creative — experience layer
- * v1.5.9 · built by Origin · loaded site-wide (footer)
+ * v1.6.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
- *          nav hover blur-veil · section reveals (fade+rise on scroll-in) · partner-logo marquee
+ *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -93,10 +93,24 @@
     '.cedar-acc-init .acc-item.cedar-open .acc-body > .acc-inner{opacity:1;}',
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
     '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
-    /* nav: transparent by default, blur veil fades in on hover/focus (links flip light) */
-    '.navbar{transition:background-color .4s ' + EASE + ',backdrop-filter .4s ' + EASE + ';}',
+    /* nav: transparent + blur veil on hover/focus; auto-hides on scroll-down, slides back on scroll-up; ink (links + masked logo/mark) flips by what's behind it — JS toggles cedar-nav-dark / cedar-nav-light per scroll position */
+    '.navbar{transition:transform .55s ' + EASE + ',background-color .4s ' + EASE + ',backdrop-filter .4s ' + EASE + ';will-change:transform;}',
+    '.navbar.cedar-nav-hidden{transform:translateY(-100%);}',
     '.navbar:hover,.navbar:focus-within{background-color:rgba(41,52,26,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}',
+    /* masked logo + mark: shape from the brand SVG, painted with currentColor so it rides the nav ink; width tracks the source aspect ratio (no squish) */
+    '.cedar-logo-mask,.cedar-mark-mask{display:block;background-color:currentColor;color:#f4f4f2;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;transition:background-color .45s ' + EASE + ';}',
+    '.nav-link{transition:color .45s ' + EASE + ';}',
+    /* per-scroll ink — specificity (0,3,0) beats Webflow page-scoped ".page-wrap-* .nav-link" so the switch actually wins */
+    '.navbar.cedar-nav-dark .nav-link{color:#f4f4f2;}',
+    '.navbar.cedar-nav-light .nav-link{color:' + CHARCOAL + ';}',
+    '.navbar.cedar-nav-dark .cedar-logo-mask,.navbar.cedar-nav-dark .cedar-mark-mask{color:#f4f4f2;}',
+    '.navbar.cedar-nav-light .cedar-logo-mask,.navbar.cedar-nav-light .cedar-mark-mask{color:' + CHARCOAL + ';}',
+    /* hover veil is dark green → force light ink regardless of section (placed after the section rules so it wins on equal specificity) */
     '.navbar:hover .nav-link,.navbar:focus-within .nav-link{color:#f4f4f2;}',
+    '.navbar:hover .cedar-logo-mask,.navbar:hover .cedar-mark-mask,.navbar:focus-within .cedar-logo-mask,.navbar:focus-within .cedar-mark-mask{color:#f4f4f2;}',
+    /* about page: "What defines us" cards start shifted right + hidden, slide left into place (JS staggers right→left) */
+    '.cedar-about-card{opacity:0;transform:translateX(52px);will-change:opacity,transform;}',
+    '.cedar-about-card.cedar-in{opacity:1;transform:none;transition:opacity .85s ' + EASE + ',transform .85s ' + EASE + ';}',
     /* section reveals — JS adds .cedar-reveal (so no-JS shows everything) */
     '.cedar-reveal{opacity:0;transform:translateY(44px);will-change:opacity,transform;}',
     '.cedar-reveal.cedar-in{opacity:1;transform:none;transition:opacity .8s ' + EASE + ',transform .8s ' + EASE + ';}',
@@ -753,6 +767,131 @@
       [].slice.call(clone.children).forEach(function (c) { c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
       row.classList.add('cedar-marquee');
       row.appendChild(track);
+    });
+  });
+
+  /* =========================================================
+   * 9. NAV — masked logo+mark (ink follows the background),
+   *    scroll hide/show, dark/light ink probe.
+   *    The white img logo + mark are replaced by currentColor
+   *    CSS-masks (originals just hidden → recoverable). A luminance
+   *    probe at the nav band flips the ink white (over dark/video)
+   *    or charcoal (over light) per scroll position, overriding
+   *    Webflow's page-scoped link color. Nav slides up on
+   *    scroll-down and back in on scroll-up (held open while hovered
+   *    and near the top). Ink switches even under reduced motion
+   *    (legibility); the hide/show motion is gated behind !RM.
+   * ======================================================= */
+  onReady(function () {
+    var nav = document.querySelector('.navbar');
+    if (!nav) return;
+
+    /* the new brand mark, inlined as a data-URI mask (alpha = the chevrons; fill is irrelevant) */
+    var MARK_URL = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 374 283"><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z" fill="#fff"/><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z" fill="#fff"/></svg>');
+
+    function maskFrom(sel, isMark, url, ratio, fallbackH) {
+      var a = document.querySelector(sel); if (!a) return;
+      if (a.querySelector('.cedar-logo-mask,.cedar-mark-mask')) return;
+      var img = a.querySelector('img');
+      var h = img ? Math.round(img.getBoundingClientRect().height) : 0;
+      if (!h && img) h = Math.round(parseFloat(getComputedStyle(img).height)) || 0;
+      if (!h) h = fallbackH;
+      var span = el('span', isMark ? 'cedar-mark-mask' : 'cedar-logo-mask', '');
+      span.style.height = h + 'px';
+      span.style.width = Math.round(h * ratio) + 'px';   /* width from the source ratio → never squished */
+      span.style.webkitMaskImage = 'url("' + url + '")';
+      span.style.maskImage = 'url("' + url + '")';
+      if (img) img.style.display = 'none';                /* keep the original for easy revert */
+      a.appendChild(span);
+    }
+    var logoImg = document.querySelector('a.nav-logo img');
+    var logoUrl = logoImg ? (logoImg.currentSrc || logoImg.src) : '';
+    function buildMasks() {
+      if (logoUrl) maskFrom('a.nav-logo', false, logoUrl, 641 / 70, 25);   /* wordmark reuses its own asset as the mask */
+      maskFrom('a.nav-mark', true, MARK_URL, 374 / 283, 30);               /* mark swapped to the new brand chevrons */
+    }
+    if (logoImg && !(logoImg.complete && logoImg.naturalHeight)) {
+      logoImg.addEventListener('load', buildMasks, { once: true });
+      setTimeout(buildMasks, 1400);                       /* fallback if load never fires */
+    } else buildMasks();
+
+    /* dark/light probe: walk what's painted behind the nav band */
+    function lumOf(rgb) { var m = (rgb || '').match(/[\d.]+/g); if (!m) return null; var a = m[3] != null ? +m[3] : 1; if (a === 0) return null; return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; }
+    function isDarkBehind() {
+      var x = Math.round(window.innerWidth / 2), y = Math.round(nav.getBoundingClientRect().height / 2) || 37;
+      var stack = document.elementsFromPoint(x, y) || [];
+      for (var i = 0; i < stack.length; i++) {
+        var node = stack[i];
+        if (node === nav || nav.contains(node)) continue;
+        if (node.id === 'cedar-loader' || (node.closest && node.closest('#cedar-loader'))) continue;
+        if (node.tagName === 'IFRAME' || node.tagName === 'VIDEO') return true;   /* film = dark backdrop */
+        var L = lumOf(getComputedStyle(node).backgroundColor);
+        if (L != null) return L < 135;
+      }
+      return false;                                        /* nothing painted → assume light */
+    }
+    function updInk() {
+      var dark = isDarkBehind();
+      nav.classList.toggle('cedar-nav-dark', dark);
+      nav.classList.toggle('cedar-nav-light', !dark);
+    }
+
+    var lastY = window.pageYOffset || 0, hidden = false, ticking = false;
+    function onFrame() {
+      ticking = false;
+      var y = window.pageYOffset || 0;
+      updInk();
+      if (!RM) {
+        if (y < 90 || nav.matches(':hover')) {
+          if (hidden) { nav.classList.remove('cedar-nav-hidden'); hidden = false; }
+        } else if (Math.abs(y - lastY) > 6) {
+          if (y > lastY && !hidden) { nav.classList.add('cedar-nav-hidden'); hidden = true; }
+          else if (y < lastY && hidden) { nav.classList.remove('cedar-nav-hidden'); hidden = false; }
+        }
+      }
+      lastY = y;
+    }
+    function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(onFrame); } }
+    updInk();                                              /* set correct ink before first paint */
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    afterLoader(updInk);                                   /* re-probe once the loader overlay lifts */
+  });
+
+  /* =========================================================
+   * 10. ABOUT — "What defines us" cards cascade in from the right
+   *     as the row scrolls into view. Stagger runs right→left
+   *     (rightmost leads, wave sweeps left). Desktop + motion only;
+   *     reduced motion leaves the cards in place.
+   * ======================================================= */
+  onReady(function () {
+    if (RM) return;
+    var cards = [].slice.call(document.querySelectorAll('.about-card'));
+    if (!cards.length) return;
+    cards.forEach(function (c) { c.classList.add('cedar-about-card'); });
+    var n = cards.length;
+    function reveal() {
+      cards.forEach(function (c, i) {
+        if (c.classList.contains('cedar-in')) return;
+        c.style.transitionDelay = ((n - 1 - i) * 130) + 'ms';   /* right→left */
+        c.classList.add('cedar-in');
+      });
+    }
+    afterLoader(function () {
+      var ticking = false;
+      function sweep() {
+        ticking = false;
+        var line = (window.innerHeight || 800) * 0.82;
+        if (cards[0].getBoundingClientRect().top < line) {
+          reveal();
+          window.removeEventListener('scroll', onScroll);
+          window.removeEventListener('resize', onScroll);
+        }
+      }
+      function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(sweep); } }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      sweep();
     });
   });
 })();
