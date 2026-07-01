@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.10.0 · built by Origin · loaded site-wide (footer)
+ * v1.10.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -722,9 +722,13 @@
    * ======================================================= */
   onReady(function () {
     if (RM) return;
+    /* NB: never add a colour utility (e.g. .light-green) here — it's applied to
+       captions, hairlines, buttons & accordion items across the site, so it
+       over-matches and strands that content hidden at opacity:0. Target real
+       section/block classes only. */
     var SEL = '.hero-statement,.heading-1,.heading-2,.display-title,.intro-lead,' +
               '.post-card,.work-card,.value-col,.photo-band,.gib-left,.gib-right,' +
-              '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack,.light-green';
+              '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack';
     var nodes = [].slice.call(document.querySelectorAll(SEL)).filter(function (n) {
       return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee,.acc-inner'); /* never hide chrome/logos, or accordion body copy (it opens on click) */
     });
