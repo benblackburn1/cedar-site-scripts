@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.6.0 · built by Origin · loaded site-wide (footer)
+ * v1.6.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -108,8 +108,8 @@
     /* hover veil is dark green → force light ink regardless of section (placed after the section rules so it wins on equal specificity) */
     '.navbar:hover .nav-link,.navbar:focus-within .nav-link{color:#f4f4f2;}',
     '.navbar:hover .cedar-logo-mask,.navbar:hover .cedar-mark-mask,.navbar:focus-within .cedar-logo-mask,.navbar:focus-within .cedar-mark-mask{color:#f4f4f2;}',
-    /* about page: "What defines us" cards start shifted right + hidden, slide left into place (JS staggers right→left) */
-    '.cedar-about-card{opacity:0;transform:translateX(52px);will-change:opacity,transform;}',
+    /* about page: "What defines us" cards start shifted down-right + hidden, ease up + left into place (JS staggers right→left) */
+    '.cedar-about-card{opacity:0;transform:translate(52px,25px);will-change:opacity,transform;}',
     '.cedar-about-card.cedar-in{opacity:1;transform:none;transition:opacity .85s ' + EASE + ',transform .85s ' + EASE + ';}',
     /* section reveals — JS adds .cedar-reveal (so no-JS shows everything) */
     '.cedar-reveal{opacity:0;transform:translateY(44px);will-change:opacity,transform;}',

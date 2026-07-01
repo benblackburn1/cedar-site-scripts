@@ -1,9 +1,10 @@
 /* Cedar Creative — experience layer
- * v1.6.1 · built by Origin · loaded site-wide (footer)
+ * v1.7.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
+ *          about intro (/about only): yellow-field Lottie logo reveal → mark detaches, scales to nav size + flies beside "The Cedar Way" (label shifts right + fades in); nav hidden until first scroll, then mark exits left + label returns to margin
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -151,7 +152,8 @@
    * 1. SITE LOADER — once per session, skipped on reduced motion
    * ======================================================= */
   var LOADER_MIN = 1500, LOADER_MAX = 7000;
-  var showLoader = !RM;                       /* every page (was once-per-session) */
+  var P_LOAD = location.pathname.replace(/\/$/, '') || '/';
+  var showLoader = !RM && P_LOAD !== '/about';   /* /about runs its own logo-reveal intro (module 11) */
   if (showLoader) {
     var loader = el('div', null, '');
     loader.id = 'cedar-loader';
@@ -250,6 +252,9 @@
     if (document.readyState === 'complete') waitForContent();
     else window.addEventListener('load', waitForContent);
     setTimeout(finish, LOADER_MAX); /* hard cap */
+  }
+  if (!showLoader && !RM) {                    /* loader skipped (e.g. /about) — still release gated scroll motion so lines/reveals aren't stranded behind the 8s fallback */
+    onReady(function () { window.__cedarReady = true; document.dispatchEvent(new CustomEvent('cedar:ready')); });
   }
 
   /* =========================================================
@@ -840,6 +845,7 @@
     function onFrame() {
       ticking = false;
       var y = window.pageYOffset || 0;
+      if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); lastY = y; return; }   /* about intro owns the nav until first scroll */
       updInk();
       if (!RM) {
         if (y < 90 || nav.matches(':hover')) {
@@ -893,5 +899,118 @@
       window.addEventListener('resize', onScroll);
       sweep();
     });
+  });
+
+  /* =========================================================
+   * 11. ABOUT INTRO — logo-reveal load sequence (/about only)
+   *   On load (desktop + motion): a yellow field holds while the Cedar
+   *   logo reveals (Lottie, charcoal on yellow). The mark then detaches,
+   *   scales down to nav-mark size and flies to the left of "The Cedar
+   *   Way" (which is pre-shifted right and fades in as the mark arrives).
+   *   The nav is held hidden until the first scroll; on scroll the mark
+   *   slides off-screen left, the label glides back to its margin, and the
+   *   nav takes over. Falls back to the normal page on small screens,
+   *   reduced motion, or any Lottie load failure.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/about' || RM || window.innerWidth < 768) return;
+    var hero = document.querySelector('.section-pad .about-container') || document.querySelector('.about-container');
+    var label = document.querySelector('.about-micro-title');
+    if (!hero || !label) return;
+    try { window.scrollTo(0, 0); } catch (e) {}
+
+    var CHAR = '#29221b', FLY = 950;
+    var nav = document.querySelector('.navbar');
+    window.__cedarAboutIntro = true;
+    if (nav) nav.classList.add('cedar-nav-hidden');
+
+    /* yellow field that holds during the reveal (matched to the page exactly) */
+    var pw = document.querySelector('.page-wrap-yellow');
+    var YEL = pw ? getComputedStyle(pw).backgroundColor : '#ffd900';
+    var veil = el('div', null, ''); veil.id = 'cedar-about-veil';
+    veil.style.cssText = 'position:fixed;inset:0;z-index:99996;background:' + YEL + ';transition:opacity .6s ' + EASE + ';';
+    var REVEAL_W = Math.min(720, Math.round(window.innerWidth * 0.62));
+    var REVEAL_H = Math.round(REVEAL_W * 1080 / 1920);
+    var stage = el('div', null, '');
+    stage.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:' + REVEAL_W + 'px;height:' + REVEAL_H + 'px;transition:opacity .45s ' + EASE + ';';
+    veil.appendChild(stage); document.body.appendChild(veil);
+
+    /* pre-stage the label: shifted right (room for the mark), hidden */
+    var MARK_H = 28, MARK_W = Math.round(MARK_H * 374 / 283), GAP = 14, SHIFT = MARK_W + GAP;
+    label.style.transition = 'none';
+    label.style.transform = 'translateX(' + SHIFT + 'px)';
+    label.style.opacity = '0';
+
+    var mark = null, released = false, safety = null;
+    function markEl() {
+      return el('span', null, '<svg viewBox="0 0 374 283" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block"><path fill-rule="evenodd" clip-rule="evenodd" fill="' + CHAR + '" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z"/><path fill-rule="evenodd" clip-rule="evenodd" fill="' + CHAR + '" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z"/></svg>');
+    }
+
+    function handoff() {
+      if (released || mark) return;
+      var sc = REVEAL_W / 1920;
+      var cLeft = (window.innerWidth - REVEAL_W) / 2, cTop = (window.innerHeight - REVEAL_H) / 2;
+      var startW = Math.round(218 * sc), startH = Math.round(startW / (374 / 283));
+      var cx = cLeft + 591 * sc, cy = cTop + 550 * sc;
+      var startLeft = Math.round(cx - startW / 2), startTop = Math.round(cy - startH / 2);
+      var lr = label.getBoundingClientRect();
+      var restLeft = Math.round(lr.left - SHIFT);                 /* the label's original left margin (it's shifted right by SHIFT) */
+      var restTop = Math.round(lr.top + lr.height / 2 - MARK_H / 2);
+
+      mark = markEl();
+      mark.style.cssText = 'position:fixed;z-index:99998;left:' + startLeft + 'px;top:' + startTop + 'px;width:' + startW + 'px;height:' + startH + 'px;transform-origin:top left;opacity:0;will-change:transform,opacity;';
+      document.body.appendChild(mark);
+
+      /* crossfade reveal → mark (same charcoal chevrons, same spot) + drop the veil to show the identical yellow hero */
+      stage.style.opacity = '0';
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        mark.style.transition = 'opacity .3s ' + EASE; mark.style.opacity = '1'; veil.style.opacity = '0';
+      }); });
+      setTimeout(function () { if (veil.parentNode) veil.remove(); }, 660);
+
+      var dx = restLeft - startLeft, dy = restTop - startTop, scl = MARK_W / startW;
+      mark._rest = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scl + ')';
+      mark._exit = 'translate(' + (-(startLeft + startW + 80)) + 'px,' + dy + 'px) scale(' + scl + ')';
+      setTimeout(function () { mark.style.transition = 'transform ' + FLY + 'ms ' + EASE + ',opacity .3s ' + EASE; mark.style.transform = mark._rest; }, 180);
+      setTimeout(function () { label.style.transition = 'opacity .6s ' + EASE; label.style.opacity = '1'; }, 180 + FLY - 250);
+    }
+
+    function release() {
+      if (released) return; released = true;
+      window.__cedarAboutIntro = false; clearTimeout(safety);
+      if (nav) nav.classList.remove('cedar-nav-hidden');
+      if (veil && veil.parentNode) { veil.style.opacity = '0'; setTimeout(function () { if (veil.parentNode) veil.remove(); }, 660); }
+      label.style.transition = 'transform .7s ' + EASE + ',opacity .5s ' + EASE;
+      label.style.transform = 'translateX(0)'; label.style.opacity = '1';
+      if (mark) { mark.style.transition = 'transform .7s ' + EASE + ',opacity .7s ' + EASE; mark.style.transform = mark._exit || 'translateX(-240px)'; setTimeout(function () { if (mark && mark.parentNode) mark.remove(); }, 780); }
+      window.removeEventListener('wheel', onScrollDismiss); window.removeEventListener('scroll', onScrollDismiss); window.removeEventListener('keydown', onKey);
+    }
+    function onScrollDismiss() { release(); }
+    function onKey(e) { if (['ArrowDown', 'PageDown', 'End', ' ', 'Spacebar'].indexOf(e.key) > -1) release(); }
+    function arm() { window.addEventListener('wheel', onScrollDismiss, { passive: true }); window.addEventListener('scroll', onScrollDismiss, { passive: true }); window.addEventListener('keydown', onKey); }
+
+    function abort() {                                            /* failure → just show the normal page */
+      if (released) return; released = true; window.__cedarAboutIntro = false; clearTimeout(safety);
+      if (nav) nav.classList.remove('cedar-nav-hidden');
+      if (veil && veil.parentNode) veil.remove();
+      if (mark && mark.parentNode) mark.remove();
+      label.style.transition = 'none'; label.style.transform = 'translateX(0)'; label.style.opacity = '1';
+    }
+
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+    s.onload = function () {
+      try {
+        var me = ([].slice.call(document.scripts).map(function (x) { return x.src; }).filter(function (x) { return /cedar-experience\.js/.test(x); })[0] || '').split('?')[0];
+        var jsonUrl = me.replace(/[^/]+$/, 'cedar-logo-reveal-charcoal-transparent.json');
+        var anim = window.lottie.loadAnimation({ container: stage, renderer: 'svg', loop: false, autoplay: true, path: jsonUrl });
+        anim.addEventListener('complete', function () { handoff(); arm(); });
+        anim.addEventListener('data_failed', abort);
+      } catch (e) { abort(); }
+    };
+    s.onerror = abort;
+    document.body.appendChild(s);
+    safety = setTimeout(function () { if (!mark && !released) { handoff(); arm(); } }, 6000);   /* never strand the veil if Lottie hangs */
   });
 })();
