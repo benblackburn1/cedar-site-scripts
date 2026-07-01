@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.9.0 · built by Origin · loaded site-wide (footer)
+ * v1.10.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -1017,5 +1017,62 @@
     s.onerror = abort;
     document.body.appendChild(s);
     safety = setTimeout(function () { if (!done) handoff(); }, 6500);   /* never strand the veil if Lottie hangs */
+  });
+
+  /* =========================================================
+   * 12. INFO-CARD COLORS (home) — "What makes Cedar different"
+   *   cards carry a CMS color choice on data-color. Paint the
+   *   card background + text from the brand palette:
+   *     Cedar Green  → dark-green bg,  light-green text
+   *     Cedar Yellow → yellow bg,      charcoal text
+   *     Cedar Grey   → grey bg,        charcoal text
+   *     (none / "-") → no background;  charcoal text, or white
+   *                    if the card carries a full-bleed image.
+   *   Text is repainted on every text descendant (skipping media)
+   *   so it wins even where Webflow set explicit colours. Applies
+   *   regardless of reduced-motion (it's colour, not motion).
+   * ======================================================= */
+  onReady(function () {
+    var cards = [].slice.call(document.querySelectorAll('.info-card[data-color]'));
+    if (!cards.length) return;
+    var GREEN = '#29341a', LIGHT_GREEN = '#9fb18f', CGREY = '#dad3cd', OFFWHITE = '#f4f4f2';
+    var MAP = {
+      'cedar green':  { bg: GREEN,  text: LIGHT_GREEN },
+      'cedar yellow': { bg: YELLOW, text: CHARCOAL },
+      'cedar grey':   { bg: CGREY,  text: CHARCOAL },
+      'light green':  { bg: LIGHT_GREEN, text: CHARCOAL }
+    };
+    var SKIP = /^(IMG|SVG|PICTURE|CANVAS|VIDEO|IFRAME|PATH|USE|SOURCE|LINE|RECT|CIRCLE|POLYGON|G)$/;
+    function paintText(card, color) {
+      card.style.setProperty('color', color, 'important');
+      var els = card.querySelectorAll('*');
+      for (var i = 0; i < els.length; i++) {
+        if (SKIP.test(els[i].tagName)) continue;
+        els[i].style.setProperty('color', color, 'important');
+      }
+    }
+    function hasFullBleedImage(card) {
+      var cr = card.getBoundingClientRect(), area = (cr.width * cr.height) || 1;
+      if (/url\(/.test(getComputedStyle(card).backgroundImage)) return true;
+      var els = card.querySelectorAll('*');
+      for (var i = 0; i < els.length; i++) {
+        var e = els[i], r = e.getBoundingClientRect();
+        if ((r.width * r.height) < area * 0.55) continue;           /* only near-full-card layers count */
+        if (/url\(/.test(getComputedStyle(e).backgroundImage)) return true;
+        if (e.tagName === 'IMG' && e.naturalWidth > 0) return true;
+      }
+      return false;
+    }
+    cards.forEach(function (card) {
+      var key = (card.getAttribute('data-color') || '').trim().toLowerCase();
+      var m = MAP[key];
+      if (m) {
+        card.style.setProperty('background-color', m.bg, 'important');
+        paintText(card, m.text);
+      } else {                                                       /* none / "-" / unknown */
+        card.style.setProperty('background-color', 'transparent', 'important');
+        paintText(card, hasFullBleedImage(card) ? OFFWHITE : CHARCOAL);
+      }
+    });
   });
 })();
