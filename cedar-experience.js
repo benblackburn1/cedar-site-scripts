@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.14.0 · built by Origin · loaded site-wide (footer)
+ * v1.14.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -1261,10 +1261,13 @@
    * 16. ABOUT VALUE ICONS (Quality / Vision / Sustainability)
    *   — /about. Each value card holds a ".value-icon" placeholder
    *   embed (literal text "icon"); fill it with the matching
-   *   Lottie, keyed off the card heading. At rest it shows frame 0.
-   *   On hover it LOOPS; on hover-out it finishes the current loop
-   *   then stops (loop=false lets the cycle complete). Reduced
-   *   motion → static first frame, no hover animation. ICON_BOX
+   *   Lottie, keyed off the card heading. These files draw in over
+   *   ~frames 75-150 then hold the finished icon to the end (and are
+   *   BLANK at frame 0), so at REST we park on the LAST frame (icon
+   *   fully drawn). On hover it re-traces from 0 and LOOPS; on
+   *   hover-out it finishes the current loop then stops on the
+   *   complete frame (loop=false lets the cycle complete). Reduced
+   *   motion → static finished icon, no hover animation. ICON_BOX
    *   tunable.
    * ======================================================= */
   onReady(function () {
@@ -1287,11 +1290,11 @@
         box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;';
         host.appendChild(box);
         var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: false, path: lottieJSON(pick.json) });
-        anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(0, true); });
+        anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(anim.totalFrames - 1, true); });  /* rest = finished icon (frame 0 is blank) */
         if (RM) return;                             /* no hover motion under reduced motion */
         var hoverEl = card || host;
-        hoverEl.addEventListener('mouseenter', function () { anim.loop = true; anim.play(); });
-        hoverEl.addEventListener('mouseleave', function () { anim.loop = false; });  /* finish the current cycle, then stop */
+        hoverEl.addEventListener('mouseenter', function () { anim.loop = true; anim.goToAndPlay(0, true); });  /* re-trace + loop while hovered */
+        hoverEl.addEventListener('mouseleave', function () { anim.loop = false; });  /* finish the current cycle, then stop on the complete frame */
       });
     });
   });
