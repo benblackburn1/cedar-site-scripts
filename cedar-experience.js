@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.10.1 · built by Origin · loaded site-wide (footer)
+ * v1.11.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -125,6 +125,12 @@
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
+    /* gallery (project pages) — consistent-height 16:9 boxes, JS sets each card w/h; the vimeo video fills the box, black shows behind any non-16:9 film */
+    '.gallery-card.cedar-gal{overflow:hidden;position:relative;}',
+    '.gallery-card.cedar-gal .gallery-video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;}',
+    '.gallery-card.cedar-gal .vimeo-container{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;background:#000!important;overflow:hidden!important;}',
+    '.gallery-card.cedar-gal .vimeo-wrapper{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;}',
+    '.gallery-card.cedar-gal .vimeo-container iframe{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;transform:none!important;max-width:none!important;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1078,5 +1084,50 @@
         paintText(card, hasFullBleedImage(card) ? OFFWHITE : CHARCOAL);
       }
     });
+  });
+
+  /* =========================================================
+   * 13. GALLERY (project pages) — justified, consistent-height
+   *   16:9 grid. Cards are laid into rows that fill the row
+   *   width; every card shares one height (16:9 box, width =
+   *   height x 16/9), the last row is left ragged. The vimeo
+   *   film fills each box (CSS above) with black behind. All
+   *   Cedar gallery films are 16:9, so rows come out uniform;
+   *   TARGET_H just biases how many land per row. Recomputes
+   *   on resize. Scoped to .gallery-card so the home work grid
+   *   (also .work-row) is untouched.
+   * ======================================================= */
+  onReady(function () {
+    var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
+    if (!cards.length) return;
+    var ASPECT = 16 / 9, TARGET_H = 460;                             /* bias for ~2-up at desktop; tune for bigger/smaller */
+    cards.forEach(function (c) { c.classList.add('cedar-gal'); });
+    var groups = [];
+    cards.forEach(function (c) {
+      var p = c.parentElement, g = null;
+      for (var i = 0; i < groups.length; i++) if (groups[i].parent === p) g = groups[i];
+      if (!g) { g = { parent: p, items: [] }; groups.push(g); }
+      g.items.push(c);
+    });
+    function layout() {
+      groups.forEach(function (g) {
+        var p = g.parent, cs = getComputedStyle(p);
+        var gap = parseFloat(cs.columnGap || cs.gap) || 14;
+        var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        if (W <= 0) return;
+        p.style.setProperty('justify-content', 'flex-start', 'important');   /* left-align so the ragged last row doesn't spread */
+        var N = Math.max(1, Math.round((W + gap) / (TARGET_H * ASPECT + gap)));
+        var colW = (W - (N - 1) * gap) / N;
+        var H = colW / ASPECT;
+        g.items.forEach(function (c) {
+          c.style.setProperty('flex', '0 0 auto', 'important');
+          c.style.setProperty('width', Math.round(colW) + 'px', 'important');
+          c.style.setProperty('height', Math.round(H) + 'px', 'important');
+        });
+      });
+    }
+    layout();
+    var rt;
+    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
   });
 })();
