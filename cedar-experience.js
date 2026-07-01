@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.8.2 · built by Origin · loaded site-wide (footer)
+ * v1.9.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -26,6 +26,11 @@
     '#cedar-loader .cl-top,#cedar-loader .cl-bottom{font-size:11px;letter-spacing:1.1px;color:' + CHARCOAL + ';text-transform:uppercase;text-align:center;line-height:1.6;min-height:36px;}',
     '#cedar-loader .cl-stage{flex:1;width:100%;max-width:560px;min-height:0;}',
     '#cedar-loader canvas{display:block;width:100%;height:100%;}',
+    /* buttons — smooth eased hover lift (drifts back on hover-out); the bare "All Work" pill (.btn-pill, no .white/.dark) shows its fill only on hover */
+    '.btn-pill{transition:transform .5s ' + EASE + ',background-color .35s ' + EASE + ';will-change:transform;}',
+    '.btn-pill:hover{transform:translateY(-4px);}',
+    '.btn-pill:not(.white):not(.dark){background-color:transparent;}',
+    '.btn-pill:not(.white):not(.dark):hover{background-color:rgba(249,248,246,.2);}',
     /* work-grid hover */
     '.work-card{position:relative;overflow:hidden;}',
     '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
@@ -76,8 +81,8 @@
     '.cedar-bts-gallery-btn:hover{background-color:rgba(41,34,27,.07);}',
     /* shared arrow controls + view-other slider */
     '.cedar-vo-arrows{display:inline-flex;gap:10px;margin-top:14px;align-items:center;}',
-    '.cedar-vo-arrow{width:30px;height:30px;border:1px solid rgba(41,34,27,.35);border-radius:50%;background:none;cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
-    '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(41,34,27,.07);}',
+    '.cedar-vo-arrow{width:34px;height:34px;border:0;border-radius:10px;background:rgba(218,211,205,.5);cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
+    '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(218,211,205,.8);}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
     '.cedar-vo-track .project-preview *{max-width:100%;min-width:0;}',   /* cap fixed-width inner card so it fits one-up */
@@ -116,7 +121,7 @@
     '.cedar-reveal{opacity:0;transform:translateY(44px);will-change:opacity,transform;}',
     '.cedar-reveal.cedar-in{opacity:1;transform:none;transition:opacity .8s ' + EASE + ',transform .8s ' + EASE + ';}',
     /* logo marquee */
-    '.cedar-marquee{overflow:hidden;width:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);}',
+    '.cedar-marquee{overflow:hidden;width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);}',
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
