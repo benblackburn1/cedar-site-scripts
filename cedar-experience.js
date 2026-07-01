@@ -1,10 +1,12 @@
 /* Cedar Creative — experience layer
- * v1.13.0 · built by Origin · loaded site-wide (footer)
+ * v1.14.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
+ *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; lazy-aware Vimeo background loading
+ *          contact (/contact): outline-mark Lottie traces in once on scroll and holds · about value icons (/about): Quality/Vision/Sustainability Lotties loop on hover, finish the cycle then stop on hover-out
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -125,7 +127,7 @@
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
-    /* gallery (project pages) — FIXED-HEIGHT, VARIABLE-WIDTH cards; JS sets each card height=ROW_H + width=height*aspect (videos 16:9, images natural), flex-wrap ragged. The media fills the box (image object-fit:cover = exact since the box matches its aspect; video fills, black behind any non-16:9 film) */
+    /* gallery (project pages) — HOME-GRID RHYTHM: JS lays cards 2-per-row at a fixed height, cycling the home work grid's 3 asymmetric width patterns. Media covers the box (image object-fit:cover; video fills, black behind any non-16:9 film) */
     '.gallery-card.cedar-gal{overflow:hidden;position:relative;}',
     '.gallery-card.cedar-gal img.img-cover{width:100%!important;height:100%!important;object-fit:cover!important;display:block;}',
     '.gallery-card.cedar-gal .gallery-video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;}',
@@ -158,6 +160,26 @@
     var ran = false, go = function () { if (ran) return; ran = true; fn(); };
     document.addEventListener('cedar:ready', go, { once: true });
     setTimeout(go, 8000); /* safety: loader hard-caps ~7s; never strand motion */
+  }
+
+  /* ---- shared Lottie loader (modules 15/16; module 11 keeps its own inline loader) ----
+     JSON files ship in the same repo/commit as this script, so derive their URL from our
+     own <script src> (strip the query, swap the filename). lottie-web is pulled once from
+     cdnjs and reused; concurrent callers queue behind a single in-flight load. */
+  function cedarSelfURL() {
+    return ([].slice.call(document.scripts).map(function (x) { return x.src; })
+      .filter(function (x) { return /cedar-experience\.js/.test(x); })[0] || '').split('?')[0];
+  }
+  function lottieJSON(name) { return cedarSelfURL().replace(/[^/]+$/, name); }
+  function ensureLottie(cb) {
+    if (window.lottie) { cb(window.lottie); return; }
+    if (window.__cedarLottieCbs) { window.__cedarLottieCbs.push(cb); return; }
+    window.__cedarLottieCbs = [cb];
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+    s.onload = function () { var q = window.__cedarLottieCbs || []; window.__cedarLottieCbs = null; q.forEach(function (f) { try { f(window.lottie); } catch (e) {} }); };
+    s.onerror = function () { window.__cedarLottieCbs = null; };
+    document.body.appendChild(s);
   }
 
   /* =========================================================
@@ -1101,37 +1123,33 @@
   });
 
   /* =========================================================
-   * 13. GALLERY (project pages) — FIXED-HEIGHT, VARIABLE-WIDTH.
-   *   Every card is the same fixed height (ROW_H); each card's
-   *   WIDTH = ROW_H x that media's aspect (videos = 16:9, images
-   *   = their NATURAL aspect measured via a detached Image).
-   *   flex-wrap, left-aligned, ragged right (NOT justified —
-   *   justifying would vary height, which Ben doesn't want).
-   *   Widths are aspect-driven, not container-driven, so wrapping
-   *   is automatic — no per-resize recompute needed (only would
-   *   if ROW_H became responsive). Scoped strictly to
-   *   .gallery-card: the parent (.work-row.w-dyn-items) is SHARED
-   *   with the home work grid, so we only touch gallery cards +
-   *   their parents. Each card is multi-media (image AND/OR a
-   *   CMS Vimeo embed); presence of a real vimeo id => video card.
+   * 13. GALLERY (project pages) — HOME-GRID RHYTHM. Cards are
+   *   laid two-per-row at a FIXED height (ROW_H), cycling the
+   *   home work grid's 3 asymmetric width patterns so the two
+   *   grids share one visual language:
+   *     row A  0.353 / 0.647   (narrow | wide)
+   *     row B  0.500 / 0.500   (even)
+   *     row C  0.626 / 0.374   (wide | narrow)
+   *   Media covers its box (image object-fit:cover; video fills,
+   *   black behind). A lone trailing card spans the full row.
+   *   Widths are container-driven → recompute on resize. Scoped
+   *   strictly to .gallery-card: the parent (.work-row.w-dyn-items)
+   *   is SHARED with the home grid, so only gallery cards + their
+   *   parents are touched. Each card is multi-media (image AND/OR a
+   *   CMS Vimeo embed); presence of a real vimeo id => video card,
+   *   whose src-load is lazy-aware (the Webflow Vimeo embed builds
+   *   its iframe only when scrolled into view).
    * ======================================================= */
   onReady(function () {
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
-    var ROW_H = 440;                 /* fixed card height (px); width follows each media's aspect. Tunable — Ben iterates on feel. */
-    var VIDEO_ASPECT = 16 / 9;
-    var parents = [];
-
-    function sizeCard(c, aspect) {
-      c.style.setProperty('flex', '0 0 auto', 'important');
-      c.style.setProperty('height', ROW_H + 'px', 'important');
-      c.style.setProperty('width', Math.round(ROW_H * aspect) + 'px', 'important');
-    }
+    var ROW_H = 600;                                              /* match the home work grid; tunable */
+    var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];  /* home grid's 3 repeating rows */
 
     /* the authored gallery iframe ships with an empty src (resolves to the page URL -> recursive load -> black);
-       the real Vimeo id lives in the embed's inline <script>. The Webflow Vimeo embed builds its iframe LAZILY
-       (only when scrolled into view), so a one-shot pass misses it — watch for the iframe and apply on appearance.
-       Also stash id/hash on the card for the lightbox (module 14, TODO). */
+       the real Vimeo id lives in the embed's inline <script>. The Webflow Vimeo embed builds its iframe LAZILY,
+       so a one-shot pass misses it — watch for the iframe and apply on appearance. Also stash id/hash on the
+       card for the lightbox (module 14, TODO). */
     function loadVideo(c, vid, id, hash) {
       c.setAttribute('data-cedar-vimeo', id);
       if (hash) c.setAttribute('data-cedar-vimeo-h', hash);
@@ -1149,37 +1167,132 @@
       mo.observe(vid, { childList: true, subtree: true });
     }
 
+    var groups = [];
     cards.forEach(function (c) {
       c.classList.add('cedar-gal');
-      var p = c.parentElement;
-      if (p && parents.indexOf(p) === -1) {
-        parents.push(p);
-        p.style.setProperty('flex-wrap', 'wrap', 'important');
-        p.style.setProperty('justify-content', 'flex-start', 'important');
-        p.style.setProperty('align-items', 'flex-start', 'important');
-      }
+      var p = c.parentElement, g = null;
+      for (var i = 0; i < groups.length; i++) if (groups[i].parent === p) g = groups[i];
+      if (!g) { g = { parent: p, items: [] }; groups.push(g); }
+      g.items.push(c);
       var vid = c.querySelector('.gallery-video');
       var vsc = vid && vid.querySelector('script');
       var vtxt = (vsc && vsc.textContent) || '';
       var id = (vtxt.match(/vimeo\.com\/(?:video\/)?(\d{6,})/) || [])[1];
       if (id) {
-        /* video card — fixed 16:9 */
         var hash = (vtxt.match(/[?&]h=([0-9a-z]+)/i) || vtxt.match(/vimeo\.com\/(?:video\/)?\d{6,}\/([0-9a-z]+)/i) || [])[1];
-        sizeCard(c, VIDEO_ASPECT);
         loadVideo(c, vid, id, hash);
-      } else {
-        /* image card — provisional 16:9, then measure natural aspect via a DETACHED Image (loads even in a bg tab) */
-        sizeCard(c, VIDEO_ASPECT);
-        var img = c.querySelector('img.img-cover') || c.querySelector('img');
-        var src = img && img.getAttribute('src');
-        if (src) {
-          var probe = new Image();
-          probe.onload = function () {
-            if (probe.naturalWidth && probe.naturalHeight) sizeCard(c, probe.naturalWidth / probe.naturalHeight);
-          };
-          probe.src = src;
-        }
       }
+    });
+
+    function set(c, w) {
+      c.style.setProperty('flex', '0 0 auto', 'important');
+      c.style.setProperty('width', w + 'px', 'important');
+      c.style.setProperty('height', ROW_H + 'px', 'important');
+    }
+    function layout() {
+      groups.forEach(function (g) {
+        var p = g.parent, cs = getComputedStyle(p);
+        var gap = parseFloat(cs.columnGap || cs.gap) || 14;
+        var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        if (W <= 0) return;
+        p.style.setProperty('flex-wrap', 'wrap', 'important');
+        p.style.setProperty('justify-content', 'flex-start', 'important');
+        p.style.setProperty('align-items', 'flex-start', 'important');
+        var avail = W - gap;                                      /* two cards + one gap span the row */
+        var items = g.items, row = 0;
+        for (var i = 0; i < items.length; i += 2) {
+          var pat = PATTERNS[row % PATTERNS.length]; row++;
+          var a = items[i], b = items[i + 1];
+          if (b) {
+            var wa = Math.round(avail * pat[0]);
+            set(a, wa);
+            set(b, avail - wa);                                   /* exact remainder so the pair fills the row */
+          } else {
+            set(a, W);                                            /* lone trailing card spans the full row */
+          }
+        }
+      });
+    }
+    layout();
+    var rt;
+    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
+  });
+
+  /* =========================================================
+   * 15. CONTACT LOTTIE (outline mark) — /contact. Fills the
+   *   "outline mark lottie" placeholder embed below the
+   *   "Tell us about your project." heading. Plays the mark
+   *   trace ONCE on scroll-in (real motion ends ~frame 180 of a
+   *   padded 6600-frame comp, so we cap the segment) and holds
+   *   the final state until reload. Under reduced motion it just
+   *   shows the finished mark. Sizing via MARK_BOX (tunable).
+   * ======================================================= */
+  onReady(function () {
+    var host = [].slice.call(document.querySelectorAll('.w-embed')).filter(function (e) {
+      return /outline\s*mark\s*lottie/i.test((e.textContent || '').trim());
+    })[0];
+    if (!host) return;
+    var MARK_BOX = 180;                              /* px square; tunable */
+    var END = 180;                                   /* last real motion frame (comp op is padded to 6600) */
+    host.textContent = '';
+    var box = el('div', 'cedar-lottie-mark');
+    box.style.cssText = 'width:' + MARK_BOX + 'px;height:' + MARK_BOX + 'px;max-width:100%;';
+    host.appendChild(box);
+    ensureLottie(function (lottie) {
+      var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: false, autoplay: false, path: lottieJSON('OutlineMark_Trace.json') });
+      var played = false;
+      function play() {
+        if (played) return; played = true;
+        if (RM) { anim.goToAndStop(END, true); return; }
+        anim.playSegments([0, END], true);           /* play the trace once, then hold the last frame */
+      }
+      if (window.IntersectionObserver) {
+        var io = new IntersectionObserver(function (ents) {
+          ents.forEach(function (en) { if (en.isIntersecting) { play(); io.disconnect(); } });
+        }, { threshold: 0.25 });
+        anim.addEventListener('DOMLoaded', function () { io.observe(box); });
+      } else {
+        anim.addEventListener('DOMLoaded', play);
+      }
+    });
+  });
+
+  /* =========================================================
+   * 16. ABOUT VALUE ICONS (Quality / Vision / Sustainability)
+   *   — /about. Each value card holds a ".value-icon" placeholder
+   *   embed (literal text "icon"); fill it with the matching
+   *   Lottie, keyed off the card heading. At rest it shows frame 0.
+   *   On hover it LOOPS; on hover-out it finishes the current loop
+   *   then stops (loop=false lets the cycle complete). Reduced
+   *   motion → static first frame, no hover animation. ICON_BOX
+   *   tunable.
+   * ======================================================= */
+  onReady(function () {
+    var icons = [].slice.call(document.querySelectorAll('.value-icon.w-embed'));
+    if (!icons.length) return;
+    var ICON_BOX = 64;                              /* px square; tunable */
+    var FILES = [
+      { re: /quality/i,        json: 'Quality.json' },
+      { re: /vision/i,         json: 'Vision.json' },
+      { re: /sustainab/i,      json: 'Sustainability.json' }
+    ];
+    ensureLottie(function (lottie) {
+      icons.forEach(function (host) {
+        var card = host.closest('.about-card') || host.parentElement;
+        var txt = (card ? card.textContent : '') || '';
+        var pick = FILES.filter(function (f) { return f.re.test(txt); })[0];
+        if (!pick) return;                          /* unknown card → leave placeholder */
+        host.textContent = '';
+        var box = el('div', 'cedar-value-icon');
+        box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;';
+        host.appendChild(box);
+        var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: false, path: lottieJSON(pick.json) });
+        anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(0, true); });
+        if (RM) return;                             /* no hover motion under reduced motion */
+        var hoverEl = card || host;
+        hoverEl.addEventListener('mouseenter', function () { anim.loop = true; anim.play(); });
+        hoverEl.addEventListener('mouseleave', function () { anim.loop = false; });  /* finish the current cycle, then stop */
+      });
     });
   });
 })();
