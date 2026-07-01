@@ -1,10 +1,10 @@
 /* Cedar Creative — experience layer
- * v1.7.0 · built by Origin · loaded site-wide (footer)
+ * v1.8.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
- *          about intro (/about only): yellow-field Lottie logo reveal → mark detaches, scales to nav size + flies beside "The Cedar Way" (label shifts right + fades in); nav hidden until first scroll, then mark exits left + label returns to margin
+ *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -845,7 +845,12 @@
     function onFrame() {
       ticking = false;
       var y = window.pageYOffset || 0;
-      if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); lastY = y; return; }   /* about intro owns the nav until first scroll */
+      if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); lastY = y; return; }   /* about intro (reveal phase) holds the nav hidden */
+      if (window.__cedarNavFloor != null) {                                                          /* about: nav hidden while the header owns the viewport, animates in once scrolled past it */
+        updInk();
+        nav.classList.toggle('cedar-nav-hidden', y < window.__cedarNavFloor);
+        lastY = y; return;
+      }
       updInk();
       if (!RM) {
         if (y < 90 || nav.matches(':hover')) {
@@ -902,28 +907,44 @@
   });
 
   /* =========================================================
-   * 11. ABOUT INTRO — logo-reveal load sequence (/about only)
-   *   On load (desktop + motion): a yellow field holds while the Cedar
-   *   logo reveals (Lottie, charcoal on yellow). The mark then detaches,
-   *   scales down to nav-mark size and flies to the left of "The Cedar
-   *   Way" (which is pre-shifted right and fades in as the mark arrives).
-   *   The nav is held hidden until the first scroll; on scroll the mark
-   *   slides off-screen left, the label glides back to its margin, and the
-   *   nav takes over. Falls back to the normal page on small screens,
-   *   reduced motion, or any Lottie load failure.
+   * 11. ABOUT INTRO — logo reveal that resolves into the header
+   *   (/about only). The "mark" / "Cedar" placeholder embeds are
+   *   filled with the charcoal brand SVGs. On desktop + motion a
+   *   yellow field holds while the Lottie logo reveals; the mark and
+   *   "Cedar" then fly out of the centered lockup and settle into
+   *   their header positions (mark bottom-left, big "Cedar"
+   *   bottom-right). The nav is held hidden through the header and
+   *   animates in once the user scrolls past it (see the nav floor in
+   *   module 9). Small screens / reduced motion / Lottie failure just
+   *   show the finished header with the nav floor still in effect.
    * ======================================================= */
   onReady(function () {
     var P = location.pathname.replace(/\/$/, '') || '/';
-    if (P !== '/about' || RM || window.innerWidth < 768) return;
-    var hero = document.querySelector('.section-pad .about-container') || document.querySelector('.about-container');
-    var label = document.querySelector('.about-micro-title');
-    if (!hero || !label) return;
-    try { window.scrollTo(0, 0); } catch (e) {}
-
-    var CHAR = '#29221b', FLY = 950;
+    if (P !== '/about') return;
     var nav = document.querySelector('.navbar');
+    var section = document.querySelector('.section-pad') || document.querySelector('section');
+
+    /* charcoal brand SVGs for the placeholder embeds (sized to the header lockup; clamp keeps them sane on small screens) */
+    var MARK_SVG = '<svg viewBox="0 0 374 283" xmlns="http://www.w3.org/2000/svg" style="display:block;height:clamp(58px,14vw,213px);width:auto"><path fill-rule="evenodd" clip-rule="evenodd" fill="#29221b" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z"/><path fill-rule="evenodd" clip-rule="evenodd" fill="#29221b" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z"/></svg>';
+    var CEDAR_SVG = '<svg viewBox="0 0 260 70" xmlns="http://www.w3.org/2000/svg" style="display:block;height:clamp(64px,15.5vw,235px);width:auto"><path fill="#29221b" d="M50.6083 46.5075H61.1401C58.2508 61.6061 46.4143 69.9942 31.3157 69.9942C11.557 69.9942 0 55.6412 0 34.8573C0 13.7938 12.489 0 31.9681 0C46.6007 0 57.9712 8.85413 60.7673 23.4867H50.2355C48.2783 14.9122 41.661 9.04053 31.5021 9.04053C20.0383 9.04053 11.091 18.0811 11.091 34.8573C11.091 51.3539 19.7587 60.9537 31.7817 60.9537C41.7542 60.9537 48.5579 55.548 50.6083 46.5075Z"/><path fill="#29221b" d="M92.1113 25.8168C85.6804 25.8168 79.2495 28.8924 77.7583 39.0514H105.812C105.253 31.2224 99.847 25.8168 92.1113 25.8168ZM105.626 53.9636H115.412C112.709 63.2837 104.227 69.9942 92.4841 69.9942C76.5467 69.9942 67.3198 58.9032 67.3198 43.7114C67.3198 27.8672 78.2243 17.7082 92.1113 17.7082C106.837 17.7082 116.064 29.2652 116.064 44.0842C116.064 44.923 116.064 45.6687 115.971 46.6007H77.6651C78.6903 57.5052 85.6804 61.6061 92.3909 61.6061C99.4742 61.6061 103.575 58.5304 105.626 53.9636Z"/><path fill="#29221b" d="M160.294 68.7826V61.4197C157.218 66.7321 151.626 69.9942 144.077 69.9942C132.334 69.9942 122.547 60.3945 122.547 43.8978C122.547 27.4012 132.334 17.7082 144.077 17.7082C151.626 17.7082 157.218 20.9703 160.294 26.376V1.21162H170.173V68.7826H160.294ZM146.873 61.7925C154.049 61.7925 160.76 56.48 160.76 43.8978C160.76 31.2224 154.049 25.91 146.873 25.91C138.671 25.91 133.079 32.4341 133.079 43.8978C133.079 55.2684 138.671 61.7925 146.873 61.7925Z"/><path fill="#29221b" d="M223.48 68.7826H213.601C213.135 66.2661 212.948 64.1225 212.948 62.0721C209.779 67.1982 204.374 69.9942 195.892 69.9942C186.479 69.9942 178.65 64.6817 178.65 55.4548C178.65 43.525 192.071 39.9834 212.482 37.8397V36.6281C212.482 28.24 207.729 25.2576 201.671 25.2576C195.054 25.2576 191.139 28.706 190.673 34.5777H180.794C181.633 24.0459 190.487 17.5219 201.671 17.5219C215.558 17.5219 222.175 24.0459 222.175 38.3057V49.6763C222.175 57.7848 222.641 64.1225 223.48 68.7826ZM213.041 47.8123V45.0162C198.595 46.5075 189.368 48.5579 189.368 55.082C189.368 59.5556 192.817 62.5381 198.502 62.5381C206.051 62.5381 213.041 59.0896 213.041 47.8123Z"/><path fill="#29221b" d="M232.916 68.7826V18.6403H242.516V27.5876C244.939 21.8091 249.879 18.5471 256.589 18.3607C257.428 18.3607 258.174 18.3607 259.012 18.4539V28.706C257.148 28.4264 255.843 28.3332 254.445 28.3332C246.71 28.3332 242.795 32.3409 242.795 42.6862V68.7826H232.916Z"/></svg>';
+
+    var embeds = [].slice.call(document.querySelectorAll('.w-embed'));
+    function findEmbed(txt) { for (var i = 0; i < embeds.length; i++) { var e = embeds[i]; if (!e.querySelector('svg') && (e.textContent || '').trim() === txt) return e; } return null; }
+    var markE = findEmbed('mark'), cedarE = findEmbed('Cedar');
+    if (markE) markE.innerHTML = MARK_SVG;
+    if (cedarE) cedarE.innerHTML = CEDAR_SVG;
+
+    /* nav floor — hidden while the header owns the viewport, animates in once scrolled past it (module 9 reads this) */
+    function setFloor() { window.__cedarNavFloor = Math.max(200, Math.round((section ? section.getBoundingClientRect().height : window.innerHeight) - 100)); }
+    setFloor();
+    window.addEventListener('resize', setFloor);
+    if (nav && (window.pageYOffset || 0) < window.__cedarNavFloor) nav.classList.add('cedar-nav-hidden');
+
+    if (RM || window.innerWidth < 768 || !(markE || cedarE)) return;   /* no reveal: finished header + nav floor already in place */
+    try { window.scrollTo(0, 0); } catch (e) {}
     window.__cedarAboutIntro = true;
-    if (nav) nav.classList.add('cedar-nav-hidden');
+    if (markE) markE.style.opacity = '0';
+    if (cedarE) cedarE.style.opacity = '0';
 
     /* yellow field that holds during the reveal (matched to the page exactly) */
     var pw = document.querySelector('.page-wrap-yellow');
@@ -936,66 +957,40 @@
     stage.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:' + REVEAL_W + 'px;height:' + REVEAL_H + 'px;transition:opacity .45s ' + EASE + ';';
     veil.appendChild(stage); document.body.appendChild(veil);
 
-    /* pre-stage the label: shifted right (room for the mark), hidden */
-    var MARK_H = 28, MARK_W = Math.round(MARK_H * 374 / 283), GAP = 14, SHIFT = MARK_W + GAP;
-    label.style.transition = 'none';
-    label.style.transform = 'translateX(' + SHIFT + 'px)';
-    label.style.opacity = '0';
-
-    var mark = null, released = false, safety = null;
-    function markEl() {
-      return el('span', null, '<svg viewBox="0 0 374 283" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block"><path fill-rule="evenodd" clip-rule="evenodd" fill="' + CHAR + '" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z"/><path fill-rule="evenodd" clip-rule="evenodd" fill="' + CHAR + '" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z"/></svg>');
+    var FLY = 1000, done = false, safety = null;
+    /* lottie mark + wordmark top-left + width in the 1920×1080 artboard (measured from the JSON) */
+    var MA = { x: 482, y: 468, w: 218 }, WA = { x: 786, y: 459, w: 672 };
+    function startXform(elm, A) {
+      var sc = REVEAL_W / 1920, cLeft = (window.innerWidth - REVEAL_W) / 2, cTop = (window.innerHeight - REVEAL_H) / 2;
+      var rx = cLeft + A.x * sc, ry = cTop + A.y * sc, rw = A.w * sc;   /* where this piece sits in the reveal lockup, on screen */
+      var r = elm.getBoundingClientRect();                             /* its resting spot in the header */
+      return 'translate(' + (rx - r.left) + 'px,' + (ry - r.top) + 'px) scale(' + (rw / r.width) + ')';
     }
-
-    function handoff() {
-      if (released || mark) return;
-      var sc = REVEAL_W / 1920;
-      var cLeft = (window.innerWidth - REVEAL_W) / 2, cTop = (window.innerHeight - REVEAL_H) / 2;
-      var startW = Math.round(218 * sc), startH = Math.round(startW / (374 / 283));
-      var cx = cLeft + 591 * sc, cy = cTop + 550 * sc;
-      var startLeft = Math.round(cx - startW / 2), startTop = Math.round(cy - startH / 2);
-      var lr = label.getBoundingClientRect();
-      var restLeft = Math.round(lr.left - SHIFT);                 /* the label's original left margin (it's shifted right by SHIFT) */
-      var restTop = Math.round(lr.top + lr.height / 2 - MARK_H / 2);
-
-      mark = markEl();
-      mark.style.cssText = 'position:fixed;z-index:99998;left:' + startLeft + 'px;top:' + startTop + 'px;width:' + startW + 'px;height:' + startH + 'px;transform-origin:top left;opacity:0;will-change:transform,opacity;';
-      document.body.appendChild(mark);
-
-      /* crossfade reveal → mark (same charcoal chevrons, same spot) + drop the veil to show the identical yellow hero */
-      stage.style.opacity = '0';
+    function fly(elm, A) {
+      if (!elm) return;
+      elm.style.transition = 'none';
+      elm.style.transformOrigin = 'top left';
+      elm.style.position = 'relative'; elm.style.zIndex = '99997';     /* ride above the veil during the fly */
+      elm.style.transform = startXform(elm, A);
+      elm.style.opacity = '1';
       requestAnimationFrame(function () { requestAnimationFrame(function () {
-        mark.style.transition = 'opacity .3s ' + EASE; mark.style.opacity = '1'; veil.style.opacity = '0';
+        elm.style.transition = 'transform ' + FLY + 'ms ' + EASE + ',opacity .4s ' + EASE;
+        elm.style.transform = 'none';                                  /* settle into the header layout */
       }); });
-      setTimeout(function () { if (veil.parentNode) veil.remove(); }, 660);
-
-      var dx = restLeft - startLeft, dy = restTop - startTop, scl = MARK_W / startW;
-      mark._rest = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scl + ')';
-      mark._exit = 'translate(' + (-(startLeft + startW + 80)) + 'px,' + dy + 'px) scale(' + scl + ')';
-      setTimeout(function () { mark.style.transition = 'transform ' + FLY + 'ms ' + EASE + ',opacity .3s ' + EASE; mark.style.transform = mark._rest; }, 180);
-      setTimeout(function () { label.style.transition = 'opacity .6s ' + EASE; label.style.opacity = '1'; }, 180 + FLY - 250);
+      setTimeout(function () { elm.style.position = ''; elm.style.zIndex = ''; elm.style.transition = ''; elm.style.transform = ''; elm.style.transformOrigin = ''; }, FLY + 160);
     }
-
-    function release() {
-      if (released) return; released = true;
-      window.__cedarAboutIntro = false; clearTimeout(safety);
-      if (nav) nav.classList.remove('cedar-nav-hidden');
-      if (veil && veil.parentNode) { veil.style.opacity = '0'; setTimeout(function () { if (veil.parentNode) veil.remove(); }, 660); }
-      label.style.transition = 'transform .7s ' + EASE + ',opacity .5s ' + EASE;
-      label.style.transform = 'translateX(0)'; label.style.opacity = '1';
-      if (mark) { mark.style.transition = 'transform .7s ' + EASE + ',opacity .7s ' + EASE; mark.style.transform = mark._exit || 'translateX(-240px)'; setTimeout(function () { if (mark && mark.parentNode) mark.remove(); }, 780); }
-      window.removeEventListener('wheel', onScrollDismiss); window.removeEventListener('scroll', onScrollDismiss); window.removeEventListener('keydown', onKey);
+    function handoff() {
+      if (done) return; done = true;
+      fly(markE, MA); fly(cedarE, WA);                                 /* lockup breaks apart into the header positions */
+      if (stage) stage.style.opacity = '0';
+      if (veil) { veil.style.opacity = '0'; setTimeout(function () { if (veil.parentNode) veil.remove(); }, 680); }
+      setTimeout(function () { window.__cedarAboutIntro = false; }, FLY + 60);   /* hand nav control to the floor logic */
     }
-    function onScrollDismiss() { release(); }
-    function onKey(e) { if (['ArrowDown', 'PageDown', 'End', ' ', 'Spacebar'].indexOf(e.key) > -1) release(); }
-    function arm() { window.addEventListener('wheel', onScrollDismiss, { passive: true }); window.addEventListener('scroll', onScrollDismiss, { passive: true }); window.addEventListener('keydown', onKey); }
-
-    function abort() {                                            /* failure → just show the normal page */
-      if (released) return; released = true; window.__cedarAboutIntro = false; clearTimeout(safety);
-      if (nav) nav.classList.remove('cedar-nav-hidden');
+    function abort() {                                                 /* failure → just show the finished header */
+      if (done) return; done = true; window.__cedarAboutIntro = false; clearTimeout(safety);
+      if (markE) markE.style.opacity = '1';
+      if (cedarE) cedarE.style.opacity = '1';
       if (veil && veil.parentNode) veil.remove();
-      if (mark && mark.parentNode) mark.remove();
-      label.style.transition = 'none'; label.style.transform = 'translateX(0)'; label.style.opacity = '1';
     }
 
     var s = document.createElement('script');
@@ -1005,12 +1000,12 @@
         var me = ([].slice.call(document.scripts).map(function (x) { return x.src; }).filter(function (x) { return /cedar-experience\.js/.test(x); })[0] || '').split('?')[0];
         var jsonUrl = me.replace(/[^/]+$/, 'cedar-logo-reveal-charcoal-transparent.json');
         var anim = window.lottie.loadAnimation({ container: stage, renderer: 'svg', loop: false, autoplay: true, path: jsonUrl });
-        anim.addEventListener('complete', function () { handoff(); arm(); });
+        anim.addEventListener('complete', handoff);
         anim.addEventListener('data_failed', abort);
       } catch (e) { abort(); }
     };
     s.onerror = abort;
     document.body.appendChild(s);
-    safety = setTimeout(function () { if (!mark && !released) { handoff(); arm(); } }, 6000);   /* never strand the veil if Lottie hangs */
+    safety = setTimeout(function () { if (!done) handoff(); }, 6500);   /* never strand the veil if Lottie hangs */
   });
 })();
