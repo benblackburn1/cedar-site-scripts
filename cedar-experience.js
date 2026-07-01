@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.11.1 · built by Origin · loaded site-wide (footer)
+ * v1.12.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -121,7 +121,7 @@
     '.cedar-reveal{opacity:0;transform:translateY(44px);will-change:opacity,transform;}',
     '.cedar-reveal.cedar-in{opacity:1;transform:none;transition:opacity .8s ' + EASE + ',transform .8s ' + EASE + ';}',
     /* logo marquee */
-    '.cedar-marquee{overflow:hidden;width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);}',
+    '.cedar-marquee{overflow:hidden;position:relative;left:50%;transform:translateX(-50%);width:100vw;max-width:100vw;}',   /* full-bleed centred on the viewport (parent .container is centred); track repeats to fill so the -50% loop stays seamless */
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
@@ -304,7 +304,7 @@
     if (path !== '/' || RM || TOUCH) return;          /* desktop + motion only */
     var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
     if (cards.length < 2) return;
-    var TRANS = 'flex-basis .55s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
+    var TRANS = 'flex-basis .85s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;   /* width expand slowed .55->.85 per Ben */
     cards.forEach(function (c) {
       c.style.boxSizing = 'border-box'; c.style.minWidth = '0';   /* shrink to the basis so row-mates resize in place, never wrap */
       c._nat = c.getBoundingClientRect().width;        /* natural design width — the grow basis (so a filtered row still fills) */
@@ -332,7 +332,7 @@
       row.forEach(function (c) {
         var isH = c === card;
         /* row-mates start shrinking immediately; the hovered card grows 90ms later so it can never push them off the row (flex decides wrapping on basis BEFORE shrink) */
-        c.style.transition = 'flex-basis .55s ' + EASE + (isH ? ' .09s' : '') + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
+        c.style.transition = 'flex-basis .85s ' + EASE + (isH ? ' .09s' : '') + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
         c.style.flex = '0 1 ' + (isH ? target : remain * c._rw / otherRest) + 'px';
       });
     }
@@ -779,14 +779,29 @@
       if (row.classList.contains('cedar-marquee')) return;
       var slots = [].slice.call(row.children);
       if (slots.length < 2) return;
-      var track = el('div', 'cedar-marquee-track', '');
       var cs = getComputedStyle(row);
+      var track = el('div', 'cedar-marquee-track', '');
       track.style.gap = (cs.columnGap && cs.columnGap !== 'normal') ? cs.columnGap : '64px';
-      slots.forEach(function (s) { track.appendChild(s); });
-      var clone = track.cloneNode(true);                /* second identical set -> seamless -50% */
-      [].slice.call(clone.children).forEach(function (c) { c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
+      slots.forEach(function (s) { track.appendChild(s); });   /* one logo set = the repeating unit */
       row.classList.add('cedar-marquee');
       row.appendChild(track);
+      var unit = [].slice.call(track.children);                /* keep the original nodes as templates */
+      function build() {
+        track.innerHTML = '';
+        unit.forEach(function (n) { track.appendChild(n); });
+        /* repeat the unit until one "half" spans the (full-bleed) row, so the -50% wrap never shows a gap */
+        var guard = 0;
+        while (track.scrollWidth < row.clientWidth && guard < 40) {
+          unit.forEach(function (n) { track.appendChild(n.cloneNode(true)); });
+          guard++;
+        }
+        /* duplicate the whole half once -> two identical halves -> seamless translateX(-50%) */
+        [].slice.call(track.children).forEach(function (c) { var cl = c.cloneNode(true); cl.setAttribute('aria-hidden', 'true'); track.appendChild(cl); });
+      }
+      build();
+      var rt;
+      window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(build, 200); });
+      window.addEventListener('load', build);                  /* re-measure once logos have their final widths */
     });
   });
 
@@ -1053,35 +1068,33 @@
       'light green':  { bg: LIGHT_GREEN, text: CHARCOAL }
     };
     var SKIP = /^(IMG|SVG|PICTURE|CANVAS|VIDEO|IFRAME|PATH|USE|SOURCE|LINE|RECT|CIRCLE|POLYGON|G)$/;
-    function paintText(card, color) {
+    function paintText(card, color) {                                /* colour the text AND the subhead top-rule (border) to match the type */
       card.style.setProperty('color', color, 'important');
+      card.style.setProperty('border-color', color, 'important');
       var els = card.querySelectorAll('*');
       for (var i = 0; i < els.length; i++) {
         if (SKIP.test(els[i].tagName)) continue;
         els[i].style.setProperty('color', color, 'important');
+        els[i].style.setProperty('border-color', color, 'important');
       }
     }
-    function hasFullBleedImage(card) {
-      var cr = card.getBoundingClientRect(), area = (cr.width * cr.height) || 1;
-      if (/url\(/.test(getComputedStyle(card).backgroundImage)) return true;
-      var els = card.querySelectorAll('*');
-      for (var i = 0; i < els.length; i++) {
-        var e = els[i], r = e.getBoundingClientRect();
-        if ((r.width * r.height) < area * 0.55) continue;           /* only near-full-card layers count */
-        if (/url\(/.test(getComputedStyle(e).backgroundImage)) return true;
-        if (e.tagName === 'IMG' && e.naturalWidth > 0) return true;
-      }
-      return false;
+    /* Webflow flags an empty CMS image with .w-dyn-bind-empty, so a real bg image = .card-bg-img without it */
+    function hasBgImage(card) {
+      var img = card.querySelector('img.card-bg-img:not(.w-dyn-bind-empty)');
+      return !!img && getComputedStyle(img).display !== 'none';
     }
     cards.forEach(function (card) {
       var key = (card.getAttribute('data-color') || '').trim().toLowerCase();
       var m = MAP[key];
-      if (m) {
+      if (hasBgImage(card)) {                                        /* photo card -> white type over the image, no colour fill */
+        card.style.setProperty('background-color', 'transparent', 'important');
+        paintText(card, OFFWHITE);
+      } else if (m) {
         card.style.setProperty('background-color', m.bg, 'important');
         paintText(card, m.text);
-      } else {                                                       /* none / "-" / unknown */
+      } else {                                                       /* none / "-" -> no fill, charcoal type */
         card.style.setProperty('background-color', 'transparent', 'important');
-        paintText(card, hasFullBleedImage(card) ? OFFWHITE : CHARCOAL);
+        paintText(card, CHARCOAL);
       }
     });
   });
@@ -1101,7 +1114,25 @@
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
     var ASPECT = 16 / 9, TARGET_H = 460;                             /* bias for ~2-up at desktop; tune for bigger/smaller */
-    cards.forEach(function (c) { c.classList.add('cedar-gal'); });
+    cards.forEach(function (c) {
+      c.classList.add('cedar-gal');
+      /* the authored gallery iframe ships with an empty src (resolves to the page URL -> recursive load -> black);
+         the real Vimeo id lives in the embed's inline script, so pull it out and load a proper background video.
+         Also stash id/hash on the card for the lightbox (module 14, TODO). */
+      var sc = c.querySelector('.gallery-video script');
+      var ifr = c.querySelector('.gallery-video iframe');
+      if (!sc || !ifr) return;
+      var txt = sc.textContent || '';
+      var id = (txt.match(/vimeo\.com\/(?:video\/)?(\d{6,})/) || [])[1];
+      if (!id) return;
+      var hash = (txt.match(/[?&]h=([0-9a-z]+)/i) || txt.match(/vimeo\.com\/(?:video\/)?\d{6,}\/([0-9a-z]+)/i) || [])[1];
+      c.setAttribute('data-cedar-vimeo', id);
+      if (hash) c.setAttribute('data-cedar-vimeo-h', hash);
+      if (ifr.src.indexOf('player.vimeo.com/video/' + id) === -1) {
+        ifr.allow = 'autoplay; fullscreen; picture-in-picture';
+        ifr.src = 'https://player.vimeo.com/video/' + id + '?background=1&autoplay=1&muted=1&loop=1&dnt=1' + (hash ? '&h=' + hash : '');
+      }
+    });
     var groups = [];
     cards.forEach(function (c) {
       var p = c.parentElement, g = null;
