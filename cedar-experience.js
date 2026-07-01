@@ -1,11 +1,11 @@
 /* Cedar Creative — experience layer
- * v1.14.1 · built by Origin · loaded site-wide (footer)
+ * v1.15.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
- *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; lazy-aware Vimeo background loading
+ *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback)
  *          contact (/contact): outline-mark Lottie traces in once on scroll and holds · about value icons (/about): Quality/Vision/Sustainability Lotties loop on hover, finish the cycle then stop on hover-out
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
@@ -134,6 +134,9 @@
     '.gallery-card.cedar-gal .vimeo-container{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;background:#000!important;overflow:hidden!important;}',
     '.gallery-card.cedar-gal .vimeo-wrapper{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;}',
     '.gallery-card.cedar-gal .vimeo-container iframe{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;transform:none!important;}',   /* min-width:100vw on the vimeo bg embed forces cover-crop; zero the mins so the full 16:9 frame fills the box */
+    /* our own always-on background video (data-vimeo-url path): oversized centered iframe the card clips → cover, no letterbox */
+    '.gallery-card.cedar-gal .cedar-galvid{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none;}',
+    '.gallery-card.cedar-gal .cedar-galvid iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;background:#000;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1130,15 +1133,18 @@
    *     row A  0.353 / 0.647   (narrow | wide)
    *     row B  0.500 / 0.500   (even)
    *     row C  0.626 / 0.374   (wide | narrow)
-   *   Media covers its box (image object-fit:cover; video fills,
-   *   black behind). A lone trailing card spans the full row.
+   *   Media covers its box (image object-fit:cover; video oversized
+   *   to cover, card clips). A lone trailing card spans the full row.
    *   Widths are container-driven → recompute on resize. Scoped
    *   strictly to .gallery-card: the parent (.work-row.w-dyn-items)
    *   is SHARED with the home grid, so only gallery cards + their
-   *   parents are touched. Each card is multi-media (image AND/OR a
-   *   CMS Vimeo embed); presence of a real vimeo id => video card,
-   *   whose src-load is lazy-aware (the Webflow Vimeo embed builds
-   *   its iframe only when scrolled into view).
+   *   parents are touched. VIDEO source, PRIMARY: a data-vimeo-url
+   *   on the card (bound to a plain CMS text field, mirroring the
+   *   home work grid) — we build our own always-on background iframe
+   *   and retire the flaky Webflow Video embed. FALLBACK (legacy,
+   *   unmigrated items): scrape the id from the .gallery-video
+   *   embed's inline <script> and lazy-load it. Image sits behind
+   *   the video as a natural poster/fallback.
    * ======================================================= */
   onReady(function () {
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
@@ -1146,10 +1152,27 @@
     var ROW_H = 600;                                              /* match the home work grid; tunable */
     var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];  /* home grid's 3 repeating rows */
 
-    /* the authored gallery iframe ships with an empty src (resolves to the page URL -> recursive load -> black);
-       the real Vimeo id lives in the embed's inline <script>. The Webflow Vimeo embed builds its iframe LAZILY,
-       so a one-shot pass misses it — watch for the iframe and apply on appearance. Also stash id/hash on the
-       card for the lightbox (module 14, TODO). */
+    /* PRIMARY path — build an always-on background iframe from a data-vimeo-url (shared home-grid parser + builder). */
+    function parseVimeo(url) {
+      if (!url) return null;
+      var id = (url.match(/vimeo\.com\/(?:video\/)?(\d+)/i) || [])[1];
+      if (!id) return null;
+      var h = (url.match(/[?&]h=([0-9a-z]+)/i) || [])[1] || (url.match(/vimeo\.com\/(?:video\/)?\d+\/([0-9a-z]+)/i) || [])[1] || '';
+      return { id: id, hash: h };
+    }
+    function mountBgVideo(c, url) {
+      var parts = parseVimeo(url); if (!parts) return false;
+      c.setAttribute('data-cedar-vimeo', parts.id);                       /* stash for the lightbox (module 14, TODO) */
+      if (parts.hash) c.setAttribute('data-cedar-vimeo-h', parts.hash);
+      var oldEmbed = c.querySelector('.gallery-video'); if (oldEmbed) oldEmbed.style.display = 'none';   /* retire the flaky Webflow Video embed */
+      if (c.querySelector('.cedar-galvid')) return true;
+      var wrap = document.createElement('div'); wrap.className = 'cedar-galvid';
+      var f = document.createElement('iframe'); f.allow = 'autoplay; fullscreen; picture-in-picture'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+      f.src = vimeoEmbed(url);                                            /* shared builder: background/autoplay/muted/loop */
+      wrap.appendChild(f); c.appendChild(wrap);                           /* sits above the CMS image → image is a natural fallback */
+      return true;
+    }
+    /* FALLBACK path — lazy-load the legacy .gallery-video embed's own iframe (it builds only when scrolled in). */
     function loadVideo(c, vid, id, hash) {
       c.setAttribute('data-cedar-vimeo', id);
       if (hash) c.setAttribute('data-cedar-vimeo-h', hash);
@@ -1174,6 +1197,11 @@
       for (var i = 0; i < groups.length; i++) if (groups[i].parent === p) g = groups[i];
       if (!g) { g = { parent: p, items: [] }; groups.push(g); }
       g.items.push(c);
+      /* PRIMARY: data-vimeo-url on the card (or a descendant) */
+      var urlEl = c.hasAttribute('data-vimeo-url') ? c : c.querySelector('[data-vimeo-url]');
+      var url = urlEl ? (urlEl.getAttribute('data-vimeo-url') || '').trim() : '';
+      if (url && mountBgVideo(c, url)) return;
+      /* FALLBACK: legacy .gallery-video embed */
       var vid = c.querySelector('.gallery-video');
       var vsc = vid && vid.querySelector('script');
       var vtxt = (vsc && vsc.textContent) || '';
@@ -1184,10 +1212,16 @@
       }
     });
 
+    function coverIframe(c, w) {
+      var f = c.querySelector('.cedar-galvid iframe'); if (!f) return;   /* oversize to COVER the box (no letterbox); card clips overflow */
+      f.style.width = (Math.ceil(Math.max(w, ROW_H * 16 / 9)) + 4) + 'px';
+      f.style.height = (Math.ceil(Math.max(ROW_H, w * 9 / 16)) + 4) + 'px';
+    }
     function set(c, w) {
       c.style.setProperty('flex', '0 0 auto', 'important');
       c.style.setProperty('width', w + 'px', 'important');
       c.style.setProperty('height', ROW_H + 'px', 'important');
+      coverIframe(c, w);
     }
     function layout() {
       groups.forEach(function (g) {
