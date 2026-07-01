@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.8.0 · built by Origin · loaded site-wide (footer)
+ * v1.8.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -933,6 +933,9 @@
     var markE = findEmbed('mark'), cedarE = findEmbed('Cedar');
     if (markE) markE.innerHTML = MARK_SVG;
     if (cedarE) cedarE.innerHTML = CEDAR_SVG;
+    /* center-align the two so their vertical centers match the official lockup (which is center-aligned, not top-aligned) */
+    if (markE) markE.style.alignSelf = 'center';
+    if (cedarE) cedarE.style.alignSelf = 'center';
 
     /* nav floor — hidden while the header owns the viewport, animates in once scrolled past it (module 9 reads this) */
     function setFloor() { window.__cedarNavFloor = Math.max(200, Math.round((section ? section.getBoundingClientRect().height : window.innerHeight) - 100)); }
