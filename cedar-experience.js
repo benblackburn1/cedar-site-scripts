@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.12.0 · built by Origin · loaded site-wide (footer)
+ * v1.13.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -125,8 +125,9 @@
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 36s linear infinite;}',
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
-    /* gallery (project pages) — consistent-height 16:9 boxes, JS sets each card w/h; the vimeo video fills the box, black shows behind any non-16:9 film */
+    /* gallery (project pages) — FIXED-HEIGHT, VARIABLE-WIDTH cards; JS sets each card height=ROW_H + width=height*aspect (videos 16:9, images natural), flex-wrap ragged. The media fills the box (image object-fit:cover = exact since the box matches its aspect; video fills, black behind any non-16:9 film) */
     '.gallery-card.cedar-gal{overflow:hidden;position:relative;}',
+    '.gallery-card.cedar-gal img.img-cover{width:100%!important;height:100%!important;object-fit:cover!important;display:block;}',
     '.gallery-card.cedar-gal .gallery-video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;}',
     '.gallery-card.cedar-gal .vimeo-container{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;background:#000!important;overflow:hidden!important;}',
     '.gallery-card.cedar-gal .vimeo-wrapper{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;}',
@@ -1100,65 +1101,85 @@
   });
 
   /* =========================================================
-   * 13. GALLERY (project pages) — justified, consistent-height
-   *   16:9 grid. Cards are laid into rows that fill the row
-   *   width; every card shares one height (16:9 box, width =
-   *   height x 16/9), the last row is left ragged. The vimeo
-   *   film fills each box (CSS above) with black behind. All
-   *   Cedar gallery films are 16:9, so rows come out uniform;
-   *   TARGET_H just biases how many land per row. Recomputes
-   *   on resize. Scoped to .gallery-card so the home work grid
-   *   (also .work-row) is untouched.
+   * 13. GALLERY (project pages) — FIXED-HEIGHT, VARIABLE-WIDTH.
+   *   Every card is the same fixed height (ROW_H); each card's
+   *   WIDTH = ROW_H x that media's aspect (videos = 16:9, images
+   *   = their NATURAL aspect measured via a detached Image).
+   *   flex-wrap, left-aligned, ragged right (NOT justified —
+   *   justifying would vary height, which Ben doesn't want).
+   *   Widths are aspect-driven, not container-driven, so wrapping
+   *   is automatic — no per-resize recompute needed (only would
+   *   if ROW_H became responsive). Scoped strictly to
+   *   .gallery-card: the parent (.work-row.w-dyn-items) is SHARED
+   *   with the home work grid, so we only touch gallery cards +
+   *   their parents. Each card is multi-media (image AND/OR a
+   *   CMS Vimeo embed); presence of a real vimeo id => video card.
    * ======================================================= */
   onReady(function () {
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
-    var ASPECT = 16 / 9, TARGET_H = 460;                             /* bias for ~2-up at desktop; tune for bigger/smaller */
-    cards.forEach(function (c) {
-      c.classList.add('cedar-gal');
-      /* the authored gallery iframe ships with an empty src (resolves to the page URL -> recursive load -> black);
-         the real Vimeo id lives in the embed's inline script, so pull it out and load a proper background video.
-         Also stash id/hash on the card for the lightbox (module 14, TODO). */
-      var sc = c.querySelector('.gallery-video script');
-      var ifr = c.querySelector('.gallery-video iframe');
-      if (!sc || !ifr) return;
-      var txt = sc.textContent || '';
-      var id = (txt.match(/vimeo\.com\/(?:video\/)?(\d{6,})/) || [])[1];
-      if (!id) return;
-      var hash = (txt.match(/[?&]h=([0-9a-z]+)/i) || txt.match(/vimeo\.com\/(?:video\/)?\d{6,}\/([0-9a-z]+)/i) || [])[1];
+    var ROW_H = 440;                 /* fixed card height (px); width follows each media's aspect. Tunable — Ben iterates on feel. */
+    var VIDEO_ASPECT = 16 / 9;
+    var parents = [];
+
+    function sizeCard(c, aspect) {
+      c.style.setProperty('flex', '0 0 auto', 'important');
+      c.style.setProperty('height', ROW_H + 'px', 'important');
+      c.style.setProperty('width', Math.round(ROW_H * aspect) + 'px', 'important');
+    }
+
+    /* the authored gallery iframe ships with an empty src (resolves to the page URL -> recursive load -> black);
+       the real Vimeo id lives in the embed's inline <script>. The Webflow Vimeo embed builds its iframe LAZILY
+       (only when scrolled into view), so a one-shot pass misses it — watch for the iframe and apply on appearance.
+       Also stash id/hash on the card for the lightbox (module 14, TODO). */
+    function loadVideo(c, vid, id, hash) {
       c.setAttribute('data-cedar-vimeo', id);
       if (hash) c.setAttribute('data-cedar-vimeo-h', hash);
-      if (ifr.src.indexOf('player.vimeo.com/video/' + id) === -1) {
-        ifr.allow = 'autoplay; fullscreen; picture-in-picture';
-        ifr.src = 'https://player.vimeo.com/video/' + id + '?background=1&autoplay=1&muted=1&loop=1&dnt=1' + (hash ? '&h=' + hash : '');
+      function apply() {
+        var ifr = vid.querySelector('iframe');
+        if (!ifr) return false;
+        if (ifr.src.indexOf('player.vimeo.com/video/' + id) === -1) {
+          ifr.allow = 'autoplay; fullscreen; picture-in-picture';
+          ifr.src = 'https://player.vimeo.com/video/' + id + '?background=1&autoplay=1&muted=1&loop=1&dnt=1' + (hash ? '&h=' + hash : '');
+        }
+        return true;
+      }
+      if (apply()) return;
+      var mo = new MutationObserver(function () { if (apply()) mo.disconnect(); });
+      mo.observe(vid, { childList: true, subtree: true });
+    }
+
+    cards.forEach(function (c) {
+      c.classList.add('cedar-gal');
+      var p = c.parentElement;
+      if (p && parents.indexOf(p) === -1) {
+        parents.push(p);
+        p.style.setProperty('flex-wrap', 'wrap', 'important');
+        p.style.setProperty('justify-content', 'flex-start', 'important');
+        p.style.setProperty('align-items', 'flex-start', 'important');
+      }
+      var vid = c.querySelector('.gallery-video');
+      var vsc = vid && vid.querySelector('script');
+      var vtxt = (vsc && vsc.textContent) || '';
+      var id = (vtxt.match(/vimeo\.com\/(?:video\/)?(\d{6,})/) || [])[1];
+      if (id) {
+        /* video card — fixed 16:9 */
+        var hash = (vtxt.match(/[?&]h=([0-9a-z]+)/i) || vtxt.match(/vimeo\.com\/(?:video\/)?\d{6,}\/([0-9a-z]+)/i) || [])[1];
+        sizeCard(c, VIDEO_ASPECT);
+        loadVideo(c, vid, id, hash);
+      } else {
+        /* image card — provisional 16:9, then measure natural aspect via a DETACHED Image (loads even in a bg tab) */
+        sizeCard(c, VIDEO_ASPECT);
+        var img = c.querySelector('img.img-cover') || c.querySelector('img');
+        var src = img && img.getAttribute('src');
+        if (src) {
+          var probe = new Image();
+          probe.onload = function () {
+            if (probe.naturalWidth && probe.naturalHeight) sizeCard(c, probe.naturalWidth / probe.naturalHeight);
+          };
+          probe.src = src;
+        }
       }
     });
-    var groups = [];
-    cards.forEach(function (c) {
-      var p = c.parentElement, g = null;
-      for (var i = 0; i < groups.length; i++) if (groups[i].parent === p) g = groups[i];
-      if (!g) { g = { parent: p, items: [] }; groups.push(g); }
-      g.items.push(c);
-    });
-    function layout() {
-      groups.forEach(function (g) {
-        var p = g.parent, cs = getComputedStyle(p);
-        var gap = parseFloat(cs.columnGap || cs.gap) || 14;
-        var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-        if (W <= 0) return;
-        p.style.setProperty('justify-content', 'flex-start', 'important');   /* left-align so the ragged last row doesn't spread */
-        var N = Math.max(1, Math.round((W + gap) / (TARGET_H * ASPECT + gap)));
-        var colW = (W - (N - 1) * gap) / N;
-        var H = colW / ASPECT;
-        g.items.forEach(function (c) {
-          c.style.setProperty('flex', '0 0 auto', 'important');
-          c.style.setProperty('width', Math.round(colW) + 'px', 'important');
-          c.style.setProperty('height', Math.round(H) + 'px', 'important');
-        });
-      });
-    }
-    layout();
-    var rt;
-    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
   });
 })();
