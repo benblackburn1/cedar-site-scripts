@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.22.0 · built by Origin · loaded site-wide (footer)
+ * v1.22.1 · built by Origin · loaded site-wide (footer)
+ * v1.22.1: loader 3D mark rebuilt from the real brand path — the chamfered corners at each chevron's top and inner peak now render (the old trace had pointed apexes)
  * v1.22.0: mobile work-grid fix (desktop first/last/nth width-pattern rules leak into the column layout as HEIGHT rules and crush cards — neutralized, uniform full-width cards at Ben's breakpoint heights) · suite modal → Cedar Green field w/ light-green type + real side padding + wider · footer links ease 5px right on hover
  * v1.21.2: footer — Say hello radius matches site pills (12px); copyright moves below the lockup (bottom-left) with "Built by Origin" bottom-right → originbrand.io, 20px below the logo
  * v1.21.1: band fix — the embed wrappers anchored the iframe low in the band (charcoal gap above the video); every ancestor between iframe and band now fills the 50vh box before the iframe centers · info-card icon = full content width at its natural aspect
@@ -344,10 +345,13 @@
         var scene = new T.Scene();
         var cam = new T.PerspectiveCamera(28, w / h, 0.1, 200);
         cam.position.set(0, 0, 95);
-        /* the Cedar mark: two chevrons, traced from the logo SVG (viewBox 45x34.8) */
+        /* the Cedar mark: two chevrons, derived from the REAL brand path (viewBox 374x283, scaled into the
+           legacy 45-unit space) — includes the flat CHAMFERS at each chevron's top + inner peak */
+        var RAWCHEV = [[178.04,0],[0,126.555],[0,137.94],[25.0235,144.296],[178.04,83.6805],[195.051,83.6805],[348.067,144.296],[373.09,137.94],[373.09,126.555],[195.051,0]];
+        var MK = 45.009 / 373.09, MOFF = 137.979;
         var pts = [
-          [[0,17.37],[3.019,18.137],[22.504,10.447],[41.99,18.137],[45.009,17.37],[45.009,15.997],[22.504,0],[0,15.997]],
-          [[0,34.048],[3.019,34.815],[22.504,27.125],[41.99,34.815],[45.009,34.048],[45.009,32.675],[22.504,16.678],[0,32.675]]
+          RAWCHEV.map(function (p) { return [p[0] * MK, p[1] * MK]; }),
+          RAWCHEV.map(function (p) { return [p[0] * MK, (p[1] + MOFF) * MK]; })
         ];
         var group = new T.Group();
         var mat = new T.LineBasicMaterial({ color: 0x29221b, transparent: true, opacity: 0.85 });
