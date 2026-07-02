@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.21.1 · built by Origin · loaded site-wide (footer)
+ * v1.21.2 · built by Origin · loaded site-wide (footer)
+ * v1.21.2: footer — Say hello radius matches site pills (12px); copyright moves below the lockup (bottom-left) with "Built by Origin" bottom-right → originbrand.io, 20px below the logo
  * v1.21.1: band fix — the embed wrappers anchored the iframe low in the band (charcoal gap above the video); every ancestor between iframe and band now fills the 50vh box before the iframe centers · info-card icon = full content width at its natural aspect
  * v1.21.0: mobile hero band video hard-sized to 50vh (JS, beats the embed's own styles) · ALL project-page type heads centered (results too) · home info-card icons repainted via currentColor mask (pull the card text color, e.g. light green on Cedar Green)
  * v1.20.1: logo marquee is CMS-aware — a Collection List (Client Logos) dropped inside .partner-logos supersedes the static images; its items become the marquee slots
@@ -143,9 +144,12 @@
     '.cedar-foot-col.c1{flex:0 0 55.3%;display:flex;flex-direction:column;align-items:flex-start;padding:6px 28px 0 0;}',
     '.cedar-foot-col.c2{flex:1 1 auto;border-left:1px solid rgba(159,177,143,.32);padding:6px 0 0 28px;}',
     '.cedar-foot .cf-tag{font-size:21px;line-height:1.3;color:#9fb18f;margin:0 0 18px;max-width:28ch;}',
-    '.cedar-foot .cf-cta{display:inline-block;background:#9fb18f;color:#29341a;border-radius:999px;padding:12px 22px;font-size:14px;line-height:1;text-decoration:none;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',
+    '.cedar-foot .cf-cta{display:inline-block;background:#9fb18f;color:#29341a;border-radius:12px;padding:12px 22px;font-size:14px;line-height:1;text-decoration:none;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',   /* radius matches the site .btn-pill */
     '.cedar-foot .cf-cta:hover{opacity:.88;}',
-    '.cedar-foot .cf-copy{font-size:12px;opacity:.5;color:#9fb18f;margin-top:auto;padding-top:24px;}',
+    '.cedar-foot .cf-copy{font-size:12px;opacity:.5;color:#9fb18f;}',
+    '.cedar-foot-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:20px;}',   /* 20px below the big lockup */
+    '.cedar-foot-bottom .cf-built{font-size:12px;opacity:.5;color:#9fb18f;text-decoration:none;transition:opacity .25s ' + EASE + ';}',
+    '.cedar-foot-bottom .cf-built:hover{opacity:1;}',
     '.cedar-foot .cf-links{display:flex;flex-direction:column;gap:9px;align-items:flex-start;}',
     '.cedar-foot .cf-links a{color:#9fb18f;text-decoration:none;font-size:16px;letter-spacing:.3px;opacity:.85;transition:opacity .25s ' + EASE + ';}',
     '.cedar-foot .cf-links a:hover{opacity:1;}',
@@ -2066,7 +2070,6 @@
     c1.appendChild(el('p', 'cf-tag', tag.replace(/\s*Say hello\.?\s*$/i, '')));      /* "Say hello" becomes the pill below */
     var cta = el('a', 'cf-cta', 'Say hello'); cta.href = '/contact';
     c1.appendChild(cta);
-    c1.appendChild(el('div', 'cf-copy', cop));
     var c2 = el('div', 'cedar-foot-col c2', '');
     var lwrap = el('nav', 'cf-links', '');
     links.forEach(function (a) {
@@ -2086,6 +2089,12 @@
       lockup.appendChild(wd);
     }
     root.appendChild(cols); root.appendChild(lockup);
+    var bottom = el('div', 'cedar-foot-bottom', '');
+    bottom.appendChild(el('div', 'cf-copy', cop));
+    var built = el('a', 'cf-built', 'Built by Origin');
+    built.href = 'https://originbrand.io'; built.target = '_blank'; built.rel = 'noopener';
+    bottom.appendChild(built);
+    root.appendChild(bottom);
     f.appendChild(root);
   });
 
