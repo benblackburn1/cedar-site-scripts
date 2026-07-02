@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.16.0 · built by Origin · loaded site-wide (footer)
+ * v1.16.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
@@ -146,6 +146,8 @@
     '.cedar-lb-frame{position:absolute;inset:0;width:100%;height:100%;border:0;}',
     '.cedar-lb-close{position:absolute;top:22px;right:26px;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:26px;line-height:1;color:#f4f4f2;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background-color .25s ' + EASE + ';display:flex;align-items:center;justify-content:center;}',
     '.cedar-lb-close:hover{background:rgba(255,255,255,.28);}',
+    /* contact outline mark: force a crisp 1px stroke-only outline (the lottie paths default to a solid black SVG fill; fill:none + a non-scaling 1px stroke = clean thin outline at any size) */
+    '.cedar-lottie-mark svg path{fill:none!important;stroke-width:1px!important;vector-effect:non-scaling-stroke!important;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
