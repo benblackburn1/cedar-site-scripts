@@ -1,12 +1,12 @@
 /* Cedar Creative — experience layer
- * v1.15.0 · built by Origin · loaded site-wide (footer)
+ * v1.16.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
- *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback)
- *          contact (/contact): outline-mark Lottie traces in once on scroll and holds · about value icons (/about): Quality/Vision/Sustainability Lotties loop on hover, finish the cycle then stop on hover-out
+ *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback); click a video card → 16:9 lightbox modal (full controls, close via X/backdrop/Esc)
+ *          contact (/contact): outline-mark Lottie (full container width) traces in once on scroll and holds · about value icons (/about): Quality/Vision/Sustainability Lotties (200px, centered) loop on hover, finish the cycle then stop on hover-out
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -137,6 +137,15 @@
     /* our own always-on background video (data-vimeo-url path): oversized centered iframe the card clips → cover, no letterbox */
     '.gallery-card.cedar-gal .cedar-galvid{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none;}',
     '.gallery-card.cedar-gal .cedar-galvid iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;background:#000;}',
+    '.gallery-card.cedar-gal[data-cedar-vimeo]{cursor:pointer;}',
+    /* video lightbox (module 14) */
+    '.cedar-lb{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:5vh 5vw;background:rgba(20,15,10,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:opacity .3s ' + EASE + ';}',
+    '.cedar-lb.is-open{opacity:1;pointer-events:auto;}',
+    '.cedar-lb-stage{position:relative;width:min(1100px,92vw);aspect-ratio:16/9;max-height:90vh;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5);transform:translateY(12px);transition:transform .4s ' + EASE + ';}',
+    '.cedar-lb.is-open .cedar-lb-stage{transform:none;}',
+    '.cedar-lb-frame{position:absolute;inset:0;width:100%;height:100%;border:0;}',
+    '.cedar-lb-close{position:absolute;top:22px;right:26px;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:26px;line-height:1;color:#f4f4f2;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background-color .25s ' + EASE + ';display:flex;align-items:center;justify-content:center;}',
+    '.cedar-lb-close:hover{background:rgba(255,255,255,.28);}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1253,24 +1262,78 @@
   });
 
   /* =========================================================
+   * 14. VIDEO LIGHTBOX (project gallery) — click a gallery video
+   *   card (any .gallery-card carrying data-cedar-vimeo, stamped by
+   *   module 13) to open a centered 16:9 Vimeo player in a dark,
+   *   blurred modal, with full controls + sound (the grid clips
+   *   themselves stay muted background loops). Close via the X, a
+   *   backdrop click, or Esc; the iframe is torn down on close so
+   *   playback stops. Built lazily on first open; delegated click
+   *   so it works no matter when module 13 stamps the ids. Image
+   *   cards (no data-cedar-vimeo) are ignored.
+   * ======================================================= */
+  onReady(function () {
+    var overlay = null, frame = null;
+    function build() {
+      overlay = el('div', 'cedar-lb');
+      var stage = el('div', 'cedar-lb-stage');
+      frame = el('iframe', 'cedar-lb-frame');
+      frame.allow = 'autoplay; fullscreen; picture-in-picture';
+      frame.setAttribute('allowfullscreen', '');
+      var close = el('button', 'cedar-lb-close', '&times;');
+      close.setAttribute('aria-label', 'Close video');
+      stage.appendChild(frame);
+      overlay.appendChild(stage);
+      overlay.appendChild(close);
+      document.body.appendChild(overlay);
+      close.addEventListener('click', hide);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
+    }
+    function show(id, hash) {
+      if (!id) return;
+      if (!overlay) build();
+      frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
+      document.documentElement.style.overflow = 'hidden';
+      requestAnimationFrame(function () { overlay.classList.add('is-open'); });
+      document.addEventListener('keydown', onKey);
+    }
+    function hide() {
+      if (!overlay) return;
+      overlay.classList.remove('is-open');
+      document.documentElement.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+      setTimeout(function () { if (frame) frame.src = 'about:blank'; }, 320);   /* stop playback after the fade */
+    }
+    function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) hide(); }
+    document.addEventListener('click', function (e) {
+      var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo]');
+      if (!card) return;
+      e.preventDefault();
+      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));
+    });
+  });
+
+  /* =========================================================
    * 15. CONTACT LOTTIE (outline mark) — /contact. Fills the
    *   "outline mark lottie" placeholder embed below the
-   *   "Tell us about your project." heading. Plays the mark
-   *   trace ONCE on scroll-in (real motion ends ~frame 180 of a
-   *   padded 6600-frame comp, so we cap the segment) and holds
-   *   the final state until reload. Under reduced motion it just
-   *   shows the finished mark. Sizing via MARK_BOX (tunable).
+   *   "Tell us about your project." heading. Scales to 100% of the
+   *   host's content width (the embed carries its own 20px side
+   *   padding in Webflow); square artboard → aspect-ratio 1/1.
+   *   Plays the mark trace ONCE on scroll-in (real motion ends
+   *   ~frame 180 of a padded 6600-frame comp, so we cap the
+   *   segment) and holds the final state until reload. Under
+   *   reduced motion it just shows the finished mark.
    * ======================================================= */
   onReady(function () {
     var host = [].slice.call(document.querySelectorAll('.w-embed')).filter(function (e) {
       return /outline\s*mark\s*lottie/i.test((e.textContent || '').trim());
     })[0];
     if (!host) return;
-    var MARK_BOX = 180;                              /* px square; tunable */
     var END = 180;                                   /* last real motion frame (comp op is padded to 6600) */
     host.textContent = '';
+    host.style.display = 'block';
     var box = el('div', 'cedar-lottie-mark');
-    box.style.cssText = 'width:' + MARK_BOX + 'px;height:' + MARK_BOX + 'px;max-width:100%;';
+    box.style.cssText = 'width:100%;aspect-ratio:1/1;margin:0 auto;';   /* full container width (host padding = the 20px gutters) */
     host.appendChild(box);
     ensureLottie(function (lottie) {
       var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: false, autoplay: false, path: lottieJSON('OutlineMark_Trace.json') });
@@ -1307,7 +1370,7 @@
   onReady(function () {
     var icons = [].slice.call(document.querySelectorAll('.value-icon.w-embed'));
     if (!icons.length) return;
-    var ICON_BOX = 64;                              /* px square; tunable */
+    var ICON_BOX = 200;                            /* px square; tunable */
     var FILES = [
       { re: /quality/i,        json: 'Quality.json' },
       { re: /vision/i,         json: 'Vision.json' },
@@ -1320,8 +1383,9 @@
         var pick = FILES.filter(function (f) { return f.re.test(txt); })[0];
         if (!pick) return;                          /* unknown card → leave placeholder */
         host.textContent = '';
+        host.style.display = 'block'; host.style.width = '100%'; host.style.textAlign = 'center';   /* span the card so the icon can center */
         var box = el('div', 'cedar-value-icon');
-        box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;';
+        box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;margin:0 auto;';   /* horizontally centered in the card */
         host.appendChild(box);
         var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: false, path: lottieJSON(pick.json) });
         anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(anim.totalFrames - 1, true); });  /* rest = finished icon (frame 0 is blank) */
