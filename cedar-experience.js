@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.18.1 · built by Origin · loaded site-wide (footer)
+ * v1.19.0 · built by Origin · loaded site-wide (footer)
+ * v1.19.0: /post suite booking modals (moves the hidden contact form in, prefills Suite + Interest) · about icon lotties resequenced per piece (Vision clockwise, Quality small pieces +0.5s, Sustainability smallest→largest) w/ clean full-draw segments · contact cascade word-spacing fix (flex heading) + slowed to ~2s · home info-cards >4 → horizontal drag-scroll with "Drag to scroll" cursor pill
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS auto-cycle (next thumb slides left into the feature, infinite, no scrollbar) + drag-coverflow gallery modal w/ "click and drag" cursor pill · view-other slider (one-up) · inline gallery video
  *          mobile menu (≤767px): mark left + "Menu" right; warm-grey overlay fills in, pages 36px bottom-left · footer rebuilt to the brand-guidelines cover layout (Cedar Green field, hairline columns, giant light-green lockup)
@@ -199,10 +200,22 @@
     /* /work heading intro — module 17 owns the transform (scroll scrub), so only opacity lives here */
     '.work-heading.cedar-wh{opacity:0;transition:opacity .9s ' + EASE + ';}',
     '.work-heading.cedar-wh.cedar-wh-in{opacity:1;}',
-    /* contact heading per-character cascade (module 20): words stay unbreakable, chars rise + fade in */
+    /* contact heading per-character cascade (module 20): words stay unbreakable, chars rise + fade in.
+       The H1 is display:flex, which DROPS whitespace-only text nodes — word gaps come from margins, not spaces. */
+    '.contact-head{flex-wrap:wrap;}',
+    '.contact-head .cedar-word:not(:last-child){margin-right:.28em;}',
     '.cedar-word{display:inline-block;white-space:nowrap;}',
     '.cedar-chr{display:inline-block;opacity:0;transform:translateY(.55em);}',
-    '.cedar-chr.cedar-in{opacity:1;transform:none;transition:opacity .7s ' + EASE + ',transform .7s ' + EASE + ';}',
+    '.cedar-chr.cedar-in{opacity:1;transform:none;transition:opacity 1.2s ' + EASE + ',transform 1.2s ' + EASE + ';}',
+    /* /post suite booking modal — the page's own (hidden) Webflow form is moved in, so native submission keeps working */
+    '.cedar-modal .cedar-suite-form{margin-top:6px;text-align:left;}',
+    '.cedar-modal .cedar-suite-form .w-form{margin:0;}',
+    '.cedar-modal .cedar-suite-form input,.cedar-modal .cedar-suite-form textarea,.cedar-modal .cedar-suite-form select{max-width:100%;}',
+    /* home info-cards (>4): horizontal drag-scroll, scrollbar hidden, pill cursor */
+    '.info-row.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}',
+    '.info-row.cedar-hscroll::-webkit-scrollbar{display:none;}',
+    '.info-row.cedar-hscroll.cedar-nocursor{cursor:none;}',
+    '.info-row.cedar-hscroll .info-card{flex:0 0 auto;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1599,11 +1612,12 @@
     if (!icons.length) return;
     var ICON_BOX = 200;                            /* px square; tunable */
     var HOLD_MS = 1000;                            /* pause at fully-drawn before the reverse */
-    var DRAWN = 174;                               /* fully drawn by here (60fps, sampled) */
+    /* per-file segments (the JSONs were resequenced 2026-07-02: per-piece trims; draw runs 12 → last end,
+       so seg0=4 is truly blank and drawn = last trim end + pad → no partially-drawn lines at either end) */
     var FILES = [
-      { re: /quality/i,        json: 'Quality.json',        seg0: 90 },
-      { re: /vision/i,         json: 'Vision.json',         seg0: 102 },
-      { re: /sustainab/i,      json: 'Sustainability.json', seg0: 102 }
+      { re: /quality/i,        json: 'Quality.json',        seg0: 4, drawn: 100 },
+      { re: /vision/i,         json: 'Vision.json',         seg0: 4, drawn: 122 },
+      { re: /sustainab/i,      json: 'Sustainability.json', seg0: 4, drawn: 116 }
     ];
     ensureLottie(function (lottie) {
       icons.forEach(function (host) {
@@ -1611,6 +1625,7 @@
         var txt = (card ? card.textContent : '') || '';
         var pick = FILES.filter(function (f) { return f.re.test(txt); })[0];
         if (!pick) return;                          /* unknown card → leave placeholder */
+        var DRAWN = pick.drawn;
         host.textContent = '';
         host.style.display = 'block'; host.style.width = '100%'; host.style.textAlign = 'center';   /* span the card so the icon can center */
         var box = el('div', 'cedar-value-icon');
@@ -1731,9 +1746,119 @@
     });
     afterLoader(function () {
       setTimeout(function () {
-        chars.forEach(function (c, i) { c.style.transitionDelay = (i * 26) + 'ms'; c.classList.add('cedar-in'); });
+        chars.forEach(function (c, i) { c.style.transitionDelay = (i * 36) + 'ms'; c.classList.add('cedar-in'); });   /* 36ms stagger + 1.2s chars ≈ 2s total */
       }, 180);
     });
+  });
+
+  /* =========================================================
+   * 22. SUITE BOOKING MODALS (/post) — the four "Book Color /
+   *   Amenities / Sound / Dailies" pills (and the hero "Book
+   *   Color") open a modal instead of jumping to /contact. The
+   *   page's own HIDDEN contact form (.form-wrap-post, in the
+   *   suite-specs flex block) is MOVED into the modal — not cloned
+   *   — so Webflow's native submit binding, success and error
+   *   states keep working. Each open stamps a hidden "Suite" field
+   *   with the suite name and pre-selects the "Suite Rental"
+   *   interest option; close returns the form to its hidden home.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/post') return;
+    var wrap = document.querySelector('.form-wrap-post');
+    if (!wrap) return;
+    var home = wrap.parentElement;
+    var root = el('div', null, '<div class="cedar-modal-backdrop"></div>');
+    root.id = 'cedar-modal-root';
+    document.body.appendChild(root);
+    var current = null;
+    function goHome() { if (wrap.parentElement !== home) { wrap.style.display = ''; home.appendChild(wrap); } }
+    function close() {
+      root.classList.remove('is-in'); document.body.classList.remove('cedar-modal-open');
+      setTimeout(function () { goHome(); root.classList.remove('is-open'); if (current) { current.remove(); current = null; } }, RM ? 0 : 620);
+    }
+    root.firstChild.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('is-open')) close(); });
+    function open(suite) {
+      if (current) { goHome(); current.remove(); }
+      var m = el('div', 'cedar-modal', '');
+      var x = el('button', 'cm-close', '×'); x.setAttribute('aria-label', 'Close'); x.addEventListener('click', close); m.appendChild(x);
+      m.appendChild(el('h3', null, 'Book ' + suite));
+      var lead = el('div', 'cm-body', 'Book ' + suite + ', tell us about your session.');
+      lead.style.marginBottom = '18px';
+      m.appendChild(lead);
+      var holder = el('div', 'cedar-suite-form', '');
+      m.appendChild(holder);
+      holder.appendChild(wrap);
+      wrap.style.display = 'block';
+      var form = wrap.querySelector('form');
+      if (form) {
+        var hid = form.querySelector('input[name="Suite"]');
+        if (!hid) { hid = document.createElement('input'); hid.type = 'hidden'; hid.name = 'Suite'; form.appendChild(hid); }
+        hid.value = suite;
+        var sel = form.querySelector('select');
+        if (sel) { for (var i = 0; i < sel.options.length; i++) { if (/suite/i.test(sel.options[i].text)) { sel.selectedIndex = i; break; } } }
+      }
+      root.appendChild(m); current = m;
+      root.classList.add('is-open'); document.body.classList.add('cedar-modal-open');
+      requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.add('is-in'); }); });
+      var first = form && form.querySelector('input[type="text"],input[type="email"]');
+      if (first) setTimeout(function () { try { first.focus(); } catch (_) {} }, 380);
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a.btn-pill');
+      if (!a) return;
+      var t = (a.textContent || '').trim();
+      if (!/^book\s+/i.test(t)) return;
+      e.preventDefault();
+      open(t.replace(/^book\s+/i, ''));
+    });
+  });
+
+  /* =========================================================
+   * 23. HOME INFO-CARDS DRAG-SCROLL — "What makes Cedar
+   *   different" row. Activates ONLY when the CMS holds more than
+   *   4 cards: the row becomes a horizontal scroller (scrollbar
+   *   hidden), desktop gets click-drag scrubbing with the cursor
+   *   replaced by a "Drag to scroll" pill (touch keeps native
+   *   swipe). A drag suppresses the accidental click at release.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/') return;
+    var row = document.querySelector('.info-row.w-dyn-items');
+    if (!row || row.querySelectorAll('.info-card').length <= 4) return;
+    row.classList.add('cedar-hscroll');
+    if (TOUCH) return;                              /* touch: native swipe, no pill */
+    row.classList.add('cedar-nocursor');
+    var pill = el('div', 'cedar-cf-pill', 'Drag to scroll');
+    document.body.appendChild(pill);
+    var mx = 0, my = 0, px = -200, py = -200, raf = null, over = false;
+    function loop() {
+      if (!over) { raf = null; return; }
+      px += (mx - px) * 0.22; py += (my - py) * 0.22;
+      pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px';
+      raf = requestAnimationFrame(loop);
+    }
+    row.addEventListener('pointerenter', function (e) { over = true; px = mx = e.clientX; py = my = e.clientY; pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
+    row.addEventListener('pointerleave', function () { over = false; pill.classList.remove('is-on'); });
+    var down = false, moved = false, sx = 0, sl = 0;
+    row.addEventListener('pointerdown', function (e) {
+      down = true; moved = false; sx = e.clientX; sl = row.scrollLeft;
+      try { row.setPointerCapture(e.pointerId); } catch (_) {}
+      pill.classList.add('is-down');
+    });
+    row.addEventListener('pointermove', function (e) {
+      mx = e.clientX; my = e.clientY;
+      if (!down) return;
+      var dx = e.clientX - sx;
+      if (Math.abs(dx) > 5) moved = true;
+      row.scrollLeft = sl - dx;
+    });
+    function up() { down = false; pill.classList.remove('is-down'); }
+    row.addEventListener('pointerup', up);
+    row.addEventListener('pointercancel', up);
+    row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
   });
 
   /* =========================================================
