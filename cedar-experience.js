@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.21.2 · built by Origin · loaded site-wide (footer)
+ * v1.22.0 · built by Origin · loaded site-wide (footer)
+ * v1.22.0: mobile work-grid fix (desktop first/last/nth width-pattern rules leak into the column layout as HEIGHT rules and crush cards — neutralized, uniform full-width cards at Ben's breakpoint heights) · suite modal → Cedar Green field w/ light-green type + real side padding + wider · footer links ease 5px right on hover
  * v1.21.2: footer — Say hello radius matches site pills (12px); copyright moves below the lockup (bottom-left) with "Built by Origin" bottom-right → originbrand.io, 20px below the logo
  * v1.21.1: band fix — the embed wrappers anchored the iframe low in the band (charcoal gap above the video); every ancestor between iframe and band now fills the 50vh box before the iframe centers · info-card icon = full content width at its natural aspect
  * v1.21.0: mobile hero band video hard-sized to 50vh (JS, beats the embed's own styles) · ALL project-page type heads centered (results too) · home info-card icons repainted via currentColor mask (pull the card text color, e.g. light green on Cedar Green)
@@ -108,6 +109,11 @@
     '@media (max-width:767px){.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',
     /* mobile: no hover exists, so the work-card label is always visible — TITLE ONLY, pinned bottom-left (desktop keeps the full hover reveal from module 3) */
     '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;top:auto!important;bottom:16px!important;left:16px!important;right:auto!important;}.work-card .card-label p.caption:nth-of-type(2){display:none!important;}}',
+    /* mobile work grid: the desktop width-pattern rules (first-child 35%, last-child aspect 1/1, nth-child basis 40%)
+       leak into the stacked COLUMN layout as height rules and crush cards — neutralize them; every card is
+       full-width at the breakpoint\'s design height */
+    '@media (min-width:480px) and (max-width:767px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:240px!important;aspect-ratio:auto!important;}}',
+    '@media (max-width:479px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:40vh!important;aspect-ratio:auto!important;}}',
     /* project mobile: Ben set the top photo/video band to 50vh — cover-size the vimeo iframe to that box */
     '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
     /* situation heads (project pages): opening line centered — the H1 is flex, so text-align alone doesn\'t cut it */
@@ -117,16 +123,21 @@
     /* home info-card icon: the CMS icon is an <img> pointing at an SVG, so it can\'t take a text color —
        module 12 swaps it for a mask span painted with the card\'s text color */
     '.cedar-icon-mask{display:block;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;aspect-ratio:1/1;}',
-    /* suite booking modal: yellow field, charcoal type + elements, centered header, no scrollbars */
-    '.cedar-modal.cedar-suite{background:' + YELLOW + ';color:' + CHARCOAL + ';scrollbar-width:none;-ms-overflow-style:none;}',
+    /* suite booking modal: Cedar Green field, light-green type + lines, centered header, no scrollbars.
+       The form block was designed for a wider column — cap it to the modal content box so the 20px side
+       padding actually shows (width/min-width overrides), and give the modal more room. */
+    '.cedar-modal.cedar-suite{background:#29341a;color:#9fb18f;scrollbar-width:none;-ms-overflow-style:none;width:min(640px,94vw);padding:36px 34px 30px;}',
     '.cedar-modal.cedar-suite::-webkit-scrollbar{display:none;}',
-    '.cedar-modal.cedar-suite h3{color:' + CHARCOAL + ';text-align:center!important;}',
-    '.cedar-modal.cedar-suite .cm-body{color:' + CHARCOAL + ';text-align:center!important;margin-left:auto;margin-right:auto;}',
-    '.cedar-modal.cedar-suite .cm-close{color:' + CHARCOAL + ';}',
+    '.cedar-modal.cedar-suite h3{color:#9fb18f;text-align:center!important;}',
+    '.cedar-modal.cedar-suite .cm-body{color:#9fb18f;text-align:center!important;margin-left:auto;margin-right:auto;}',
+    '.cedar-modal.cedar-suite .cm-close{color:#9fb18f;opacity:.75;}',
     '.cedar-modal.cedar-suite .cedar-suite-form{padding:20px;}',
-    '.cedar-modal.cedar-suite .cedar-suite-form label{color:' + CHARCOAL + ';}',
-    '.cedar-modal.cedar-suite .cedar-suite-form input[type="text"],.cedar-modal.cedar-suite .cedar-suite-form input[type="email"],.cedar-modal.cedar-suite .cedar-suite-form textarea,.cedar-modal.cedar-suite .cedar-suite-form select{background:rgba(41,34,27,.05)!important;border:1px solid rgba(41,34,27,.4)!important;color:' + CHARCOAL + '!important;}',
-    '.cedar-modal.cedar-suite .cedar-suite-form input[type="submit"]{background:' + CHARCOAL + '!important;color:' + YELLOW + '!important;border:0!important;cursor:pointer;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form .w-form,.cedar-modal.cedar-suite .cedar-suite-form form{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form label{color:#9fb18f;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form div{color:#9fb18f;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form input[type="text"],.cedar-modal.cedar-suite .cedar-suite-form input[type="email"],.cedar-modal.cedar-suite .cedar-suite-form textarea,.cedar-modal.cedar-suite .cedar-suite-form select{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;background:rgba(159,177,143,.07)!important;border:1px solid rgba(159,177,143,.45)!important;color:#9fb18f!important;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form ::placeholder{color:rgba(159,177,143,.5)!important;opacity:1;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form input[type="submit"]{width:auto!important;background:#9fb18f!important;color:#29341a!important;border:0!important;cursor:pointer;}',
     '.cedar-mmenu{position:fixed;inset:0;z-index:99990;background:#dad3cd;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .55s ' + EASE + ';}',
     '.cedar-mmenu.is-open{clip-path:inset(0 0 0% 0);pointer-events:auto;}',
     '.cedar-mmenu nav{position:absolute;left:20px;bottom:32px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;}',
@@ -151,8 +162,8 @@
     '.cedar-foot-bottom .cf-built{font-size:12px;opacity:.5;color:#9fb18f;text-decoration:none;transition:opacity .25s ' + EASE + ';}',
     '.cedar-foot-bottom .cf-built:hover{opacity:1;}',
     '.cedar-foot .cf-links{display:flex;flex-direction:column;gap:9px;align-items:flex-start;}',
-    '.cedar-foot .cf-links a{color:#9fb18f;text-decoration:none;font-size:16px;letter-spacing:.3px;opacity:.85;transition:opacity .25s ' + EASE + ';}',
-    '.cedar-foot .cf-links a:hover{opacity:1;}',
+    '.cedar-foot .cf-links a{color:#9fb18f;text-decoration:none;font-size:16px;letter-spacing:.3px;opacity:.85;transition:opacity .25s ' + EASE + ',transform .35s ' + EASE + ';will-change:transform;}',
+    '.cedar-foot .cf-links a:hover{opacity:1;transform:translateX(5px);}',
     'a.cedar-foot-lockup{display:flex;align-items:center;justify-content:space-between;margin-top:56px;text-decoration:none;}',
     '.cedar-foot-mark,.cedar-foot-word{display:block;background-color:#9fb18f;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}',
     '.cedar-foot-mark{flex:0 0 11.5%;aspect-ratio:374/283;}',
