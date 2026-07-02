@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.21.0 · built by Origin · loaded site-wide (footer)
+ * v1.21.1 · built by Origin · loaded site-wide (footer)
+ * v1.21.1: band fix — the embed wrappers anchored the iframe low in the band (charcoal gap above the video); every ancestor between iframe and band now fills the 50vh box before the iframe centers · info-card icon = full content width at its natural aspect
  * v1.21.0: mobile hero band video hard-sized to 50vh (JS, beats the embed's own styles) · ALL project-page type heads centered (results too) · home info-card icons repainted via currentColor mask (pull the card text color, e.g. light green on Cedar Green)
  * v1.20.1: logo marquee is CMS-aware — a Collection List (Client Logos) dropped inside .partner-logos supersedes the static images; its items become the marquee slots
  * v1.20.0: mobile pass + post/footer refinements — mobile card labels title-only · /work grid cycles the 3 variable rows past row 2 · filter works on touch (tap to open, simple reflow) · project mobile: 50vh hero band cover + 50vh full-width gallery cards + 1.5x coverflow center · situation heads: line-by-line on desktop (chars on mobile), opening centered · suite modal yellow/charcoal, centered, no scrollbars · Book pills keep their fill at rest · nav/footer logos → home · footer v2 (tagline + Say hello pill left, links aligned to the C of Creative) · Quality/Sustainability icons -10% on mobile · post partners row drag-scrolls with the pill when it overflows
@@ -1442,11 +1443,10 @@
           span.style.setProperty('background-color', color, 'important');
           im.style.display = 'none';
           im.parentElement.insertBefore(span, im);
-          requestAnimationFrame(function () {                        /* class carried no size -> sensible default */
-            var r = span.getBoundingClientRect();
-            if (r.width < 8) { span.style.width = '44px'; }
-            if (r.height < 8) { span.style.height = '44px'; }
-          });
+          span.style.setProperty('width', '100%', 'important');      /* full content width of the card (inside its padding), per Ben */
+          var pr = new Image();
+          pr.onload = function () { if (pr.naturalWidth && pr.naturalHeight) span.style.aspectRatio = (pr.naturalWidth / pr.naturalHeight).toFixed(4); };
+          pr.src = src;
         }
         if (im.complete || (im.currentSrc || im.src)) make();
         else im.addEventListener('load', make, { once: true });
@@ -2162,15 +2162,34 @@
     var band = document.querySelector('.hero-band, .photo-band');
     if (!band) return;
     var PROPS = ['width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'position', 'top', 'left', 'transform'];
+    var FILL = ['position', 'top', 'left', 'width', 'height', 'padding'];
+    var filled = [];
     function size() {
       var f = band.querySelector('iframe');
       if (!f) return;
       if (window.innerWidth >= 768) {
         if (f._cedarBandSized) { PROPS.forEach(function (p) { f.style.removeProperty(p); }); f._cedarBandSized = false; }
+        filled.forEach(function (n) { FILL.forEach(function (p) { n.style.removeProperty(p); }); });
+        filled = [];
         return;
+      }
+      /* the embed's wrappers (.vimeo-wrapper/.vimeo-container) carry their own aspect heights and anchor
+         the iframe low in the band — make every ancestor between the iframe and the band FILL the band,
+         so the centered iframe positions against the 50vh box itself (no charcoal gap above the video) */
+      var p = f.parentElement;
+      while (p && p !== band && p !== document.body) {
+        p.style.setProperty('position', 'absolute', 'important');
+        p.style.setProperty('top', '0', 'important');
+        p.style.setProperty('left', '0', 'important');
+        p.style.setProperty('width', '100%', 'important');
+        p.style.setProperty('height', '100%', 'important');
+        p.style.setProperty('padding', '0', 'important');
+        if (filled.indexOf(p) === -1) filled.push(p);
+        p = p.parentElement;
       }
       var h = Math.round(window.innerHeight * 0.5), w = Math.round(h * 16 / 9);
       band.style.overflow = 'hidden';
+      band.style.setProperty('height', h + 'px', 'important');       /* the band IS the 50vh box */
       if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
       f.style.setProperty('width', w + 'px', 'important');
       f.style.setProperty('height', h + 'px', 'important');
