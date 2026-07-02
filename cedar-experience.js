@@ -1,7 +1,8 @@
 /* Cedar Creative — experience layer
- * v1.17.0 · built by Origin · loaded site-wide (footer)
+ * v1.18.0 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
- *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
+ *          /work CMS template: situation+results modals · BTS auto-cycle (next thumb slides left into the feature, infinite, no scrollbar) + drag-coverflow gallery modal w/ "click and drag" cursor pill · view-other slider (one-up) · inline gallery video
+ *          mobile menu (≤767px): mark left + "Menu" right; warm-grey overlay fills in, pages 36px bottom-left · footer rebuilt to the brand-guidelines cover layout (Cedar Green field, hairline columns, giant light-green lockup)
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
@@ -78,9 +79,55 @@
     /* inline gallery video */
     '.cedar-play{position:absolute;inset:0;margin:auto;width:54px;height:54px;border-radius:50%;background:rgba(244,244,242,.88);border:0;cursor:pointer;z-index:3;font-size:15px;color:' + CHARCOAL + ';display:flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ';}',
     '.cedar-play:hover{transform:scale(1.08);}',
-    /* BTS slider */
-    '.cedar-bts-thumb{cursor:pointer;transition:opacity .3s ' + EASE + ';opacity:.5;}',
-    '.cedar-bts-thumb.cedar-bts-sel,.cedar-bts-thumb:hover{opacity:1;}',
+    /* BTS auto-cycle — strip clips (no scrollbar), row slides via transform, thumbs quiet until hover */
+    '.cedar-bts-thumb{cursor:pointer;transition:opacity .3s ' + EASE + ';opacity:.85;}',
+    '.cedar-bts-thumb:hover{opacity:1;}',
+    '.bts-images .w-dyn-list{overflow:hidden;width:100%;}',
+    '.bts-images .w-dyn-items{overflow:visible!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;will-change:transform;}',
+    '.bts-images .w-dyn-items::-webkit-scrollbar{display:none;}',
+    /* BTS gallery — infinite drag coverflow: center card large, neighbours shrink + fade; cursor morphs into a "click and drag" pill */
+    '.cedar-cf{position:fixed;inset:0;z-index:100000;background:rgba(20,15,10,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .35s ' + EASE + ';}',
+    '.cedar-cf.is-open{opacity:1;pointer-events:auto;}',
+    '.cedar-cf-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
+    '.cedar-cf-card{position:absolute;left:50%;top:50%;width:min(46vw,720px);aspect-ratio:105/100;border-radius:12px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#000;}',
+    '.cedar-cf-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',
+    '.cedar-cf .cedar-lb-close{z-index:100002;cursor:pointer;}',
+    '.cedar-cf-pill{position:fixed;z-index:100001;left:-200px;top:-200px;pointer-events:none;background:#f4f4f2;color:' + CHARCOAL + ';border-radius:999px;padding:12px 18px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%) scale(.35);opacity:0;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',
+    '.cedar-cf-pill.is-on{opacity:1;transform:translate(-50%,-50%) scale(1);}',
+    '.cedar-cf-pill.is-on.is-down{transform:translate(-50%,-50%) scale(.88);}',
+    /* mobile menu (≤767px): mark pinned left, "Menu" pinned right, warm-grey overlay fills top-down, pages 36px bottom-left */
+    '.cedar-mmenu-btn{display:none;position:absolute;right:20px;top:50%;transform:translateY(-50%);background:none;border:0;padding:6px 2px;cursor:pointer;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:inherit;transition:color .45s ' + EASE + ';}',
+    '.navbar.cedar-nav-dark .cedar-mmenu-btn{color:#f4f4f2;}',
+    '.navbar.cedar-nav-light .cedar-mmenu-btn{color:' + CHARCOAL + ';}',
+    '@media (max-width:767px){.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',
+    '.cedar-mmenu{position:fixed;inset:0;z-index:99990;background:#dad3cd;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .55s ' + EASE + ';}',
+    '.cedar-mmenu.is-open{clip-path:inset(0 0 0% 0);pointer-events:auto;}',
+    '.cedar-mmenu nav{position:absolute;left:20px;bottom:32px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;}',
+    '.cedar-mmenu nav a{font-size:36px;line-height:1.15;color:' + CHARCOAL + ';text-decoration:none;opacity:0;transform:translateY(22px);transition:opacity .5s ' + EASE + ',transform .5s ' + EASE + ';}',
+    '.cedar-mmenu.is-open nav a{opacity:1;transform:none;}',
+    '.navbar.cedar-mmenu-on{z-index:99991!important;}',
+    '.navbar.cedar-mmenu-on .cedar-mmenu-btn,.navbar.cedar-mmenu-on .cedar-mark-mask,.navbar.cedar-mmenu-on .cedar-logo-mask{color:' + CHARCOAL + '!important;}',
+    /* footer — rebuilt to the brand-guidelines cover layout: Cedar Green field, light-green type, hairline-separated columns, giant mark + wordmark lockup across the bottom */
+    '.site-footer{background:#29341a!important;color:#9fb18f!important;}',
+    '.cedar-foot{padding:56px 20px 40px;}',
+    '.cedar-foot-cols{display:flex;min-height:280px;}',
+    '.cedar-foot-col{flex:1 1 0;padding:6px 28px 24px;}',
+    '.cedar-foot-col:first-child{padding-left:0;}',
+    '.cedar-foot-col+.cedar-foot-col{border-left:1px solid rgba(159,177,143,.32);}',
+    '.cedar-foot-col.c3{display:flex;flex-direction:column;}',
+    '.cedar-foot .cf-label{font-size:13px;letter-spacing:.2px;opacity:.5;color:#9fb18f;margin:0 0 12px;}',
+    '.cedar-foot .cf-line{font-size:21px;line-height:1.25;color:#9fb18f;margin:0;max-width:22ch;}',
+    '.cedar-foot .cf-links{display:flex;flex-direction:column;gap:9px;align-items:flex-start;}',
+    '.cedar-foot .cf-links a{color:#9fb18f;text-decoration:none;font-size:16px;letter-spacing:.3px;opacity:.85;transition:opacity .25s ' + EASE + ';}',
+    '.cedar-foot .cf-links a:hover{opacity:1;}',
+    '.cedar-foot .cf-tag{font-size:21px;line-height:1.3;color:#9fb18f;margin:0 0 18px;max-width:28ch;}',
+    '.cedar-foot .cf-copy{font-size:12px;opacity:.5;color:#9fb18f;margin-top:auto;}',
+    '.cedar-foot-lockup{display:flex;align-items:center;justify-content:space-between;margin-top:64px;}',
+    '.cedar-foot-mark,.cedar-foot-word{display:block;background-color:#9fb18f;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}',
+    '.cedar-foot-mark{flex:0 0 11.5%;aspect-ratio:374/283;}',
+    '.cedar-foot-word{flex:0 0 79.5%;aspect-ratio:641/70;}',
+    '@media (max-width:767px){.cedar-foot-cols{flex-direction:column;min-height:0;}.cedar-foot-col{padding:22px 0;}.cedar-foot-col+.cedar-foot-col{border-left:0;border-top:1px solid rgba(159,177,143,.32);}.cedar-foot-lockup{margin-top:40px;}}',
+    /* BTS slider (legacy bits still used by the gallery button) */
     '.cedar-bts-gallery-btn{cursor:pointer;display:inline-flex;align-items:center;border:1px solid rgba(41,34,27,.35);border-radius:14px;padding:6px 14px;font-size:13px;color:' + CHARCOAL + ';transition:background-color .3s ' + EASE + ';}',
     '.cedar-bts-gallery-btn:hover{background-color:rgba(41,34,27,.07);}',
     /* shared arrow controls + view-other slider */
@@ -155,7 +202,7 @@
     '.cedar-chr{display:inline-block;opacity:0;transform:translateY(.55em);}',
     '.cedar-chr.cedar-in{opacity:1;transform:none;transition:opacity .7s ' + EASE + ',transform .7s ' + EASE + ';}',
     /* reduced motion: kill transitions + reveals + marquee */
-    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
+    '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
   var styleEl = document.createElement('style');
   styleEl.id = 'cedar-experience-css';
@@ -553,38 +600,205 @@
       play.addEventListener('click', start); card.addEventListener('click', start);
     });
 
-    /* ---- W3: BTS slider — feature swap + thumbnails + arrows + gallery modal ---- */
+    /* ---- W3: BTS — auto-cycling feature + strip. The leftmost strip thumb is always the NEXT
+       photo; on each beat it slides left "into" the feature (which crossfades to it, arriving
+       with a slight drift from the right), the row rotates in the DOM, and the loop is infinite
+       in both directions. No scrollbar (the strip clips). Thumb click features that photo;
+       arrows step either way; everything pauses while hovered / hidden / a modal is open.
+       "View the gallery" opens the drag-coverflow (built below). Reduced motion: instant swaps,
+       no auto-advance. ---- */
     (function () {
       var feature = document.querySelector('.bts-feature');
       var strip = document.querySelector('.bts-images');
       var btsSection = feature && feature.closest('section');
-      var fItems = feature ? feature.querySelectorAll('.w-dyn-item') : [];
-      var thumbs = strip ? strip.querySelectorAll('.w-dyn-item') : [];
-      if (!fItems.length || !thumbs.length) { if (btsSection) btsSection.style.display = 'none'; return; }
-      var active = -1;
-      function setActive(i) {
-        active = (i + fItems.length) % fItems.length;
-        fItems.forEach(function (it, n) { it.style.display = n === active ? '' : 'none'; });
-        thumbs.forEach(function (t, n) { t.classList.toggle('cedar-bts-sel', n === active); });
+      var fItems = feature ? [].slice.call(feature.querySelectorAll('.w-dyn-item')) : [];
+      var row = strip ? strip.querySelector('.w-dyn-items') : null;
+      var thumbs = row ? [].slice.call(row.children) : [];
+      if (!fItems.length || !thumbs.length || !row) { if (btsSection) btsSection.style.display = 'none'; return; }
+      var n = fItems.length;
+      var AUTO_MS = 3400, SLIDE_MS = 700;                     /* beat + slide length; tunable */
+
+      /* feature: absolute stack + crossfade (container height locked to the photo ratio) */
+      var fWrap = fItems[0].parentElement;
+      fWrap.style.position = 'relative';
+      function lockH() {
+        var img = fItems[0].querySelector('img');
+        var w = fWrap.clientWidth || fWrap.parentElement.clientWidth || 1;
+        var ar = (img && img.naturalWidth) ? img.naturalHeight / img.naturalWidth : 686 / 721;
+        fWrap.style.height = Math.round(w * ar) + 'px';
       }
-      thumbs.forEach(function (t, n) { t.classList.add('cedar-bts-thumb'); t.addEventListener('click', function () { setActive(n); }); });
+      fItems.forEach(function (it, i) {
+        it.style.position = 'absolute'; it.style.inset = '0';
+        it.style.opacity = i === 0 ? '1' : '0';
+        if (!RM) it.style.transition = 'opacity .75s ' + EASE + ',transform .75s ' + EASE;
+        var im = it.querySelector('img'); if (im) { im.style.width = '100%'; im.style.height = '100%'; im.style.objectFit = 'cover'; }
+      });
+      var fImg0 = fItems[0].querySelector('img');
+      if (fImg0 && !fImg0.complete) fImg0.addEventListener('load', lockH);
+      lockH();
+      window.addEventListener('resize', lockH);
+      var active = 0;
+      function showFeature(i, drift) {
+        i = ((i % n) + n) % n;
+        if (i === active) return;
+        var oldIt = fItems[active], newIt = fItems[i];
+        if (!RM && drift) {                                    /* arrive from the right — "the next one moving over" */
+          newIt.style.transition = 'none'; newIt.style.transform = 'translateX(36px)';
+          void newIt.offsetWidth;
+          newIt.style.transition = 'opacity .75s ' + EASE + ',transform .75s ' + EASE;
+        }
+        oldIt.style.opacity = '0'; newIt.style.opacity = '1'; newIt.style.transform = 'translateX(0)';
+        active = i;
+      }
+
+      /* strip: rotate so it always starts at "next" (feature 0 → row starts at 1) */
+      thumbs.forEach(function (t, i) { t._idx = i; t.classList.add('cedar-bts-thumb'); });
+      row.appendChild(row.children[0]);
+      var gap = parseFloat(getComputedStyle(row).columnGap || getComputedStyle(row).gap) || 20;
+      var animating = false;
+      function advance() {
+        if (animating) return; animating = true;
+        var first = row.children[0];
+        var w = first.getBoundingClientRect().width + gap;
+        showFeature(first._idx, true);
+        if (RM || w < 12) { row.appendChild(first); animating = false; return; }
+        row.style.transition = 'transform ' + SLIDE_MS + 'ms ' + EASE;
+        row.style.transform = 'translateX(-' + w + 'px)';
+        setTimeout(function () {
+          row.style.transition = 'none';
+          row.appendChild(first);
+          row.style.transform = 'translateX(0)';
+          void row.offsetWidth;
+          animating = false;
+        }, SLIDE_MS + 40);
+      }
+      function retreat() {
+        if (animating) return; animating = true;
+        var last = row.children[row.children.length - 1];
+        var w = last.getBoundingClientRect().width + gap;
+        showFeature(active - 1, false);
+        if (RM || w < 12) { row.insertBefore(last, row.children[0]); animating = false; return; }
+        row.style.transition = 'none';
+        row.insertBefore(last, row.children[0]);
+        row.style.transform = 'translateX(-' + w + 'px)';
+        void row.offsetWidth;
+        row.style.transition = 'transform ' + SLIDE_MS + 'ms ' + EASE;
+        row.style.transform = 'translateX(0)';
+        setTimeout(function () { animating = false; }, SLIDE_MS + 40);
+      }
+      row.addEventListener('click', function (e) {            /* thumb click: feature it, queue restarts after it */
+        var t = e.target.closest('.cedar-bts-thumb'); if (!t || animating) return;
+        showFeature(t._idx, true);
+        var guard = 0;
+        while (row.children[0]._idx !== ((t._idx + 1) % n) && guard++ < n) row.appendChild(row.children[0]);
+        schedule();
+      });
+
+      /* auto-advance: paused while hovered, tab hidden, section off-screen, or a modal is open */
+      var hoverPause = false;
+      var split = feature.closest('.split-row') || btsSection;
+      if (split) { split.addEventListener('mouseenter', function () { hoverPause = true; }); split.addEventListener('mouseleave', function () { hoverPause = false; }); }
+      function inView() { var r = (btsSection || fWrap).getBoundingClientRect(); return r.bottom > 0 && r.top < (window.innerHeight || 800); }
+      function paused() { return document.hidden || hoverPause || document.querySelector('.cedar-cf.is-open,.cedar-lb.is-open,#cedar-modal-root.is-open') || !inView(); }
+      var timer = null;
+      function schedule() {
+        clearTimeout(timer);
+        if (RM) return;                                        /* reduced motion: no auto-cycle */
+        timer = setTimeout(function () { if (!paused()) advance(); schedule(); }, AUTO_MS);
+      }
+      afterLoader(schedule);
+
+      /* ---- drag-coverflow gallery modal: infinite, center-large, sides shrink + fade,
+         cursor morphs into a "click and drag" pill that follows the pointer ---- */
+      var cf = null, cfCards = [], cfPos = 0, cfVel = 0, cfSp = 380, cfRaf = null, cfDrag = false;
+      var pill, mx = 0, my = 0, px = -200, py = -200;
+      function cfRender() {
+        var m = cfCards.length;
+        cfSp = Math.min(420, window.innerWidth * 0.27);
+        for (var i = 0; i < m; i++) {
+          var off = (((i - cfPos) % m) + m) % m;
+          if (off > m / 2) off -= m;
+          var a = Math.abs(off);
+          var c = cfCards[i];
+          if (a > 3.2) { c.style.display = 'none'; continue; }
+          c.style.display = '';
+          c.style.transform = 'translate(calc(-50% + ' + (off * cfSp).toFixed(1) + 'px),-50%) scale(' + Math.max(0.4, 1 - 0.18 * a).toFixed(3) + ')';
+          c.style.opacity = Math.max(0, 1 - 0.32 * a).toFixed(3);
+          c.style.zIndex = String(200 - Math.round(a * 10));
+        }
+      }
+      function cfLoop() {
+        if (!cf || !cf.classList.contains('is-open')) { cfRaf = null; return; }
+        if (!cfDrag) {
+          if (!RM && Math.abs(cfVel) > 0.0012) { cfPos += cfVel; cfVel *= 0.92; }
+          else { var t = Math.round(cfPos); cfPos += (t - cfPos) * 0.14; }
+        }
+        cfRender();
+        px += (mx - px) * 0.22; py += (my - py) * 0.22;
+        pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px';
+        cfRaf = requestAnimationFrame(cfLoop);
+      }
+      function cfKick() { if (!cfRaf) cfRaf = requestAnimationFrame(cfLoop); }
+      function buildCF() {
+        cf = el('div', 'cedar-cf', '');
+        var stage = el('div', 'cedar-cf-stage', '');
+        fItems.forEach(function (it) {
+          var im = it.querySelector('img'); if (!im) return;
+          var card = el('div', 'cedar-cf-card', '');
+          var c = document.createElement('img'); c.src = im.currentSrc || im.src; c.alt = im.alt || ''; c.draggable = false;
+          card.appendChild(c); stage.appendChild(card); cfCards.push(card);
+        });
+        var close = el('button', 'cedar-lb-close', '&times;'); close.setAttribute('aria-label', 'Close gallery');
+        pill = el('div', 'cedar-cf-pill', 'Click and drag');
+        cf.appendChild(stage); cf.appendChild(close); cf.appendChild(pill);
+        document.body.appendChild(cf);
+        close.addEventListener('click', cfClose);
+        var lastX = 0;
+        stage.addEventListener('pointerdown', function (e) {
+          cfDrag = true; cfVel = 0; lastX = e.clientX;
+          try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+          pill.classList.add('is-down');
+        });
+        stage.addEventListener('pointermove', function (e) {
+          mx = e.clientX; my = e.clientY; pill.classList.add('is-on');
+          if (cfDrag) {
+            var d = (e.clientX - lastX) / cfSp;
+            cfPos -= d; cfVel = cfVel * 0.75 + (-d) * 0.55;    /* smoothed release velocity */
+            lastX = e.clientX;
+          }
+        });
+        function up() { cfDrag = false; pill.classList.remove('is-down'); }
+        stage.addEventListener('pointerup', up);
+        stage.addEventListener('pointercancel', up);
+        stage.addEventListener('pointerleave', function () { pill.classList.remove('is-on'); });
+        document.addEventListener('keydown', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && cf.classList.contains('is-open')) cfClose(); });
+      }
+      function cfOpen() {
+        if (!cf) buildCF();
+        if (!cfCards.length) return;
+        cfPos = active; cfVel = 0; px = mx = window.innerWidth / 2; py = my = window.innerHeight / 2;
+        cfRender();
+        document.documentElement.style.overflow = 'hidden';
+        requestAnimationFrame(function () { cf.classList.add('is-open'); cfKick(); });
+      }
+      function cfClose() {
+        cf.classList.remove('is-open');
+        pill.classList.remove('is-on');
+        document.documentElement.style.overflow = '';
+        showFeature(((Math.round(cfPos) % n) + n) % n, false);  /* land the feature where the browse ended */
+        var guard = 0;
+        while (row.children[0]._idx !== ((active + 1) % n) && guard++ < n) row.appendChild(row.children[0]);
+      }
+
       var controls = document.querySelector('.bts-controls');
       if (controls) {
         var bar = el('div', 'cedar-vo-arrows', '<button class="cedar-vo-arrow" aria-label="Previous">‹</button><button class="cedar-vo-arrow" aria-label="Next">›</button>');
         var gal = el('a', 'cedar-bts-gallery-btn', 'View the gallery'); gal.setAttribute('role', 'button');
         bar.appendChild(gal); controls.appendChild(bar);
-        bar.children[0].addEventListener('click', function () { setActive(active - 1); });
-        bar.children[1].addEventListener('click', function () { setActive(active + 1); });
-        gal.addEventListener('click', function () {
-          modal.open(function (m) {
-            m.appendChild(el('h3', null, 'Behind the scenes'));
-            var g = el('div', 'cm-grid', '');
-            thumbs.forEach(function (t) { var im = t.querySelector('img'); if (im) { var c = document.createElement('img'); c.src = im.currentSrc || im.src; c.alt = im.alt || ''; g.appendChild(c); } });
-            m.appendChild(g);
-          });
-        });
+        bar.children[0].addEventListener('click', function () { retreat(); schedule(); });
+        bar.children[1].addEventListener('click', function () { advance(); schedule(); });
+        gal.addEventListener('click', cfOpen);
       }
-      setActive(0);
     })();
 
     /* ---- W4: view-other — whole card links via data-slug + arrow slider ---- */
@@ -919,6 +1133,7 @@
     function onFrame() {
       ticking = false;
       var y = window.pageYOffset || 0;
+      if (window.__cedarMenuOpen) { nav.classList.remove('cedar-nav-hidden'); hidden = false; lastY = y; return; }   /* mobile menu open → nav stays put */
       if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); lastY = y; return; }   /* about intro (reveal phase) holds the nav hidden */
       if (window.__cedarNavFloor != null) {                                                          /* about: nav hidden while the header owns the viewport, animates in once scrolled past it */
         updInk();
@@ -1517,5 +1732,101 @@
         chars.forEach(function (c, i) { c.style.transitionDelay = (i * 26) + 'ms'; c.classList.add('cedar-in'); });
       }, 180);
     });
+  });
+
+  /* =========================================================
+   * 19. MOBILE MENU (≤767px) — the bar becomes just the mark
+   *   (left corner) and a "Menu" text button (right corner; the
+   *   wordmark + inline links are hidden by CSS). Tapping Menu
+   *   fills the screen with Cedar's warm grey (#dad3cd), the pages
+   *   listed vertically at 36px, left-aligned and pinned to the
+   *   bottom-left. Button toggles to "Close"; scroll locks while
+   *   open; module 9 holds the nav visible (__cedarMenuOpen).
+   *   Built on every viewport (CSS media query decides visibility)
+   *   so rotation / resize just works.
+   * ======================================================= */
+  onReady(function () {
+    var nav = document.querySelector('.navbar');
+    if (!nav) return;
+    var links = [].slice.call(document.querySelectorAll('.navbar .nav-link'));
+    if (!links.length) return;
+    var btn = el('button', 'cedar-mmenu-btn', 'Menu'); btn.type = 'button'; btn.setAttribute('aria-label', 'Open menu');
+    nav.appendChild(btn);
+    var menu = el('div', 'cedar-mmenu', '');
+    var list = document.createElement('nav');
+    var items = links.map(function (a) { return { txt: (a.textContent || '').trim(), href: a.getAttribute('href') || '#' }; });
+    if (!items.some(function (it) { return it.href === '/'; })) items.unshift({ txt: 'Home', href: '/' });
+    items.forEach(function (it, i) {
+      var a = document.createElement('a'); a.textContent = it.txt; a.href = it.href;
+      a.style.transitionDelay = (120 + i * 55) + 'ms';
+      list.appendChild(a);
+    });
+    menu.appendChild(list); document.body.appendChild(menu);
+    var open = false;
+    function set(o) {
+      open = o; window.__cedarMenuOpen = o;
+      menu.classList.toggle('is-open', o);
+      nav.classList.toggle('cedar-mmenu-on', o);
+      nav.classList.remove('cedar-nav-hidden');
+      btn.textContent = o ? 'Close' : 'Menu';
+      document.documentElement.style.overflow = o ? 'hidden' : '';
+      if (!o) [].slice.call(list.children).forEach(function (a) { a.style.transitionDelay = '0ms'; });   /* links fade out together */
+      else [].slice.call(list.children).forEach(function (a, i) { a.style.transitionDelay = (120 + i * 55) + 'ms'; });
+    }
+    btn.addEventListener('click', function () { set(!open); });
+    menu.addEventListener('click', function (e) { if (e.target.tagName === 'A') set(false); });
+    window.addEventListener('resize', function () { if (open && window.innerWidth > 767) set(false); });
+  });
+
+  /* =========================================================
+   * 21. FOOTER — rebuilt to the brand-guidelines cover layout:
+   *   Cedar Green field, light-green type, hairline-separated
+   *   columns up top (studio label + line · pages · tagline +
+   *   copyright), and the giant light-green mark + "Cedar Creative"
+   *   lockup spanning the full width at the bottom. Content is
+   *   pulled from the existing footer nodes (tagline, links,
+   *   copyright — originals just hidden, recoverable); the lockup
+   *   reuses the nav wordmark asset + brand mark as currentless
+   *   CSS masks painted light green.
+   * ======================================================= */
+  onReady(function () {
+    var f = document.querySelector('.site-footer');
+    if (!f || f.querySelector('.cedar-foot')) return;
+    var tagN = f.querySelector('.footer-tagline'), copN = f.querySelector('.footer-copyright');
+    var tag = (tagN && tagN.textContent.trim()) || 'Partner with a team that makes the most of every opportunity.';
+    var cop = (copN && copN.textContent.trim()) || 'Copyright Cedar Creative';
+    var links = [].slice.call(f.querySelectorAll('.footer-link'));
+    var logoImg = document.querySelector('a.nav-logo img');
+    var logoUrl = logoImg ? (logoImg.currentSrc || logoImg.src) : '';
+    var MARK_URL = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 374 283"><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z" fill="#fff"/><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z" fill="#fff"/></svg>');
+    [].slice.call(f.children).forEach(function (c) { c.style.display = 'none'; });   /* originals hidden, not removed */
+    var root = el('div', 'cedar-foot', '');
+    var cols = el('div', 'cedar-foot-cols', '');
+    var c1 = el('div', 'cedar-foot-col c1', '');
+    c1.appendChild(el('div', 'cf-label', 'Cedar Creative'));
+    c1.appendChild(el('p', 'cf-line', 'Transformative films & inspiring ideas.'));
+    var c2 = el('div', 'cedar-foot-col c2', '');
+    c2.appendChild(el('div', 'cf-label', 'Pages'));
+    var lwrap = el('nav', 'cf-links', '');
+    links.forEach(function (a) {
+      var na = document.createElement('a'); na.textContent = (a.textContent || '').trim(); na.href = a.getAttribute('href') || '#';
+      lwrap.appendChild(na);
+    });
+    c2.appendChild(lwrap);
+    var c3 = el('div', 'cedar-foot-col c3', '');
+    c3.appendChild(el('p', 'cf-tag', tag));
+    c3.appendChild(el('div', 'cf-copy', cop));
+    cols.appendChild(c1); cols.appendChild(c2); cols.appendChild(c3);
+    var lockup = el('div', 'cedar-foot-lockup', '');
+    var mk = el('span', 'cedar-foot-mark', '');
+    mk.style.webkitMaskImage = 'url("' + MARK_URL + '")'; mk.style.maskImage = 'url("' + MARK_URL + '")';
+    lockup.appendChild(mk);
+    if (logoUrl) {
+      var wd = el('span', 'cedar-foot-word', '');
+      wd.style.webkitMaskImage = 'url("' + logoUrl + '")'; wd.style.maskImage = 'url("' + logoUrl + '")';
+      lockup.appendChild(wd);
+    }
+    root.appendChild(cols); root.appendChild(lockup);
+    f.appendChild(root);
   });
 })();
