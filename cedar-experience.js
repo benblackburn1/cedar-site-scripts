@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.22.1 · built by Origin · loaded site-wide (footer)
+ * v1.22.2 · built by Origin · loaded site-wide (footer)
+ * v1.22.2: drag-scroll rows (info-cards / post partners) are desktop-only — mobile keeps the native stacked layout
  * v1.22.1: loader 3D mark rebuilt from the real brand path — the chamfered corners at each chevron's top and inner peak now render (the old trace had pointed apexes)
  * v1.22.0: mobile work-grid fix (desktop first/last/nth width-pattern rules leak into the column layout as HEIGHT rules and crush cards — neutralized, uniform full-width cards at Ben's breakpoint heights) · suite modal → Cedar Green field w/ light-green type + real side padding + wider · footer links ease 5px right on hover
  * v1.21.2: footer — Say hello radius matches site pills (12px); copyright moves below the lockup (bottom-left) with "Built by Origin" bottom-right → originbrand.io, 20px below the logo
@@ -169,7 +170,7 @@
     '.cedar-foot-mark,.cedar-foot-word{display:block;background-color:#9fb18f;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}',
     '.cedar-foot-mark{flex:0 0 11.5%;aspect-ratio:374/283;}',
     '.cedar-foot-word{flex:0 0 79.5%;aspect-ratio:641/70;}',
-    '@media (max-width:767px){.cedar-foot{padding:10px;}.cedar-foot-cols{flex-direction:column;min-height:0;}.cedar-foot-col.c1{flex:0 0 auto;padding:12px 0 0;}.cedar-foot-col.c2{border-left:0;padding:24px 0 0;}.cedar-foot .cf-copy{padding-top:20px;}a.cedar-foot-lockup{margin-top:36px;}}',
+    '@media (max-width:767px){.site-footer{padding:0!important;}.cedar-foot{padding:10px!important;}.cedar-foot-cols{flex-direction:column;min-height:0;}.cedar-foot-col.c1{flex:0 0 auto;padding:12px 0 0;}.cedar-foot-col.c2{border-left:0;padding:24px 0 0;}.cedar-foot .cf-copy{padding-top:20px;}a.cedar-foot-lockup{margin-top:36px;}}',
     /* BTS slider (legacy bits still used by the gallery button) */
     '.cedar-bts-gallery-btn{cursor:pointer;display:inline-flex;align-items:center;border:1px solid rgba(41,34,27,.35);border-radius:14px;padding:6px 14px;font-size:13px;color:' + CHARCOAL + ';transition:background-color .3s ' + EASE + ';}',
     '.cedar-bts-gallery-btn:hover{background-color:rgba(41,34,27,.07);}',
@@ -251,11 +252,10 @@
     '.cedar-modal .cedar-suite-form{margin-top:6px;text-align:left;}',
     '.cedar-modal .cedar-suite-form .w-form{margin:0;}',
     '.cedar-modal .cedar-suite-form input,.cedar-modal .cedar-suite-form textarea,.cedar-modal .cedar-suite-form select{max-width:100%;}',
-    /* horizontal drag-scroll rows (home info-cards >4, post partners on overflow): scrollbar hidden, pill cursor */
-    '.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}',
-    '.cedar-hscroll::-webkit-scrollbar{display:none;}',
-    '.cedar-hscroll.cedar-nocursor{cursor:none;}',
-    '.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}',
+    /* horizontal drag-scroll rows (home info-cards >4, post partners on overflow): scrollbar hidden, pill cursor.
+       DESKTOP-ONLY — on mobile these rules would force nowrap over the stacked layout, so they live behind
+       a min-width query and phones keep the native Webflow layout. */
+    '@media (min-width:768px){.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}.cedar-hscroll::-webkit-scrollbar{display:none;}.cedar-hscroll.cedar-nocursor{cursor:none;}.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
