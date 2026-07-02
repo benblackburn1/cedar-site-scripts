@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.20.1 · built by Origin · loaded site-wide (footer)
+ * v1.21.0 · built by Origin · loaded site-wide (footer)
+ * v1.21.0: mobile hero band video hard-sized to 50vh (JS, beats the embed's own styles) · ALL project-page type heads centered (results too) · home info-card icons repainted via currentColor mask (pull the card text color, e.g. light green on Cedar Green)
  * v1.20.1: logo marquee is CMS-aware — a Collection List (Client Logos) dropped inside .partner-logos supersedes the static images; its items become the marquee slots
  * v1.20.0: mobile pass + post/footer refinements — mobile card labels title-only · /work grid cycles the 3 variable rows past row 2 · filter works on touch (tap to open, simple reflow) · project mobile: 50vh hero band cover + 50vh full-width gallery cards + 1.5x coverflow center · situation heads: line-by-line on desktop (chars on mobile), opening centered · suite modal yellow/charcoal, centered, no scrollbars · Book pills keep their fill at rest · nav/footer logos → home · footer v2 (tagline + Say hello pill left, links aligned to the C of Creative) · Quality/Sustainability icons -10% on mobile · post partners row drag-scrolls with the pill when it overflows
  * v1.19.x: /post suite booking modals (moves the hidden contact form in, prefills Suite + Interest) · about icon lotties resequenced per piece w/ clean full-draw segments · contact cascade word-spacing fix + ~2s · home info-cards >4 → drag-scroll pill
@@ -111,6 +112,9 @@
     '.contact-head.cedar-center{justify-content:center!important;text-align:center!important;}',
     /* about icons: Quality + Sustainability draw right to the artboard edge — pull them in 10% on mobile */
     '@media (max-width:767px){.cedar-value-icon[data-icon="Quality.json"] svg,.cedar-value-icon[data-icon="Sustainability.json"] svg{transform:scale(.9);transform-origin:center center;}}',
+    /* home info-card icon: the CMS icon is an <img> pointing at an SVG, so it can\'t take a text color —
+       module 12 swaps it for a mask span painted with the card\'s text color */
+    '.cedar-icon-mask{display:block;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;aspect-ratio:1/1;}',
     /* suite booking modal: yellow field, charcoal type + elements, centered header, no scrollbars */
     '.cedar-modal.cedar-suite{background:' + YELLOW + ';color:' + CHARCOAL + ';scrollbar-width:none;-ms-overflow-style:none;}',
     '.cedar-modal.cedar-suite::-webkit-scrollbar{display:none;}',
@@ -1423,18 +1427,46 @@
       var img = card.querySelector('img.card-bg-img:not(.w-dyn-bind-empty)');
       return !!img && getComputedStyle(img).display !== 'none';
     }
+    /* the CMS icon is an <img> (SVG file) — it renders in its baked-in color, so swap it for a
+       currentColor mask span painted with the card's text color. Keeps the img's own classes so
+       Webflow sizing still applies; falls back to 44px if the class carries no size. */
+    function paintIcon(card, color) {
+      [].slice.call(card.querySelectorAll('img.info-icon:not(.w-dyn-bind-empty)')).forEach(function (im) {
+        if (im._cedarMasked) return;
+        im._cedarMasked = true;
+        function make() {
+          var src = im.currentSrc || im.src; if (!src) return;
+          var span = el('span', im.className + ' cedar-icon-mask');
+          span.classList.remove('w-dyn-bind-empty');
+          span.style.webkitMaskImage = 'url("' + src + '")'; span.style.maskImage = 'url("' + src + '")';
+          span.style.setProperty('background-color', color, 'important');
+          im.style.display = 'none';
+          im.parentElement.insertBefore(span, im);
+          requestAnimationFrame(function () {                        /* class carried no size -> sensible default */
+            var r = span.getBoundingClientRect();
+            if (r.width < 8) { span.style.width = '44px'; }
+            if (r.height < 8) { span.style.height = '44px'; }
+          });
+        }
+        if (im.complete || (im.currentSrc || im.src)) make();
+        else im.addEventListener('load', make, { once: true });
+      });
+    }
     cards.forEach(function (card) {
       var key = (card.getAttribute('data-color') || '').trim().toLowerCase();
       var m = MAP[key];
       if (hasBgImage(card)) {                                        /* photo card -> white type over the image, no colour fill */
         card.style.setProperty('background-color', 'transparent', 'important');
         paintText(card, OFFWHITE);
+        paintIcon(card, OFFWHITE);
       } else if (m) {
         card.style.setProperty('background-color', m.bg, 'important');
         paintText(card, m.text);
+        paintIcon(card, m.text);
       } else {                                                       /* none / "-" -> no fill, charcoal type */
         card.style.setProperty('background-color', 'transparent', 'important');
         paintText(card, CHARCOAL);
+        paintIcon(card, CHARCOAL);
       }
     });
   });
@@ -1825,7 +1857,7 @@
         h.appendChild(w); wordEls.push(w);
         if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
       });
-      if (isWork && hi === 0) h.classList.add('cedar-center');   /* opening situation head is centered */
+      if (isWork) h.classList.add('cedar-center');   /* project-page type heads (situation + results) are centered */
       var lineMode = isWork && window.innerWidth >= 768;
       var fired = false;
       function fire() {
@@ -2112,5 +2144,48 @@
     check();
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(check, 160); });
     window.addEventListener('load', check);
+  });
+
+  /* =========================================================
+   * 25. MOBILE HERO BAND SIZER (/work/* templates) — Ben set the
+   *   top photo/video band to 50vh on mobile; the Vimeo embed's own
+   *   CSS still sized the iframe to the full-width 16:9, cropping
+   *   most of the frame. Hard-size the iframe INLINE (beats any
+   *   stylesheet or embed styling): height = 50vh, width = 16:9 of
+   *   that (some side crop is expected), centered in the clipped
+   *   band. Re-applies on resize and when the lazy embed builds its
+   *   iframe late; desktop gets untouched styles back.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P.indexOf('/work/') !== 0) return;
+    var band = document.querySelector('.hero-band, .photo-band');
+    if (!band) return;
+    var PROPS = ['width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'position', 'top', 'left', 'transform'];
+    function size() {
+      var f = band.querySelector('iframe');
+      if (!f) return;
+      if (window.innerWidth >= 768) {
+        if (f._cedarBandSized) { PROPS.forEach(function (p) { f.style.removeProperty(p); }); f._cedarBandSized = false; }
+        return;
+      }
+      var h = Math.round(window.innerHeight * 0.5), w = Math.round(h * 16 / 9);
+      band.style.overflow = 'hidden';
+      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+      f.style.setProperty('width', w + 'px', 'important');
+      f.style.setProperty('height', h + 'px', 'important');
+      f.style.setProperty('min-width', '0', 'important');
+      f.style.setProperty('min-height', '0', 'important');
+      f.style.setProperty('max-width', 'none', 'important');
+      f.style.setProperty('max-height', 'none', 'important');
+      f.style.setProperty('position', 'absolute', 'important');
+      f.style.setProperty('top', '50%', 'important');
+      f.style.setProperty('left', '50%', 'important');
+      f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
+      f._cedarBandSized = true;
+    }
+    size();
+    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(size, 150); });
+    var mo = new MutationObserver(size); mo.observe(band, { childList: true, subtree: true });   /* lazy embed builds its iframe late */
   });
 })();
