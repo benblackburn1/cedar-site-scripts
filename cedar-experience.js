@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.20.0 · built by Origin · loaded site-wide (footer)
+ * v1.20.1 · built by Origin · loaded site-wide (footer)
+ * v1.20.1: logo marquee is CMS-aware — a Collection List (Client Logos) dropped inside .partner-logos supersedes the static images; its items become the marquee slots
  * v1.20.0: mobile pass + post/footer refinements — mobile card labels title-only · /work grid cycles the 3 variable rows past row 2 · filter works on touch (tap to open, simple reflow) · project mobile: 50vh hero band cover + 50vh full-width gallery cards + 1.5x coverflow center · situation heads: line-by-line on desktop (chars on mobile), opening centered · suite modal yellow/charcoal, centered, no scrollbars · Book pills keep their fill at rest · nav/footer logos → home · footer v2 (tagline + Say hello pill left, links aligned to the C of Creative) · Quality/Sustainability icons -10% on mobile · post partners row drag-scrolls with the pill when it overflows
  * v1.19.x: /post suite booking modals (moves the hidden contact form in, prefills Suite + Interest) · about icon lotties resequenced per piece w/ clean full-draw segments · contact cascade word-spacing fix + ~2s · home info-cards >4 → drag-scroll pill
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
@@ -1103,12 +1104,22 @@
   onReady(function () {
     document.querySelectorAll('.partner-logos').forEach(function (row) {
       if (row.classList.contains('cedar-marquee')) return;
-      var slots = [].slice.call(row.children);
+      /* CMS-aware: a Collection List inside the row (bound to Client Logos) supersedes the static images —
+         its items become the marquee slots and the old static logos are retired (hidden, recoverable) */
+      var dyn = row.querySelector('.w-dyn-list');
+      var slots;
+      if (dyn && dyn.querySelectorAll('.w-dyn-item').length > 1) {
+        slots = [].slice.call(dyn.querySelectorAll('.w-dyn-item'));
+        [].slice.call(row.children).forEach(function (c) { if (c !== dyn) c.style.display = 'none'; });
+      } else {
+        slots = [].slice.call(row.children);
+      }
       if (slots.length < 2) return;
       var cs = getComputedStyle(row);
       var track = el('div', 'cedar-marquee-track', '');
       track.style.gap = (cs.columnGap && cs.columnGap !== 'normal') ? cs.columnGap : '64px';
       slots.forEach(function (s) { track.appendChild(s); });   /* one logo set = the repeating unit */
+      if (dyn) dyn.style.display = 'none';                     /* emptied wrapper (items moved into the track) */
       row.classList.add('cedar-marquee');
       row.appendChild(track);
       var unit = [].slice.call(track.children);                /* keep the original nodes as templates */
