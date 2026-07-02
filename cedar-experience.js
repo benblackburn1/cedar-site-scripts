@@ -1,6 +1,7 @@
 /* Cedar Creative — experience layer
- * v1.19.0 · built by Origin · loaded site-wide (footer)
- * v1.19.0: /post suite booking modals (moves the hidden contact form in, prefills Suite + Interest) · about icon lotties resequenced per piece (Vision clockwise, Quality small pieces +0.5s, Sustainability smallest→largest) w/ clean full-draw segments · contact cascade word-spacing fix (flex heading) + slowed to ~2s · home info-cards >4 → horizontal drag-scroll with "Drag to scroll" cursor pill
+ * v1.20.0 · built by Origin · loaded site-wide (footer)
+ * v1.20.0: mobile pass + post/footer refinements — mobile card labels title-only · /work grid cycles the 3 variable rows past row 2 · filter works on touch (tap to open, simple reflow) · project mobile: 50vh hero band cover + 50vh full-width gallery cards + 1.5x coverflow center · situation heads: line-by-line on desktop (chars on mobile), opening centered · suite modal yellow/charcoal, centered, no scrollbars · Book pills keep their fill at rest · nav/footer logos → home · footer v2 (tagline + Say hello pill left, links aligned to the C of Creative) · Quality/Sustainability icons -10% on mobile · post partners row drag-scrolls with the pill when it overflows
+ * v1.19.x: /post suite booking modals (moves the hidden contact form in, prefills Suite + Interest) · about icon lotties resequenced per piece w/ clean full-draw segments · contact cascade word-spacing fix + ~2s · home info-cards >4 → drag-scroll pill
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS auto-cycle (next thumb slides left into the feature, infinite, no scrollbar) + drag-coverflow gallery modal w/ "click and drag" cursor pill · view-other slider (one-up) · inline gallery video
  *          mobile menu (≤767px): mark left + "Menu" right; warm-grey overlay fills in, pages 36px bottom-left · footer rebuilt to the brand-guidelines cover layout (Cedar Green field, hairline columns, giant light-green lockup)
@@ -35,8 +36,8 @@
        transform fought it (down-up-down rubber-band), so we only transition background-color here. The bare
        "All Work" pill (.btn-pill, no .white/.dark) still shows its fill only on hover. */
     '.btn-pill{transition:background-color .35s ' + EASE + ';}',
-    '.btn-pill:not(.white):not(.dark){background-color:transparent;}',
-    '.btn-pill:not(.white):not(.dark):hover{background-color:rgba(249,248,246,.2);}',
+    '.btn-pill:not(.white):not(.dark):not(.light-green){background-color:transparent;}',   /* .light-green pills (post "Book …") keep their own fill at rest */
+    '.btn-pill:not(.white):not(.dark):not(.light-green):hover{background-color:rgba(249,248,246,.2);}',
     /* work-grid hover */
     '.work-card{position:relative;overflow:hidden;}',
     '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
@@ -101,8 +102,24 @@
     '.navbar.cedar-nav-dark .cedar-mmenu-btn{color:#f4f4f2;}',
     '.navbar.cedar-nav-light .cedar-mmenu-btn{color:' + CHARCOAL + ';}',
     '@media (max-width:767px){.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',
-    /* mobile: no hover exists, so the work-card title + situation label is always visible (desktop keeps the hover reveal from module 3) */
-    '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;}}',
+    /* mobile: no hover exists, so the work-card label is always visible — TITLE ONLY, pinned bottom-left (desktop keeps the full hover reveal from module 3) */
+    '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;top:auto!important;bottom:16px!important;left:16px!important;right:auto!important;}.work-card .card-label p.caption:nth-of-type(2){display:none!important;}}',
+    /* project mobile: Ben set the top photo/video band to 50vh — cover-size the vimeo iframe to that box */
+    '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
+    /* situation heads (project pages): opening line centered — the H1 is flex, so text-align alone doesn\'t cut it */
+    '.contact-head.cedar-center{justify-content:center!important;text-align:center!important;}',
+    /* about icons: Quality + Sustainability draw right to the artboard edge — pull them in 10% on mobile */
+    '@media (max-width:767px){.cedar-value-icon[data-icon="Quality.json"] svg,.cedar-value-icon[data-icon="Sustainability.json"] svg{transform:scale(.9);transform-origin:center center;}}',
+    /* suite booking modal: yellow field, charcoal type + elements, centered header, no scrollbars */
+    '.cedar-modal.cedar-suite{background:' + YELLOW + ';color:' + CHARCOAL + ';scrollbar-width:none;-ms-overflow-style:none;}',
+    '.cedar-modal.cedar-suite::-webkit-scrollbar{display:none;}',
+    '.cedar-modal.cedar-suite h3{color:' + CHARCOAL + ';text-align:center!important;}',
+    '.cedar-modal.cedar-suite .cm-body{color:' + CHARCOAL + ';text-align:center!important;margin-left:auto;margin-right:auto;}',
+    '.cedar-modal.cedar-suite .cm-close{color:' + CHARCOAL + ';}',
+    '.cedar-modal.cedar-suite .cedar-suite-form{padding:20px;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form label{color:' + CHARCOAL + ';}',
+    '.cedar-modal.cedar-suite .cedar-suite-form input[type="text"],.cedar-modal.cedar-suite .cedar-suite-form input[type="email"],.cedar-modal.cedar-suite .cedar-suite-form textarea,.cedar-modal.cedar-suite .cedar-suite-form select{background:rgba(41,34,27,.05)!important;border:1px solid rgba(41,34,27,.4)!important;color:' + CHARCOAL + '!important;}',
+    '.cedar-modal.cedar-suite .cedar-suite-form input[type="submit"]{background:' + CHARCOAL + '!important;color:' + YELLOW + '!important;border:0!important;cursor:pointer;}',
     '.cedar-mmenu{position:fixed;inset:0;z-index:99990;background:#dad3cd;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .55s ' + EASE + ';}',
     '.cedar-mmenu.is-open{clip-path:inset(0 0 0% 0);pointer-events:auto;}',
     '.cedar-mmenu nav{position:absolute;left:20px;bottom:32px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;}',
@@ -110,26 +127,27 @@
     '.cedar-mmenu.is-open nav a{opacity:1;transform:none;}',
     '.navbar.cedar-mmenu-on{z-index:99991!important;}',
     '.navbar.cedar-mmenu-on .cedar-mmenu-btn,.navbar.cedar-mmenu-on .cedar-mark-mask,.navbar.cedar-mmenu-on .cedar-logo-mask{color:' + CHARCOAL + '!important;}',
-    /* footer — rebuilt to the brand-guidelines cover layout: Cedar Green field, light-green type, hairline-separated columns, giant mark + wordmark lockup across the bottom */
+    /* footer v2 — Cedar Green field, light-green type. Left: tagline + "Say hello" pill (+ copyright pinned
+       to the bottom). Right: the page links behind a hairline whose x lands exactly on the C of "Creative"
+       in the lockup below (wordmark left = 20.5% of the row, C of Creative at 43.8% into the wordmark →
+       hairline at 55.3% — pure percentages, so it holds at any width). Lockup links home. */
     '.site-footer{background:#29341a!important;color:#9fb18f!important;}',
-    '.cedar-foot{padding:56px 20px 40px;}',
-    '.cedar-foot-cols{display:flex;min-height:280px;}',
-    '.cedar-foot-col{flex:1 1 0;padding:6px 28px 24px;}',
-    '.cedar-foot-col:first-child{padding-left:0;}',
-    '.cedar-foot-col+.cedar-foot-col{border-left:1px solid rgba(159,177,143,.32);}',
-    '.cedar-foot-col.c3{display:flex;flex-direction:column;}',
-    '.cedar-foot .cf-label{font-size:13px;letter-spacing:.2px;opacity:.5;color:#9fb18f;margin:0 0 12px;}',
-    '.cedar-foot .cf-line{font-size:21px;line-height:1.25;color:#9fb18f;margin:0;max-width:22ch;}',
+    '.cedar-foot{padding:20px;}',
+    '.cedar-foot-cols{display:flex;min-height:250px;}',
+    '.cedar-foot-col.c1{flex:0 0 55.3%;display:flex;flex-direction:column;align-items:flex-start;padding:6px 28px 0 0;}',
+    '.cedar-foot-col.c2{flex:1 1 auto;border-left:1px solid rgba(159,177,143,.32);padding:6px 0 0 28px;}',
+    '.cedar-foot .cf-tag{font-size:21px;line-height:1.3;color:#9fb18f;margin:0 0 18px;max-width:28ch;}',
+    '.cedar-foot .cf-cta{display:inline-block;background:#9fb18f;color:#29341a;border-radius:999px;padding:12px 22px;font-size:14px;line-height:1;text-decoration:none;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',
+    '.cedar-foot .cf-cta:hover{opacity:.88;}',
+    '.cedar-foot .cf-copy{font-size:12px;opacity:.5;color:#9fb18f;margin-top:auto;padding-top:24px;}',
     '.cedar-foot .cf-links{display:flex;flex-direction:column;gap:9px;align-items:flex-start;}',
     '.cedar-foot .cf-links a{color:#9fb18f;text-decoration:none;font-size:16px;letter-spacing:.3px;opacity:.85;transition:opacity .25s ' + EASE + ';}',
     '.cedar-foot .cf-links a:hover{opacity:1;}',
-    '.cedar-foot .cf-tag{font-size:21px;line-height:1.3;color:#9fb18f;margin:0 0 18px;max-width:28ch;}',
-    '.cedar-foot .cf-copy{font-size:12px;opacity:.5;color:#9fb18f;margin-top:auto;}',
-    '.cedar-foot-lockup{display:flex;align-items:center;justify-content:space-between;margin-top:64px;}',
+    'a.cedar-foot-lockup{display:flex;align-items:center;justify-content:space-between;margin-top:56px;text-decoration:none;}',
     '.cedar-foot-mark,.cedar-foot-word{display:block;background-color:#9fb18f;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}',
     '.cedar-foot-mark{flex:0 0 11.5%;aspect-ratio:374/283;}',
     '.cedar-foot-word{flex:0 0 79.5%;aspect-ratio:641/70;}',
-    '@media (max-width:767px){.cedar-foot-cols{flex-direction:column;min-height:0;}.cedar-foot-col{padding:22px 0;}.cedar-foot-col+.cedar-foot-col{border-left:0;border-top:1px solid rgba(159,177,143,.32);}.cedar-foot-lockup{margin-top:40px;}}',
+    '@media (max-width:767px){.cedar-foot{padding:10px;}.cedar-foot-cols{flex-direction:column;min-height:0;}.cedar-foot-col.c1{flex:0 0 auto;padding:12px 0 0;}.cedar-foot-col.c2{border-left:0;padding:24px 0 0;}.cedar-foot .cf-copy{padding-top:20px;}a.cedar-foot-lockup{margin-top:36px;}}',
     /* BTS slider (legacy bits still used by the gallery button) */
     '.cedar-bts-gallery-btn{cursor:pointer;display:inline-flex;align-items:center;border:1px solid rgba(41,34,27,.35);border-radius:14px;padding:6px 14px;font-size:13px;color:' + CHARCOAL + ';transition:background-color .3s ' + EASE + ';}',
     '.cedar-bts-gallery-btn:hover{background-color:rgba(41,34,27,.07);}',
@@ -211,11 +229,11 @@
     '.cedar-modal .cedar-suite-form{margin-top:6px;text-align:left;}',
     '.cedar-modal .cedar-suite-form .w-form{margin:0;}',
     '.cedar-modal .cedar-suite-form input,.cedar-modal .cedar-suite-form textarea,.cedar-modal .cedar-suite-form select{max-width:100%;}',
-    /* home info-cards (>4): horizontal drag-scroll, scrollbar hidden, pill cursor */
-    '.info-row.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}',
-    '.info-row.cedar-hscroll::-webkit-scrollbar{display:none;}',
-    '.info-row.cedar-hscroll.cedar-nocursor{cursor:none;}',
-    '.info-row.cedar-hscroll .info-card{flex:0 0 auto;}',
+    /* horizontal drag-scroll rows (home info-cards >4, post partners on overflow): scrollbar hidden, pill cursor */
+    '.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}',
+    '.cedar-hscroll::-webkit-scrollbar{display:none;}',
+    '.cedar-hscroll.cedar-nocursor{cursor:none;}',
+    '.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -406,16 +424,38 @@
   }
   onReady(function () {
     var path = location.pathname.replace(/\/$/, '') || '/';
-    if ((path !== '/' && path !== '/work') || RM || TOUCH) return;   /* home + /work listing share the same grid/filter; desktop + motion only */
+    if (path !== '/' && path !== '/work') return;      /* home + /work listing share the same grid/filter */
     var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
     if (cards.length < 2) return;
+    var DESK = !RM && !TOUCH;                          /* hover video/expand + FLIP reflow are desktop-only; the FILTER runs everywhere */
     var TRANS = 'flex-basis .85s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;   /* width expand slowed .55->.85 per Ben */
+    /* /work: the Designer only styles the first grid rows, so deeper cards go full-width — reassign the
+       home grid's 3 repeating asymmetric patterns down the whole list (home itself is untouched) */
+    var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];
+    function assignPattern() {
+      if (path !== '/work' || window.innerWidth < 768) return;
+      var p = cards[0].parentElement, cs = getComputedStyle(p);
+      var gap = parseFloat(cs.columnGap || cs.gap) || 14;
+      var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      if (W <= 0) return;
+      var avail = W - gap;
+      for (var i = 0; i < cards.length; i += 2) {
+        var pat = PATTERNS[(i / 2) % PATTERNS.length];
+        var a = cards[i], b = cards[i + 1];
+        var wa = Math.round(avail * pat[0]);
+        if (b) { a._nat = wa; b._nat = avail - wa; }
+        else { a._nat = W; }
+      }
+      cards.forEach(function (c) { if (c._nat) { c.style.transition = 'none'; c.style.flex = '0 1 ' + c._nat + 'px'; } });
+    }
     cards.forEach(function (c) {
       c.style.boxSizing = 'border-box'; c.style.minWidth = '0';   /* shrink to the basis so row-mates resize in place, never wrap */
       c._nat = c.getBoundingClientRect().width;        /* natural design width — the grow basis (so a filtered row still fills) */
       var lb = c.querySelector('.card-label');          /* reveal the CMS-bound title/situation on hover (your Webflow styling, just toggled) */
-      if (lb) { lb.classList.remove('hidden'); lb.style.opacity = '0'; lb.style.pointerEvents = 'none'; lb.style.zIndex = '4'; lb.style.transition = 'opacity .5s ' + EASE; }
+      if (lb && DESK) { lb.classList.remove('hidden'); lb.style.opacity = '0'; lb.style.pointerEvents = 'none'; lb.style.zIndex = '4'; lb.style.transition = 'opacity .5s ' + EASE; }
+      else if (lb) { lb.classList.remove('hidden'); }   /* mobile: CSS pins the title-only label visible */
     });
+    assignPattern();
     function visible() { return cards.filter(function (c) { return c.style.display !== 'none'; }); }
     function relock(enableTrans) {                     /* grow visible cards to fill their rows, then freeze as px so hover can animate flex-basis cleanly */
       var vis = visible();
@@ -424,7 +464,7 @@
       vis.forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; });   /* shrink:1 + exact (unrounded) so a sub-pixel total never wraps a card to the next row */
       if (enableTrans !== false) requestAnimationFrame(function () { vis.forEach(function (c) { c.style.transition = TRANS; }); });
     }
-    relock();
+    if (DESK) relock();
     function rowOf(card) { var top = card.getBoundingClientRect().top; return visible().filter(function (c) { return Math.abs(c.getBoundingClientRect().top - top) < 8; }); }
     function expand(card) {
       var row = rowOf(card); if (row.length < 2) return;
@@ -468,11 +508,11 @@
       collapse();
       if (card) { mountVideo(card); card.classList.add('cedar-hover'); label(card, true); playVid(card); expand(card); }
     }
-    cards.forEach(function (card) {
+    if (DESK) cards.forEach(function (card) {
       card.addEventListener('mouseenter', function () { clearTimeout(leaveT); if (active === card) return; clearTimeout(enterT); enterT = setTimeout(function () { setActive(card); }, 80); });
       card.addEventListener('mouseleave', function () { clearTimeout(enterT); clearTimeout(leaveT); leaveT = setTimeout(function () { setActive(null); }, 130); });
     });
-    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!active) relock(); }, 160); });
+    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!active) { assignPattern(); if (DESK) relock(); } }, 160); });
 
     /* ---------- FILTER: yellow hover panel, faceted (AND across groups, OR within), FLIP reflow ---------- */
     var controls = document.querySelector('.filter-controls'), pill = document.querySelector('.filter-pill');
@@ -504,13 +544,23 @@
       var xbtn = null;
       if (pillEl) { xbtn = el('button', 'cfp-x', '×'); xbtn.type = 'button'; xbtn.setAttribute('aria-label', 'Clear filters'); xbtn.addEventListener('click', function (e) { e.stopPropagation(); clearAll(); }); pillEl.appendChild(xbtn); }
       var closeT;
-      controls.addEventListener('mouseenter', function () { clearTimeout(closeT); controls.classList.add('cfp-open'); });
-      controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
+      if (!TOUCH) {
+        controls.addEventListener('mouseenter', function () { clearTimeout(closeT); controls.classList.add('cfp-open'); });
+        controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
+      } else {                                          /* touch: tap the pill to toggle, tap outside to close */
+        controls.addEventListener('click', function (e) { if (e.target.closest('.filter-pill')) { e.preventDefault(); controls.classList.toggle('cfp-open'); } });
+        document.addEventListener('click', function (e) { if (!controls.contains(e.target)) controls.classList.remove('cfp-open'); });
+      }
       function match(c) { return GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }
       function capUpd() { var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); if (caption) caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); if (xbtn) xbtn.style.display = picks.length ? 'inline-flex' : 'none'; }
       function apply() {
         var keep = cards.filter(match);
         if (!keep.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); keep = cards.slice(); }  /* never empty the grid */
+        if (!DESK) {                                    /* touch / reduced motion: simple show-hide, no FLIP reflow */
+          cards.forEach(function (c) { c.style.display = keep.indexOf(c) > -1 ? '' : 'none'; });
+          capUpd();
+          return;
+        }
         var leaving = visible().filter(function (c) { return keep.indexOf(c) < 0; });
         var entering = cards.filter(function (c) { return keep.indexOf(c) > -1 && c.style.display === 'none'; });
         capUpd();
@@ -737,7 +787,10 @@
           var c = cfCards[i];
           if (a > 3.2) { c.style.display = 'none'; continue; }
           c.style.display = '';
-          c.style.transform = 'translate(calc(-50% + ' + (off * cfSp).toFixed(1) + 'px),-50%) scale(' + Math.max(0.4, 1 - 0.18 * a).toFixed(3) + ')';
+          /* mobile: the CENTER card reads 1.5x while the neighbours keep their desktop sizes (blend back by a=1) */
+          var CS = window.innerWidth < 768 ? 1.5 : 1;
+          var sc = a < 1 ? (CS + (0.82 - CS) * a) : Math.max(0.4, 1 - 0.18 * a);
+          c.style.transform = 'translate(calc(-50% + ' + (off * cfSp).toFixed(1) + 'px),-50%) scale(' + sc.toFixed(3) + ')';
           c.style.opacity = Math.max(0, 1 - 0.32 * a).toFixed(3);
           c.style.zIndex = String(200 - Math.round(a * 10));
         }
@@ -1112,6 +1165,8 @@
       if (img) img.style.display = 'none';                /* keep the original for easy revert */
       a.appendChild(span);
     }
+    /* both nav logos always link home (the mark shipped with href="#") */
+    ['a.nav-logo', 'a.nav-mark'].forEach(function (s) { var a = document.querySelector(s); if (a && (a.getAttribute('href') || '#') === '#') a.setAttribute('href', '/'); });
     var logoImg = document.querySelector('a.nav-logo img');
     var logoUrl = logoImg ? (logoImg.currentSrc || logoImg.src) : '';
     function buildMasks() {
@@ -1397,7 +1452,8 @@
   onReady(function () {
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
-    var ROW_H = 600;                                              /* match the home work grid; tunable */
+    var ROW_H = 600;                                              /* desktop: match the home work grid; tunable */
+    function rowH() { return window.innerWidth < 768 ? Math.round(window.innerHeight * 0.5) : ROW_H; }   /* mobile: 50vh full-width cards */
     var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];  /* home grid's 3 repeating rows */
 
     /* PRIMARY path — build an always-on background iframe from a data-vimeo-url (shared home-grid parser + builder). */
@@ -1462,13 +1518,14 @@
 
     function coverIframe(c, w) {
       var f = c.querySelector('.cedar-galvid iframe'); if (!f) return;   /* oversize to COVER the box (no letterbox); card clips overflow */
-      f.style.width = (Math.ceil(Math.max(w, ROW_H * 16 / 9)) + 4) + 'px';
-      f.style.height = (Math.ceil(Math.max(ROW_H, w * 9 / 16)) + 4) + 'px';
+      var h = rowH();
+      f.style.width = (Math.ceil(Math.max(w, h * 16 / 9)) + 4) + 'px';
+      f.style.height = (Math.ceil(Math.max(h, w * 9 / 16)) + 4) + 'px';
     }
     function set(c, w) {
       c.style.setProperty('flex', '0 0 auto', 'important');
       c.style.setProperty('width', w + 'px', 'important');
-      c.style.setProperty('height', ROW_H + 'px', 'important');
+      c.style.setProperty('height', rowH() + 'px', 'important');
       coverIframe(c, w);
     }
     function layout() {
@@ -1480,8 +1537,13 @@
         p.style.setProperty('flex-wrap', 'wrap', 'important');
         p.style.setProperty('justify-content', 'flex-start', 'important');
         p.style.setProperty('align-items', 'flex-start', 'important');
+        var items = g.items;
+        if (window.innerWidth < 768) {                            /* mobile: every card full-width at 50vh, cover */
+          items.forEach(function (c) { set(c, W); });
+          return;
+        }
         var avail = W - gap;                                      /* two cards + one gap span the row */
-        var items = g.items, row = 0;
+        var row = 0;
         for (var i = 0; i < items.length; i += 2) {
           var pat = PATTERNS[row % PATTERNS.length]; row++;
           var a = items[i], b = items[i + 1];
@@ -1629,6 +1691,7 @@
         host.textContent = '';
         host.style.display = 'block'; host.style.width = '100%'; host.style.textAlign = 'center';   /* span the card so the icon can center */
         var box = el('div', 'cedar-value-icon');
+        box.setAttribute('data-icon', pick.json);       /* lets CSS scale Quality/Sustainability down 10% on mobile (they draw to the artboard edge) */
         box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;margin:0 auto;';   /* horizontally centered in the card */
         host.appendChild(box);
         var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: false, autoplay: false, path: lottieJSON(pick.json) });
@@ -1719,35 +1782,62 @@
   });
 
   /* =========================================================
-   * 20. CONTACT HEADING CASCADE — "Tell us about your project."
-   *   (/contact, .contact-head). Each character rises + fades in
-   *   with a smooth left→right cascade once the page has loaded
-   *   (after the loader lifts). Words are wrapped unbreakable so
-   *   the line wraps exactly as before. Module 7 excludes
-   *   .contact-head, so this owns the intro. Reduced motion: the
-   *   heading just stays put.
+   * 20. TYPE CASCADE (.contact-head) — every .contact-head on the
+   *   site (the /contact H1, and the situation/results heads Ben
+   *   tagged on the project pages) gets a rise+fade type-on.
+   *   Project pages on DESKTOP animate LINE BY LINE (words are
+   *   grouped by their rendered line; each line rises as one);
+   *   mobile — and the contact page — keep the character cascade.
+   *   The OPENING situation head on a project page is centered
+   *   (the H1 is flex, so justify-content does the centering).
+   *   Triggered per-element on scroll-in, after the loader.
+   *   Reduced motion: headings just stay put.
    * ======================================================= */
   onReady(function () {
     if (RM) return;
-    var h = document.querySelector('.contact-head');
-    if (!h || h.children.length) return;              /* plain text only — don't double-split */
-    var words = (h.textContent || '').split(/\s+/).filter(Boolean);
-    if (!words.length) return;
-    h.textContent = '';
-    var chars = [];
-    words.forEach(function (wd, wi) {
-      var w = el('span', 'cedar-word');
-      for (var i = 0; i < wd.length; i++) {
-        var c = el('span', 'cedar-chr'); c.textContent = wd.charAt(i);
-        w.appendChild(c); chars.push(c);
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    var isWork = P.indexOf('/work/') === 0;
+    var heads = [].slice.call(document.querySelectorAll('.contact-head'));
+    if (!heads.length) return;
+    heads.forEach(function (h, hi) {
+      if (h.children.length) return;                  /* plain text only — don't double-split */
+      var words = (h.textContent || '').split(/\s+/).filter(Boolean);
+      if (!words.length) return;
+      h.textContent = '';
+      var chars = [], wordEls = [];
+      words.forEach(function (wd, wi) {
+        var w = el('span', 'cedar-word');
+        for (var i = 0; i < wd.length; i++) {
+          var c = el('span', 'cedar-chr'); c.textContent = wd.charAt(i);
+          w.appendChild(c); chars.push(c);
+        }
+        h.appendChild(w); wordEls.push(w);
+        if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
+      });
+      if (isWork && hi === 0) h.classList.add('cedar-center');   /* opening situation head is centered */
+      var lineMode = isWork && window.innerWidth >= 768;
+      var fired = false;
+      function fire() {
+        if (fired) return; fired = true;
+        if (lineMode) {                               /* group words by rendered line; a line's chars move together */
+          var lineIdx = {}, count = 0;
+          wordEls.forEach(function (w) {
+            var key = Math.round(w.offsetTop / 10);
+            if (!(key in lineIdx)) lineIdx[key] = count++;
+            var d = (lineIdx[key] * 220) + 'ms';
+            [].slice.call(w.children).forEach(function (c) { c.style.transitionDelay = d; c.classList.add('cedar-in'); });
+          });
+        } else {
+          chars.forEach(function (c, i) { c.style.transitionDelay = (i * 36) + 'ms'; c.classList.add('cedar-in'); });   /* 36ms stagger + 1.2s chars ≈ 2s total */
+        }
       }
-      h.appendChild(w);
-      if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
-    });
-    afterLoader(function () {
-      setTimeout(function () {
-        chars.forEach(function (c, i) { c.style.transitionDelay = (i * 36) + 'ms'; c.classList.add('cedar-in'); });   /* 36ms stagger + 1.2s chars ≈ 2s total */
-      }, 180);
+      afterLoader(function () {
+        if (!('IntersectionObserver' in window)) { setTimeout(fire, 180); return; }
+        var io = new IntersectionObserver(function (ents) {
+          ents.forEach(function (en) { if (en.isIntersecting) { setTimeout(fire, 120); io.disconnect(); } });
+        }, { threshold: 0.3 });
+        io.observe(h);
+      });
     });
   });
 
@@ -1781,7 +1871,7 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('is-open')) close(); });
     function open(suite) {
       if (current) { goHome(); current.remove(); }
-      var m = el('div', 'cedar-modal', '');
+      var m = el('div', 'cedar-modal cedar-suite', '');
       var x = el('button', 'cm-close', '×'); x.setAttribute('aria-label', 'Close'); x.addEventListener('click', close); m.appendChild(x);
       m.appendChild(el('h3', null, 'Book ' + suite));
       var lead = el('div', 'cm-body', 'Book ' + suite + ', tell us about your session.');
@@ -1930,21 +2020,20 @@
     var root = el('div', 'cedar-foot', '');
     var cols = el('div', 'cedar-foot-cols', '');
     var c1 = el('div', 'cedar-foot-col c1', '');
-    c1.appendChild(el('div', 'cf-label', 'Cedar Creative'));
-    c1.appendChild(el('p', 'cf-line', 'Transformative films & inspiring ideas.'));
+    c1.appendChild(el('p', 'cf-tag', tag.replace(/\s*Say hello\.?\s*$/i, '')));      /* "Say hello" becomes the pill below */
+    var cta = el('a', 'cf-cta', 'Say hello'); cta.href = '/contact';
+    c1.appendChild(cta);
+    c1.appendChild(el('div', 'cf-copy', cop));
     var c2 = el('div', 'cedar-foot-col c2', '');
-    c2.appendChild(el('div', 'cf-label', 'Pages'));
     var lwrap = el('nav', 'cf-links', '');
     links.forEach(function (a) {
       var na = document.createElement('a'); na.textContent = (a.textContent || '').trim(); na.href = a.getAttribute('href') || '#';
       lwrap.appendChild(na);
     });
     c2.appendChild(lwrap);
-    var c3 = el('div', 'cedar-foot-col c3', '');
-    c3.appendChild(el('p', 'cf-tag', tag));
-    c3.appendChild(el('div', 'cf-copy', cop));
-    cols.appendChild(c1); cols.appendChild(c2); cols.appendChild(c3);
-    var lockup = el('div', 'cedar-foot-lockup', '');
+    cols.appendChild(c1); cols.appendChild(c2);
+    var lockup = el('a', 'cedar-foot-lockup', '');
+    lockup.href = '/'; lockup.setAttribute('aria-label', 'Cedar Creative home');
     var mk = el('span', 'cedar-foot-mark', '');
     mk.style.webkitMaskImage = 'url("' + MARK_URL + '")'; mk.style.maskImage = 'url("' + MARK_URL + '")';
     lockup.appendChild(mk);
@@ -1955,5 +2044,62 @@
     }
     root.appendChild(cols); root.appendChild(lockup);
     f.appendChild(root);
+  });
+
+  /* =========================================================
+   * 24. POST PARTNERS DRAG-SCROLL (/post) — the Post Partners CMS
+   *   row Ben laid out in place of the second marquee. When the
+   *   cards overflow the row, it becomes a horizontal drag-scroller
+   *   with a "Click and drag" cursor pill (same treatment as the
+   *   home info-cards). Rechecks on resize; touch keeps native
+   *   swipe; a drag suppresses the accidental click at release.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/post') return;
+    var row = document.querySelector('.post-partner-row.w-dyn-items');
+    if (!row) return;
+    var armed = false;
+    function check() {
+      var need = row.scrollWidth > row.clientWidth + 8;
+      row.classList.toggle('cedar-hscroll', need);
+      if (!TOUCH) row.classList.toggle('cedar-nocursor', need);
+      if (need && !armed && !TOUCH) arm();
+    }
+    function arm() {
+      armed = true;
+      var pill = el('div', 'cedar-cf-pill', 'Click and drag');
+      document.body.appendChild(pill);
+      var mx = 0, my = 0, px = -200, py = -200, raf = null, over = false;
+      function loop() {
+        if (!over) { raf = null; return; }
+        px += (mx - px) * 0.22; py += (my - py) * 0.22;
+        pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px';
+        raf = requestAnimationFrame(loop);
+      }
+      row.addEventListener('pointerenter', function (e) { if (!row.classList.contains('cedar-hscroll')) return; over = true; px = mx = e.clientX; py = my = e.clientY; pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
+      row.addEventListener('pointerleave', function () { over = false; pill.classList.remove('is-on'); });
+      var down = false, moved = false, sx = 0, sl = 0;
+      row.addEventListener('pointerdown', function (e) {
+        if (!row.classList.contains('cedar-hscroll')) return;
+        down = true; moved = false; sx = e.clientX; sl = row.scrollLeft;
+        try { row.setPointerCapture(e.pointerId); } catch (_) {}
+        pill.classList.add('is-down');
+      });
+      row.addEventListener('pointermove', function (e) {
+        mx = e.clientX; my = e.clientY;
+        if (!down) return;
+        var dx = e.clientX - sx;
+        if (Math.abs(dx) > 5) moved = true;
+        row.scrollLeft = sl - dx;
+      });
+      function up() { down = false; pill.classList.remove('is-down'); }
+      row.addEventListener('pointerup', up);
+      row.addEventListener('pointercancel', up);
+      row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    }
+    check();
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(check, 160); });
+    window.addEventListener('load', check);
   });
 })();
