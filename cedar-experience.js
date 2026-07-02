@@ -1,5 +1,5 @@
 /* Cedar Creative — experience layer
- * v1.18.0 · built by Origin · loaded site-wide (footer)
+ * v1.18.1 · built by Origin · loaded site-wide (footer)
  * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS auto-cycle (next thumb slides left into the feature, infinite, no scrollbar) + drag-coverflow gallery modal w/ "click and drag" cursor pill · view-other slider (one-up) · inline gallery video
  *          mobile menu (≤767px): mark left + "Menu" right; warm-grey overlay fills in, pages 36px bottom-left · footer rebuilt to the brand-guidelines cover layout (Cedar Green field, hairline columns, giant light-green lockup)
@@ -100,6 +100,8 @@
     '.navbar.cedar-nav-dark .cedar-mmenu-btn{color:#f4f4f2;}',
     '.navbar.cedar-nav-light .cedar-mmenu-btn{color:' + CHARCOAL + ';}',
     '@media (max-width:767px){.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',
+    /* mobile: no hover exists, so the work-card title + situation label is always visible (desktop keeps the hover reveal from module 3) */
+    '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;}}',
     '.cedar-mmenu{position:fixed;inset:0;z-index:99990;background:#dad3cd;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .55s ' + EASE + ';}',
     '.cedar-mmenu.is-open{clip-path:inset(0 0 0% 0);pointer-events:auto;}',
     '.cedar-mmenu nav{position:absolute;left:20px;bottom:32px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;}',
