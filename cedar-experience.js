@@ -1,12 +1,13 @@
 /* Cedar Creative — experience layer
- * v1.16.1 · built by Origin · loaded site-wide (footer)
- * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
+ * v1.17.0 · built by Origin · loaded site-wide (footer)
+ * Modules: loader (every page, waits for hero video) · lenis · work-grid hover video + expand-on-hover + yellow filter panel (Home + /work; label reveal, black-backed clip, debounced hover, in-row reflow, faceted Project Type/Industry filter with FLIP reflow) · accordion (grid-rows + animated +/- icon)
  *          /work CMS template: situation+results modals · BTS slider · view-other slider (one-up) · inline gallery video
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
  *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback); click a video card → 16:9 lightbox modal (full controls, close via X/backdrop/Esc)
- *          contact (/contact): outline-mark Lottie (full container width) traces in once on scroll and holds · about value icons (/about): Quality/Vision/Sustainability Lotties (200px, centered) loop on hover, finish the cycle then stop on hover-out
+ *          contact (/contact): outline-mark Lottie (full container width) traces in once on scroll and holds · "Tell us about your project." heading cascades in per-character · about value icons (/about): Quality/Vision/Sustainability Lotties (200px, centered) — hover = instant draw-in, hold 1s, undraw, loop; hover-out settles on the finished icon
+ *          /work heading ("Work / that / endures.") converges onto one shared baseline as you scroll — scrubbed, damped, finishes within the first ~320px of scroll
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
  * Every module is page-aware and honors prefers-reduced-motion.
  */
@@ -28,9 +29,10 @@
     '#cedar-loader .cl-top,#cedar-loader .cl-bottom{font-size:11px;letter-spacing:1.1px;color:' + CHARCOAL + ';text-transform:uppercase;text-align:center;line-height:1.6;min-height:36px;}',
     '#cedar-loader .cl-stage{flex:1;width:100%;max-width:560px;min-height:0;}',
     '#cedar-loader canvas{display:block;width:100%;height:100%;}',
-    /* buttons — smooth eased hover lift (drifts back on hover-out); the bare "All Work" pill (.btn-pill, no .white/.dark) shows its fill only on hover */
-    '.btn-pill{transition:transform .5s ' + EASE + ',background-color .35s ' + EASE + ';will-change:transform;}',
-    '.btn-pill:hover{transform:translateY(-4px);}',
+    /* buttons — hover LIFT is now Ben's native Webflow interaction (GSAP inline transforms); our CSS transition on
+       transform fought it (down-up-down rubber-band), so we only transition background-color here. The bare
+       "All Work" pill (.btn-pill, no .white/.dark) still shows its fill only on hover. */
+    '.btn-pill{transition:background-color .35s ' + EASE + ';}',
     '.btn-pill:not(.white):not(.dark){background-color:transparent;}',
     '.btn-pill:not(.white):not(.dark):hover{background-color:rgba(249,248,246,.2);}',
     /* work-grid hover */
@@ -102,9 +104,8 @@
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
     '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
     /* nav: transparent + blur veil on hover/focus; auto-hides on scroll-down, slides back on scroll-up; ink (links + masked logo/mark) flips by what's behind it — JS toggles cedar-nav-dark / cedar-nav-light per scroll position */
-    '.navbar{transition:transform .55s ' + EASE + ',background-color .4s ' + EASE + ',backdrop-filter .4s ' + EASE + ';will-change:transform;}',
+    '.navbar{transition:transform .55s ' + EASE + ';will-change:transform;}',
     '.navbar.cedar-nav-hidden{transform:translateY(-100%);}',
-    '.navbar:hover,.navbar:focus-within{background-color:rgba(41,52,26,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}',
     /* masked logo + mark: shape from the brand SVG, painted with currentColor so it rides the nav ink; width tracks the source aspect ratio (no squish) */
     '.cedar-logo-mask,.cedar-mark-mask{display:block;background-color:currentColor;color:#f4f4f2;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;transition:background-color .45s ' + EASE + ';}',
     '.nav-link{transition:color .45s ' + EASE + ';}',
@@ -113,9 +114,7 @@
     '.navbar.cedar-nav-light .nav-link{color:' + CHARCOAL + ';}',
     '.navbar.cedar-nav-dark .cedar-logo-mask,.navbar.cedar-nav-dark .cedar-mark-mask{color:#f4f4f2;}',
     '.navbar.cedar-nav-light .cedar-logo-mask,.navbar.cedar-nav-light .cedar-mark-mask{color:' + CHARCOAL + ';}',
-    /* hover veil is dark green → force light ink regardless of section (placed after the section rules so it wins on equal specificity) */
-    '.navbar:hover .nav-link,.navbar:focus-within .nav-link{color:#f4f4f2;}',
-    '.navbar:hover .cedar-logo-mask,.navbar:hover .cedar-mark-mask,.navbar:focus-within .cedar-logo-mask,.navbar:focus-within .cedar-mark-mask{color:#f4f4f2;}',
+    /* (the dark-green hover veil + its forced light ink were removed per Ben — ink always follows the probe) */
     /* about page: "What defines us" cards start shifted down-right + hidden, ease up + left into place (JS staggers right→left) */
     '.cedar-about-card{opacity:0;transform:translate(52px,25px);will-change:opacity,transform;}',
     '.cedar-about-card.cedar-in{opacity:1;transform:none;transition:opacity .85s ' + EASE + ',transform .85s ' + EASE + ';}',
@@ -148,6 +147,13 @@
     '.cedar-lb-close:hover{background:rgba(255,255,255,.28);}',
     /* contact outline mark: force a crisp 1px stroke-only outline (the lottie paths default to a solid black SVG fill; fill:none + a non-scaling 1px stroke = clean thin outline at any size) */
     '.cedar-lottie-mark svg path{fill:none!important;stroke-width:1px!important;vector-effect:non-scaling-stroke!important;}',
+    /* /work heading intro — module 17 owns the transform (scroll scrub), so only opacity lives here */
+    '.work-heading.cedar-wh{opacity:0;transition:opacity .9s ' + EASE + ';}',
+    '.work-heading.cedar-wh.cedar-wh-in{opacity:1;}',
+    /* contact heading per-character cascade (module 20): words stay unbreakable, chars rise + fade in */
+    '.cedar-word{display:inline-block;white-space:nowrap;}',
+    '.cedar-chr{display:inline-block;opacity:0;transform:translateY(.55em);}',
+    '.cedar-chr.cedar-in{opacity:1;transform:none;transition:opacity .7s ' + EASE + ',transform .7s ' + EASE + ';}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after{transition:none!important;}.cedar-reveal{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -256,7 +262,7 @@
           var edges = new T.EdgesGeometry(geo, 12);
           group.add(new T.LineSegments(edges, mat));
         });
-        group.scale.setScalar(1.15);
+        group.scale.setScalar(0.46);   /* 40% of the old 1.15 — the mark was clipping at the stage edges */
         scene.add(group);
         (function frame() {
           if (loader.classList.contains('is-done')) return;
@@ -338,7 +344,7 @@
   }
   onReady(function () {
     var path = location.pathname.replace(/\/$/, '') || '/';
-    if (path !== '/' || RM || TOUCH) return;          /* desktop + motion only */
+    if ((path !== '/' && path !== '/work') || RM || TOUCH) return;   /* home + /work listing share the same grid/filter; desktop + motion only */
     var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
     if (cards.length < 2) return;
     var TRANS = 'flex-basis .85s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;   /* width expand slowed .55->.85 per Ben */
@@ -773,6 +779,7 @@
               '.post-card,.work-card,.value-col,.photo-band,.gib-left,.gib-right,' +
               '.center-cta,.bts-feature,.project-preview,.ss-left,.ss-acc,.stack';
     var nodes = [].slice.call(document.querySelectorAll(SEL)).filter(function (n) {
+      if (n.classList.contains('work-heading') || n.classList.contains('contact-head')) return false; /* these two get their own intro modules (17 / 20) — a shared transform would fight the scrub/cascade */
       return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee,.acc-inner'); /* never hide chrome/logos, or accordion body copy (it opens on click) */
     });
     if (!nodes.length) return;
@@ -1360,23 +1367,26 @@
    * 16. ABOUT VALUE ICONS (Quality / Vision / Sustainability)
    *   — /about. Each value card holds a ".value-icon" placeholder
    *   embed (literal text "icon"); fill it with the matching
-   *   Lottie, keyed off the card heading. These files draw in over
-   *   ~frames 75-150 then hold the finished icon to the end (and are
-   *   BLANK at frame 0), so at REST we park on the LAST frame (icon
-   *   fully drawn). On hover it re-traces from 0 and LOOPS; on
-   *   hover-out it finishes the current loop then stops on the
-   *   complete frame (loop=false lets the cycle complete). Reduced
-   *   motion → static finished icon, no hover animation. ICON_BOX
-   *   tunable.
+   *   Lottie, keyed off the card heading. The files are BLANK until
+   *   the draw starts (~frame 92/104 — sampled empirically) and are
+   *   fully drawn by ~frame 174, so the visible segment is
+   *   [seg0, DRAWN]. REST parks on DRAWN (finished icon). Hover:
+   *   draw-in starts IMMEDIATELY (no blank lead-in), then the loop
+   *   is draw → hold 1s → undraw (reverse) → draw again, while
+   *   hovered. Hover-out: whatever phase it's in, it settles forward
+   *   onto the finished icon. Reduced motion → static finished icon.
+   *   ICON_BOX / HOLD_MS / DRAWN tunable.
    * ======================================================= */
   onReady(function () {
     var icons = [].slice.call(document.querySelectorAll('.value-icon.w-embed'));
     if (!icons.length) return;
     var ICON_BOX = 200;                            /* px square; tunable */
+    var HOLD_MS = 1000;                            /* pause at fully-drawn before the reverse */
+    var DRAWN = 174;                               /* fully drawn by here (60fps, sampled) */
     var FILES = [
-      { re: /quality/i,        json: 'Quality.json' },
-      { re: /vision/i,         json: 'Vision.json' },
-      { re: /sustainab/i,      json: 'Sustainability.json' }
+      { re: /quality/i,        json: 'Quality.json',        seg0: 90 },
+      { re: /vision/i,         json: 'Vision.json',         seg0: 102 },
+      { re: /sustainab/i,      json: 'Sustainability.json', seg0: 102 }
     ];
     ensureLottie(function (lottie) {
       icons.forEach(function (host) {
@@ -1389,13 +1399,123 @@
         var box = el('div', 'cedar-value-icon');
         box.style.cssText = 'width:' + ICON_BOX + 'px;height:' + ICON_BOX + 'px;max-width:100%;margin:0 auto;';   /* horizontally centered in the card */
         host.appendChild(box);
-        var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: false, path: lottieJSON(pick.json) });
-        anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(anim.totalFrames - 1, true); });  /* rest = finished icon (frame 0 is blank) */
+        var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: false, autoplay: false, path: lottieJSON(pick.json) });
+        anim.addEventListener('DOMLoaded', function () { anim.goToAndStop(DRAWN, true); });  /* rest = finished icon (early frames are blank) */
         if (RM) return;                             /* no hover motion under reduced motion */
+        var hovering = false, phase = 'rest', holdT = null;   /* phase: rest | draw | hold | undraw */
+        function absFrame() { return (anim.firstFrame || 0) + (anim.currentFrame || 0); }   /* currentFrame is segment-relative */
+        function drawIn(from) { phase = 'draw'; anim.playSegments([Math.max(pick.seg0, Math.min(from != null ? from : pick.seg0, DRAWN)), DRAWN], true); }
+        function undraw()     { phase = 'undraw'; anim.playSegments([DRAWN, pick.seg0], true); }
+        anim.addEventListener('complete', function () {
+          if (phase === 'draw') {
+            if (!hovering) { phase = 'rest'; return; }        /* left mid-draw → we're on the finished icon, stop */
+            phase = 'hold';
+            holdT = setTimeout(function () { if (hovering) undraw(); else phase = 'rest'; }, HOLD_MS);
+          } else if (phase === 'undraw') {
+            if (hovering) drawIn();                           /* loop: undrawn → draw again */
+            else drawIn(absFrame());                          /* left mid-cycle → settle forward to drawn */
+          }
+        });
         var hoverEl = card || host;
-        hoverEl.addEventListener('mouseenter', function () { anim.loop = true; anim.goToAndPlay(0, true); });  /* re-trace + loop while hovered */
-        hoverEl.addEventListener('mouseleave', function () { anim.loop = false; });  /* finish the current cycle, then stop on the complete frame */
+        hoverEl.addEventListener('mouseenter', function () {
+          hovering = true; clearTimeout(holdT);
+          if (phase === 'rest' || phase === 'hold') drawIn(); /* start the trace immediately — no blank lead-in */
+          /* mid-draw/mid-undraw: let the running segment finish; the complete handler continues the loop */
+        });
+        hoverEl.addEventListener('mouseleave', function () {
+          hovering = false; clearTimeout(holdT);
+          if (phase === 'undraw') { drawIn(absFrame()); }     /* reverse in flight → play forward from here to drawn */
+          else if (phase === 'hold' || phase === 'rest') { phase = 'rest'; anim.goToAndStop(DRAWN, true); }
+          /* mid-draw: it finishes to DRAWN on its own and the complete handler parks it */
+        });
       });
+    });
+  });
+
+  /* =========================================================
+   * 17. /WORK HEADING CONVERGENCE — "Work / that / endures." start
+   *   on three staggered lines; as you scroll, "endures." eases
+   *   DOWN 10px and the other two travel to meet it, so all three
+   *   settle onto one shared baseline. Scrubbed against scrollY
+   *   over the first RANGE px (finishes quickly), damped every
+   *   frame so it never feels jerky, and fully reversible on the
+   *   way back up. Opacity intro is ours too (module 7 excludes
+   *   .work-heading so nothing else touches these transforms).
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/work') return;
+    var parts = { w: document.querySelector('.work-heading._1'), t: document.querySelector('.work-heading._2'), e: document.querySelector('.work-heading._3') };
+    if (!parts.w || !parts.t || !parts.e) return;
+    var all = [parts.w, parts.t, parts.e];
+    /* fade-in intro (transform stays ours) */
+    all.forEach(function (n, i) { n.classList.add('cedar-wh'); });
+    afterLoader(function () { all.forEach(function (n, i) { n.style.transitionDelay = (i * 110) + 'ms'; n.classList.add('cedar-wh-in'); }); });
+    if (RM) return;                                   /* reduced motion: static designed layout */
+    var RANGE = 320;                                  /* scroll px over which the convergence completes */
+    var DROP = 10;                                    /* how far "endures." drifts down */
+    var deltas = null;
+    function measure() {                              /* natural tops, independent of any applied scrub transform */
+      var tops = {};
+      all.forEach(function (n) {
+        var m = (getComputedStyle(n).transform.match(/matrix\(([^)]+)\)/) || [])[1];
+        var ty = m ? parseFloat(m.split(',')[5]) || 0 : 0;
+        tops[n === parts.w ? 'w' : n === parts.t ? 't' : 'e'] = n.getBoundingClientRect().top + window.pageYOffset - ty;
+      });
+      var target = tops.e + DROP;                     /* shared baseline = endures' natural line, 10px lower */
+      deltas = { w: target - tops.w, t: target - tops.t, e: DROP };
+    }
+    var cur = 0, ticking = false, raf = null;
+    function ease(x) { return 1 - Math.pow(1 - x, 3); }   /* easeOutCubic on the scrub */
+    function frame() {
+      raf = null;
+      var p = Math.max(0, Math.min(1, (window.pageYOffset || 0) / RANGE));
+      var goal = ease(p);
+      cur += (goal - cur) * 0.16;                     /* damping — smooth, never snappy */
+      if (Math.abs(goal - cur) < 0.0015) cur = goal;
+      parts.w.style.transform = 'translateY(' + (deltas.w * cur).toFixed(2) + 'px)';
+      parts.t.style.transform = 'translateY(' + (deltas.t * cur).toFixed(2) + 'px)';
+      parts.e.style.transform = 'translateY(' + (deltas.e * cur).toFixed(2) + 'px)';
+      if (cur !== goal) raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+    afterLoader(function () {
+      measure(); kick();
+      window.addEventListener('scroll', kick, { passive: true });
+      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { measure(); kick(); }, 150); });
+    });
+  });
+
+  /* =========================================================
+   * 20. CONTACT HEADING CASCADE — "Tell us about your project."
+   *   (/contact, .contact-head). Each character rises + fades in
+   *   with a smooth left→right cascade once the page has loaded
+   *   (after the loader lifts). Words are wrapped unbreakable so
+   *   the line wraps exactly as before. Module 7 excludes
+   *   .contact-head, so this owns the intro. Reduced motion: the
+   *   heading just stays put.
+   * ======================================================= */
+  onReady(function () {
+    if (RM) return;
+    var h = document.querySelector('.contact-head');
+    if (!h || h.children.length) return;              /* plain text only — don't double-split */
+    var words = (h.textContent || '').split(/\s+/).filter(Boolean);
+    if (!words.length) return;
+    h.textContent = '';
+    var chars = [];
+    words.forEach(function (wd, wi) {
+      var w = el('span', 'cedar-word');
+      for (var i = 0; i < wd.length; i++) {
+        var c = el('span', 'cedar-chr'); c.textContent = wd.charAt(i);
+        w.appendChild(c); chars.push(c);
+      }
+      h.appendChild(w);
+      if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
+    });
+    afterLoader(function () {
+      setTimeout(function () {
+        chars.forEach(function (c, i) { c.style.transitionDelay = (i * 26) + 'ms'; c.classList.add('cedar-in'); });
+      }, 180);
     });
   });
 })();
