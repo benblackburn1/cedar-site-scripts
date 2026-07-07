@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.24.0 · built by Origin · loaded site-wide (footer)
+ * v1.24.1 · built by Origin · loaded site-wide (footer)
+ * v1.24.1: icon loop gets a clean blank beat before each redraw · closed accordion items drop the body's orphaned padding · snap on all pages, stronger hold (range .38→.6, section filter 45vh→30vh)
  * v1.24.0 (client review batch B — FEEL EXPERIMENTS): scroll snap-on-settle via Lenis (opt-in pages: / and /contact; SNAP_RANGE/DUR tunable) · work-grid clips preload + play muted as cards near the viewport, hover just fades them in (zero start-up gap; streams stop 1.5 screens away)
  * v1.23.0 (client review batch A): expand animation lands together (delay removed — equal-curve transitions keep the row sum constant) · /work grid 3-wide at 420px (home stays 2-up) · hero "Watch with sound" button opens the lightbox w/ controls · work-card hover title more prominent · about icons pulled in 8% so edge strokes never clip
  * v1.22.2: drag-scroll rows (info-cards / post partners) are desktop-only — mobile keeps the native stacked layout
@@ -195,8 +196,9 @@
     '.acc-ico::before{top:50%;left:0;width:100%;height:1.5px;transform:translateY(-50%);}',
     '.acc-ico::after{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%);}',
     '.cedar-acc-init .acc-item.cedar-open .acc-ico::after{transform:translateX(-50%) scaleY(0);}',  /* + -> - */
-    '.cedar-acc-init .acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .55s ' + EASE + ';}',
+    '.cedar-acc-init .acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .55s ' + EASE + ',padding .55s ' + EASE + ';}',
     '.cedar-acc-init .acc-item.cedar-open .acc-body{grid-template-rows:1fr;}',
+    '.cedar-acc-init .acc-item:not(.cedar-open) .acc-body{padding-top:0;padding-bottom:0;}',   /* the body\'s own padding survives the 0fr collapse — drop it when closed */
     '.cedar-acc-init .acc-body > .acc-inner{overflow:hidden;min-height:0;opacity:0;transition:opacity .45s ' + EASE + ';}',
     '.cedar-acc-init .acc-item.cedar-open .acc-body > .acc-inner{opacity:1;}',
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
@@ -1766,16 +1768,16 @@
   onReady(function () {
     if (RM || TOUCH) return;
     var P = location.pathname.replace(/\/$/, '') || '/';
-    var SNAP_PAGES = ['/', '/contact'];              /* opt-in per page; add '/about', '/post', '/work' as the feel proves out */
+    var SNAP_PAGES = ['/', '/contact', '/about', '/post', '/work'];   /* opt-in per page */
     if (SNAP_PAGES.indexOf(P) === -1) return;
-    var SNAP_RANGE = 0.38;                           /* snap when settled within this fraction of the viewport from a section top */
-    var SNAP_DUR = 0.95, SETTLE_MS = 150;
+    var SNAP_RANGE = 0.6;                            /* snap when settled within this fraction of the viewport from a section top (stronger hold) */
+    var SNAP_DUR = 0.95, SETTLE_MS = 130;
     var targets = [];
     function collect() {
       targets = [];
       document.querySelectorAll('section, .section-pad').forEach(function (s) {
         var r = s.getBoundingClientRect();
-        if (r.height > window.innerHeight * 0.45) {   /* only substantial sections make snap targets */
+        if (r.height > window.innerHeight * 0.3) {    /* only substantial sections make snap targets (contact's form section is shortish) */
           var t = Math.round(r.top + window.pageYOffset);
           if (targets.indexOf(t) === -1) targets.push(t);
         }
@@ -1902,7 +1904,10 @@
             phase = 'hold';
             holdT = setTimeout(function () { if (hovering) undraw(); else phase = 'rest'; }, HOLD_MS);
           } else if (phase === 'undraw') {
-            if (hovering) drawIn();                           /* loop: undrawn → draw again */
+            if (hovering) {                                   /* loop: rest BLANK for a beat, then re-draw — a clean start the eye can read */
+              phase = 'blank';
+              holdT = setTimeout(function () { if (hovering) drawIn(); else { phase = 'rest'; anim.goToAndStop(DRAWN, true); } }, 320);
+            }
             else drawIn(absFrame());                          /* left mid-cycle → settle forward to drawn */
           }
         });
@@ -1915,7 +1920,7 @@
         hoverEl.addEventListener('mouseleave', function () {
           hovering = false; clearTimeout(holdT);
           if (phase === 'undraw') { drawIn(absFrame()); }     /* reverse in flight → play forward from here to drawn */
-          else if (phase === 'hold' || phase === 'rest') { phase = 'rest'; anim.goToAndStop(DRAWN, true); }
+          else if (phase === 'hold' || phase === 'rest' || phase === 'blank') { phase = 'rest'; anim.goToAndStop(DRAWN, true); }
           /* mid-draw: it finishes to DRAWN on its own and the complete handler parks it */
         });
       });
