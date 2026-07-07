@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.25.0 · built by Origin · loaded site-wide (footer)
+ * v1.25.1 · built by Origin · loaded site-wide (footer)
+ * v1.25.1: page-wrap overflow-x:clip (its hidden/auto overflow was silently killing position:sticky for every descendant — the filter row now actually sticks)
  * v1.25.0: post partners phantom space fixed (.post-card's 3/4 aspect-ratio neutralized on the full-width container) · filter row sticky at top+20px · hero band + gallery video cards click-to-lightbox with "watch" pills · View Other: excludes the current project, filters by industry once Ben binds it, and rotates per-project so it never always leads with the same film
  * v1.24.1: icon loop gets a clean blank beat before each redraw · closed accordion items drop the body's orphaned padding · snap on all pages, stronger hold (range .38→.6, section filter 45vh→30vh)
  * v1.24.0 (client review batch B — FEEL EXPERIMENTS): scroll snap-on-settle via Lenis (opt-in pages: / and /contact; SNAP_RANGE/DUR tunable) · work-grid clips preload + play muted as cards near the viewport, hover just fades them in (zero start-up gap; streams stop 1.5 screens away)
