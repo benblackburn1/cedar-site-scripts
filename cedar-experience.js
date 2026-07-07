@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.22.2 · built by Origin · loaded site-wide (footer)
+ * v1.23.0 · built by Origin · loaded site-wide (footer)
+ * v1.23.0 (client review batch A): expand animation lands together (delay removed — equal-curve transitions keep the row sum constant) · /work grid 3-wide at 420px (home stays 2-up) · hero "Watch with sound" button opens the lightbox w/ controls · work-card hover title more prominent · about icons pulled in 8% so edge strokes never clip
  * v1.22.2: drag-scroll rows (info-cards / post partners) are desktop-only — mobile keeps the native stacked layout
  * v1.22.1: loader 3D mark rebuilt from the real brand path — the chamfered corners at each chevron's top and inner peak now render (the old trace had pointed apexes)
  * v1.22.0: mobile work-grid fix (desktop first/last/nth width-pattern rules leak into the column layout as HEIGHT rules and crush cards — neutralized, uniform full-width cards at Ben's breakpoint heights) · suite modal → Cedar Green field w/ light-green type + real side padding + wider · footer links ease 5px right on hover
@@ -120,8 +121,13 @@
     '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
     /* situation heads (project pages): opening line centered — the H1 is flex, so text-align alone doesn\'t cut it */
     '.contact-head.cedar-center{justify-content:center!important;text-align:center!important;}',
-    /* about icons: Quality + Sustainability draw right to the artboard edge — pull them in 10% on mobile */
-    '@media (max-width:767px){.cedar-value-icon[data-icon="Quality.json"] svg,.cedar-value-icon[data-icon="Sustainability.json"] svg{transform:scale(.9);transform-origin:center center;}}',
+    /* about icons: the artwork draws right to the artboard edge, so strokes clip at the container — pull all three in ~8% everywhere */
+    '.cedar-value-icon svg{transform:scale(.92);transform-origin:center center;}',
+    /* work-card hover label: the film TITLE reads stronger than the situation line (client note) */
+    '.card-label p.caption:first-of-type{font-size:17px;font-weight:500;line-height:1.25;}',
+    /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
+    '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',
+    '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
     /* home info-card icon: the CMS icon is an <img> pointing at an SVG, so it can\'t take a text color —
        module 12 swaps it for a mask span painted with the card\'s text color */
     '.cedar-icon-mask{display:block;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;aspect-ratio:1/1;}',
@@ -454,24 +460,40 @@
     if (cards.length < 2) return;
     var DESK = !RM && !TOUCH;                          /* hover video/expand + FLIP reflow are desktop-only; the FILTER runs everywhere */
     var TRANS = 'flex-basis .85s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;   /* width expand slowed .55->.85 per Ben */
-    /* /work: the Designer only styles the first grid rows, so deeper cards go full-width — reassign the
-       home grid's 3 repeating asymmetric patterns down the whole list (home itself is untouched) */
-    var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];
+    /* /work: the Designer only styles the first grid rows, so deeper cards go full-width — lay the whole
+       list in repeating asymmetric THREE-UP rows at a shorter height (client: faster to scan). Home keeps
+       its own 2-up design untouched. */
+    var PATTERNS3 = [[0.26, 0.44, 0.30], [0.333, 0.334, 0.333], [0.44, 0.30, 0.26]];
+    var WORK_H = 420;                                  /* /work card height; tunable */
     function assignPattern() {
-      if (path !== '/work' || window.innerWidth < 768) return;
+      if (path !== '/work') return;
+      if (window.innerWidth < 768) {                   /* mobile: our ≤767 CSS owns the layout — strip stale inline sizing */
+        cards.forEach(function (c) { c.style.removeProperty('height'); });
+        return;
+      }
       var p = cards[0].parentElement, cs = getComputedStyle(p);
       var gap = parseFloat(cs.columnGap || cs.gap) || 14;
       var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
       if (W <= 0) return;
-      var avail = W - gap;
-      for (var i = 0; i < cards.length; i += 2) {
-        var pat = PATTERNS[(i / 2) % PATTERNS.length];
-        var a = cards[i], b = cards[i + 1];
-        var wa = Math.round(avail * pat[0]);
-        if (b) { a._nat = wa; b._nat = avail - wa; }
-        else { a._nat = W; }
+      var avail = W - gap * 2;                         /* three cards + two gaps span the row */
+      for (var i = 0; i < cards.length; i += 3) {
+        var pat = PATTERNS3[(i / 3) % PATTERNS3.length];
+        var a = cards[i], b = cards[i + 1], c3 = cards[i + 2];
+        if (c3) {
+          a._nat = Math.round(avail * pat[0]);
+          b._nat = Math.round(avail * pat[1]);
+          c3._nat = avail - a._nat - b._nat;
+        } else if (b) {
+          var av2 = W - gap;
+          a._nat = Math.round(av2 * 0.5); b._nat = av2 - a._nat;
+        } else { a._nat = W; }
       }
-      cards.forEach(function (c) { if (c._nat) { c.style.transition = 'none'; c.style.flex = '0 1 ' + c._nat + 'px'; } });
+      cards.forEach(function (c) {
+        if (!c._nat) return;
+        c.style.transition = 'none';
+        c.style.flex = '0 1 ' + c._nat + 'px';
+        c.style.setProperty('height', WORK_H + 'px', 'important');
+      });
     }
     cards.forEach(function (c) {
       c.style.boxSizing = 'border-box'; c.style.minWidth = '0';   /* shrink to the basis so row-mates resize in place, never wrap */
@@ -501,8 +523,10 @@
       var remain = avail - target, otherRest = (total - restW) || 1;   /* row-mates share the exact remainder, proportional to their own width */
       row.forEach(function (c) {
         var isH = c === card;
-        /* row-mates start shrinking immediately; the hovered card grows 90ms later so it can never push them off the row (flex decides wrapping on basis BEFORE shrink) */
-        c.style.transition = 'flex-basis .85s ' + EASE + (isH ? ' .09s' : '') + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;
+        /* identical duration + curve on grower and shrinkers keeps the row's basis SUM constant at every
+           frame (progress fractions cancel), so nothing can wrap — and both cards land together (the old
+           90ms grow-delay read as a stutter) */
+        c.style.transition = TRANS;
         c.style.flex = '0 1 ' + (isH ? target : remain * c._rw / otherRest) + 'px';
       });
     }
@@ -1669,11 +1693,47 @@
     }
     function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) hide(); }
     document.addEventListener('click', function (e) {
-      var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo]');
+      var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo],.cedar-hero-watch[data-cedar-vimeo]');
       if (!card) return;
       e.preventDefault();
       show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));
     });
+  });
+
+  /* =========================================================
+   * 26. HERO "WATCH WITH SOUND" (/work/* templates) — the top
+   *   band is a muted background loop; this adds a glass pill
+   *   (bottom-right of the band) that opens the SAME film in the
+   *   module-14 lightbox with full controls, seeking, and audio.
+   *   The film id is parsed from the band's own embed iframe
+   *   (waits for the lazy embed via MutationObserver).
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P.indexOf('/work/') !== 0) return;
+    var band = document.querySelector('.hero-band, .photo-band');
+    if (!band) return;
+    var done = false;
+    function tryBtn() {
+      if (done) return true;
+      var f = band.querySelector('iframe');
+      if (!f || !f.src) return false;
+      var id = (f.src.match(/player\.vimeo\.com\/video\/(\d+)/) || [])[1];
+      if (!id) return false;
+      done = true;
+      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+      var b = el('button', 'cedar-hero-watch', '&#9654;&nbsp; Watch with sound');
+      b.type = 'button';
+      b.setAttribute('data-cedar-vimeo', id);
+      var h = (f.src.match(/[?&]h=([0-9a-z]+)/i) || [])[1];
+      if (h) b.setAttribute('data-cedar-vimeo-h', h);
+      band.appendChild(b);
+      return true;
+    }
+    if (tryBtn()) return;
+    var mo = new MutationObserver(function () { if (tryBtn()) mo.disconnect(); });
+    mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    setTimeout(function () { tryBtn(); mo.disconnect(); }, 12000);
   });
 
   /* =========================================================
