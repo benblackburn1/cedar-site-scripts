@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.25.1 · built by Origin · loaded site-wide (footer)
+ * v1.26.0 · built by Origin · loaded site-wide (footer)
+ * v1.26.0: about icons clip KILLED at the source (svg overflow:visible + lottie's baked artboard clip-path stripped — scale alone shrank the clip with the art) · first project modal rebound to Ben's "More Information" label (heading mirrors the pill) and now lists the project's Awards (from the hidden on-page collection list; items render once the Name field is bound inside the Designer's collection item)
  * v1.25.1: page-wrap overflow-x:clip (its hidden/auto overflow was silently killing position:sticky for every descendant — the filter row now actually sticks)
  * v1.25.0: post partners phantom space fixed (.post-card's 3/4 aspect-ratio neutralized on the full-width container) · filter row sticky at top+20px · hero band + gallery video cards click-to-lightbox with "watch" pills · View Other: excludes the current project, filters by industry once Ben binds it, and rotates per-project so it never always leads with the same film
  * v1.24.1: icon loop gets a clean blank beat before each redraw · closed accordion items drop the body's orphaned padding · snap on all pages, stronger hold (range .38→.6, section filter 45vh→30vh)
@@ -87,6 +88,14 @@
     '.cedar-modal .cm-rich p:last-child{margin-bottom:0;}',
     '.cedar-modal .cm-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:24px 0 4px;}',
     '.cedar-modal .cm-grid img{width:100%;height:118px;object-fit:cover;border-radius:6px;display:block;}',
+    /* awards list inside the first project modal (source: the hidden on-page awards collection list) */
+    '.cedar-modal .cm-awards-label{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;opacity:.55;margin:22px 0 8px;text-align:left;}',
+    '.cedar-modal ul.cm-awards{list-style:none;margin:0;padding:0;text-align:left;}',
+    '.cedar-modal ul.cm-awards li{display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.45;padding:9px 0;border-top:1px solid rgba(41,34,27,.12);}',
+    '.cedar-modal ul.cm-awards li:last-child{border-bottom:1px solid rgba(41,34,27,.12);}',
+    '.cedar-modal ul.cm-awards img{width:30px;height:30px;object-fit:contain;flex:0 0 auto;}',
+    /* the on-page awards collection list is modal fodder — never shown in the page flow */
+    '.work-situation .w-dyn-list{display:none!important;}',
     '.cedar-modal .cm-close{position:absolute;top:14px;right:14px;width:26px;height:26px;cursor:pointer;background:none;border:0;padding:0;line-height:1;font-size:20px;color:' + CHARCOAL + ';opacity:.6;}',
     '.cedar-modal .cm-close:hover{opacity:1;}',
     'body.cedar-modal-open{overflow:hidden;}',
@@ -125,8 +134,11 @@
     '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
     /* situation heads (project pages): opening line centered — the H1 is flex, so text-align alone doesn\'t cut it */
     '.contact-head.cedar-center{justify-content:center!important;text-align:center!important;}',
-    /* about icons: the artwork draws right to the artboard edge, so strokes clip at the container — pull all three in ~8% everywhere */
-    '.cedar-value-icon svg{transform:scale(.92);transform-origin:center center;}',
+    /* about icons: the artwork draws right to (and its stroke halfway PAST) the artboard edge. Two clips
+       are in play and scale(.92) beats neither — it shrinks the svg AND its clip together. Kill both:
+       the svg viewport (overflow) and lottie\'s own baked artboard clip-path on the root group. */
+    '.cedar-value-icon svg{transform:scale(.92);transform-origin:center center;overflow:visible!important;}',
+    '.cedar-value-icon svg g[clip-path]{clip-path:none!important;}',
     /* work-card hover label: the film TITLE reads stronger than the situation line (client note) */
     '.card-label p.caption:first-of-type{font-size:17px;font-weight:500;line-height:1.25;}',
     /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
@@ -698,30 +710,61 @@
     if (!main) return;
     var modal = makeModal();
 
-    /* ---- W2: situation / results modals — content from hidden CMS blocks ---- */
+    /* ---- W2: situation / results modals — content from hidden CMS blocks.
+       The first pill's LABEL is Ben's copy (was "the situation", renamed "More Information") — match any
+       known label and let the modal heading mirror whatever the pill says. The situation block also holds
+       the project's AWARDS collection list (hidden on-page by our CSS); its items are listed in the first
+       modal under an Awards label. Items read as empty until the Name field is bound INSIDE the collection
+       item in the Designer — only items that actually carry text (or an image) are rendered. ---- */
     function richOf(id) { var n = document.getElementById(id); return (n && n.textContent.trim()) ? n.innerHTML : ''; }
-    function pillByText(t) {
+    function pillByText(labels) {
       var found = null;
-      main.querySelectorAll('.filter-pill').forEach(function (p) { if (!found && (p.textContent || '').trim().toLowerCase() === t) found = p; });
+      main.querySelectorAll('.filter-pill').forEach(function (p) { if (!found && labels.indexOf((p.textContent || '').trim().toLowerCase()) > -1) found = p; });
       return found;
     }
-    [['the situation', 'The Situation', 'cms-situation-modal'],
-     ['the results', 'The Results', 'cms-results-modal']].forEach(function (cfg) {
+    function awardRows() {
+      var rows = [];
+      document.querySelectorAll('.work-situation .w-dyn-list .w-dyn-item').forEach(function (it) {
+        var txt = (it.textContent || '').trim();
+        var img = it.querySelector('img:not(.w-dyn-bind-empty)');
+        if (!txt && !img) return;                        /* nothing bound inside the item yet */
+        rows.push({ txt: txt, src: img ? (img.currentSrc || img.src || '') : '' });
+      });
+      return rows;
+    }
+    [[['the situation', 'more information'], 'cms-situation-modal', true],
+     [['the results'], 'cms-results-modal', false]].forEach(function (cfg) {
       var pill = pillByText(cfg[0]); if (!pill) return;
-      var html = richOf(cfg[2]);
+      var html = richOf(cfg[1]);
+      var awards = cfg[2] ? awardRows() : [];
       var section = pill.closest('section');
-      if (!html) {                                       /* conditional visibility: no copy -> hide pill */
+      if (!html && !awards.length) {                     /* conditional visibility: nothing to show -> hide pill */
         pill.style.display = 'none';
-        if (cfg[0] === 'the results' && section) {       /* hide whole results CTA if its heading is also empty */
+        if (!cfg[2] && section) {                        /* hide whole results CTA if its heading is also empty */
           var hd = section.querySelector('.heading-2, h1, h2');
           if (!hd || !hd.textContent.trim()) section.style.display = 'none';
         }
         return;
       }
+      var title = (pill.textContent || '').trim();       /* heading = the pill's own label (Ben's copy) */
       pill.style.cursor = 'pointer';
       pill.addEventListener('click', function (e) {
         e.preventDefault();
-        modal.open(function (m) { m.appendChild(el('h3', null, cfg[1])); m.appendChild(el('div', 'cm-body cm-rich', html)); });
+        modal.open(function (m) {
+          m.appendChild(el('h3', null, title));
+          if (html) m.appendChild(el('div', 'cm-body cm-rich', html));
+          if (awards.length) {
+            m.appendChild(el('div', 'cm-awards-label', 'Awards'));
+            var ul = el('ul', 'cm-awards', '');
+            awards.forEach(function (a) {
+              var li = el('li', null, '');
+              if (a.src) { var im = document.createElement('img'); im.src = a.src; im.alt = ''; li.appendChild(im); }
+              li.appendChild(document.createTextNode(a.txt));
+              ul.appendChild(li);
+            });
+            m.appendChild(ul);
+          }
+        });
       });
     });
 
