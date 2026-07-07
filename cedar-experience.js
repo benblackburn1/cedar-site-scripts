@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.26.0 · built by Origin · loaded site-wide (footer)
+ * v1.27.0 · built by Origin · loaded site-wide (footer)
+ * v1.27.0: contact form survives submission (form stays visible + resets; success/"try again" notices sit BELOW it, site-styled hairline cards, not Webflow's floating grey box) · home hero gets a "Play with sound" glass pill (bottom-right, opens the reel in the module-14 lightbox; pill-only — the hero overlay keeps its own About CTA click)
  * v1.26.0: about icons clip KILLED at the source (svg overflow:visible + lottie's baked artboard clip-path stripped — scale alone shrank the clip with the art) · first project modal rebound to Ben's "More Information" label (heading mirrors the pill) and now lists the project's Awards (from the hidden on-page collection list; items render once the Name field is bound inside the Designer's collection item)
  * v1.25.1: page-wrap overflow-x:clip (its hidden/auto overflow was silently killing position:sticky for every descendant — the filter row now actually sticks)
  * v1.25.0: post partners phantom space fixed (.post-card's 3/4 aspect-ratio neutralized on the full-width container) · filter row sticky at top+20px · hero band + gallery video cards click-to-lightbox with "watch" pills · View Other: excludes the current project, filters by industry once Ben binds it, and rotates per-project so it never always leads with the same film
@@ -96,6 +97,9 @@
     '.cedar-modal ul.cm-awards img{width:30px;height:30px;object-fit:contain;flex:0 0 auto;}',
     /* the on-page awards collection list is modal fodder — never shown in the page flow */
     '.work-situation .w-dyn-list{display:none!important;}',
+    /* contact form notices (module 28): success / fail sit under the still-visible form, site-styled
+       (replaces Webflow\'s grey centered box) */
+    '.form-wrap .cedar-form-note{background:transparent!important;border:1px solid rgba(41,34,27,.28);border-radius:12px;padding:14px 18px;margin-top:18px;text-align:left!important;font-size:13px;line-height:1.5;color:inherit;}',
     '.cedar-modal .cm-close{position:absolute;top:14px;right:14px;width:26px;height:26px;cursor:pointer;background:none;border:0;padding:0;line-height:1;font-size:20px;color:' + CHARCOAL + ';opacity:.6;}',
     '.cedar-modal .cm-close:hover{opacity:1;}',
     'body.cedar-modal-open{overflow:hidden;}',
@@ -1796,17 +1800,21 @@
   });
 
   /* =========================================================
-   * 26. HERO "WATCH WITH SOUND" (/work/* templates) — the top
-   *   band is a muted background loop; this adds a glass pill
-   *   (bottom-right of the band) that opens the SAME film in the
-   *   module-14 lightbox with full controls, seeking, and audio.
-   *   The film id is parsed from the band's own embed iframe
-   *   (waits for the lazy embed via MutationObserver).
+   * 26. HERO "WATCH/PLAY WITH SOUND" — the hero band is a muted
+   *   background loop; this adds a glass pill (bottom-right of
+   *   the band) that opens the SAME film in the module-14
+   *   lightbox with full controls, seeking, and audio. The film
+   *   id is parsed from the band's own embed iframe (waits for
+   *   the lazy embed via MutationObserver). /work/* templates
+   *   (.hero-band, click-anywhere) + the HOME hero (.hero-media,
+   *   pill only — the overlay owns its own About CTA, so the
+   *   band click stays native there).
    * ======================================================= */
   onReady(function () {
     var P = location.pathname.replace(/\/$/, '') || '/';
-    if (P.indexOf('/work/') !== 0) return;
-    var band = document.querySelector('.hero-band, .photo-band');
+    var isWork = P.indexOf('/work/') === 0;
+    var band = isWork ? document.querySelector('.hero-band, .photo-band')
+                      : (P === '/' ? document.querySelector('.hero-media') : null);
     if (!band) return;
     var done = false;
     function tryBtn() {
@@ -1817,14 +1825,16 @@
       if (!id) return false;
       done = true;
       if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
-      var b = el('button', 'cedar-hero-watch', '&#9654;&nbsp; Watch with sound');
+      var b = el('button', 'cedar-hero-watch', isWork ? '&#9654;&nbsp; Watch with sound' : '&#9654;&nbsp; Play with sound');
       b.type = 'button';
       b.setAttribute('data-cedar-vimeo', id);
       var h = (f.src.match(/[?&]h=([0-9a-z]+)/i) || [])[1];
       if (h) b.setAttribute('data-cedar-vimeo-h', h);
       band.appendChild(b);
-      band.style.cursor = 'pointer';                       /* clicking anywhere on the film opens it with sound */
-      band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
+      if (isWork) {                                        /* project pages: clicking anywhere on the film opens it with sound */
+        band.style.cursor = 'pointer';
+        band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
+      }
       return true;
     }
     if (tryBtn()) return;
@@ -2447,5 +2457,33 @@
     size();
     var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(size, 150); });
     var mo = new MutationObserver(size); mo.observe(band, { childList: true, subtree: true });   /* lazy embed builds its iframe late */
+  });
+
+  /* =========================================================
+   * 28. CONTACT FORM STAYS PUT (/contact) — Webflow's default
+   *   success state HIDES the whole form and shows the done box
+   *   (which floats loose in the side column). Instead: the form
+   *   stays visible (fields reset), and the success / "try again"
+   *   fail notices sit directly BELOW the form, restyled to the
+   *   site. The /post suite-modal form is untouched (module 22
+   *   owns it and its native states read correctly inside the
+   *   modal). We only re-show the form — Webflow keeps owning
+   *   submission, validation, and which notice displays.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/contact') return;
+    var wrap = document.querySelector('.form-wrap.w-form');
+    var form = wrap && wrap.querySelector('form');
+    var done = wrap && wrap.querySelector('.w-form-done');
+    var fail = wrap && wrap.querySelector('.w-form-fail');
+    if (!form || !done) return;
+    form.insertAdjacentElement('afterend', done);          /* notices live right under the form (still inside .w-form, so Webflow finds them) */
+    if (fail) done.insertAdjacentElement('afterend', fail);
+    done.classList.add('cedar-form-note');
+    if (fail) fail.classList.add('cedar-form-note');
+    new MutationObserver(function () {                     /* Webflow hides the form on success — put it straight back, cleared */
+      if (form.style.display === 'none') { form.style.display = ''; form.reset(); }
+    }).observe(form, { attributes: true, attributeFilter: ['style'] });
   });
 })();
