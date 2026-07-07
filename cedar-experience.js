@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.24.1 · built by Origin · loaded site-wide (footer)
+ * v1.25.0 · built by Origin · loaded site-wide (footer)
+ * v1.25.0: post partners phantom space fixed (.post-card's 3/4 aspect-ratio neutralized on the full-width container) · filter row sticky at top+20px · hero band + gallery video cards click-to-lightbox with "watch" pills · View Other: excludes the current project, filters by industry once Ben binds it, and rotates per-project so it never always leads with the same film
  * v1.24.1: icon loop gets a clean blank beat before each redraw · closed accordion items drop the body's orphaned padding · snap on all pages, stronger hold (range .38→.6, section filter 45vh→30vh)
  * v1.24.0 (client review batch B — FEEL EXPERIMENTS): scroll snap-on-settle via Lenis (opt-in pages: / and /contact; SNAP_RANGE/DUR tunable) · work-grid clips preload + play muted as cards near the viewport, hover just fades them in (zero start-up gap; streams stop 1.5 screens away)
  * v1.23.0 (client review batch A): expand animation lands together (delay removed — equal-curve transitions keep the row sum constant) · /work grid 3-wide at 420px (home stays 2-up) · hero "Watch with sound" button opens the lightbox w/ controls · work-card hover title more prominent · about icons pulled in 8% so edge strokes never clip
@@ -130,6 +131,13 @@
     /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
     '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
+    '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:none;}',   /* gallery video cards: affordance only — the card itself opens the lightbox */
+    /* post partners: the .post-card class carries aspect-ratio 3/4 (right for the small cards) — on the
+       full-width container it fabricates ~2000px of height and space-between stretches the gap. Neutralize
+       ONLY on the container that holds the partners row. */
+    '.container.post-card:has(.post-partner-row){aspect-ratio:auto!important;height:auto!important;justify-content:flex-start!important;row-gap:28px;}',
+    /* filter row rides along the grid (client: less scroll-scroll-scroll to refilter) */
+    '.work-filter-row{position:sticky;top:20px;z-index:70;}',
     /* home info-card icon: the CMS icon is an <img> pointing at an SVG, so it can\'t take a text color —
        module 12 swaps it for a mask span painted with the card\'s text color */
     '.cedar-icon-mask{display:block;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;aspect-ratio:1/1;}',
@@ -936,17 +944,38 @@
       }
     })();
 
-    /* ---- W4: view-other — whole card links via data-slug + arrow slider ---- */
+    /* ---- W4: view-other — whole card links via data-slug + arrow slider. Curation rules (client):
+       never show THIS project; prefer projects sharing this project's Industry (activates once the
+       Designer binds data-industry on the preview cards + data-current-industry somewhere on the page);
+       and rotate the deck per-project so every page leads with a different suggestion. ---- */
     (function () {
       var wrap = document.querySelector('.more-projects'); if (!wrap) return;
-      var cards = wrap.querySelectorAll('.project-preview');
+      var all = [].slice.call(wrap.querySelectorAll('.project-preview'));
+      var track = wrap.querySelector('.w-dyn-items');
+      function slugOf(c) { var s = c.querySelector('[data-slug]'); return s ? s.getAttribute('data-slug') : null; }
+      function indOf(c) { if (c.hasAttribute('data-industry')) return c.getAttribute('data-industry'); var n = c.querySelector('[data-industry]'); return n ? n.getAttribute('data-industry') : null; }
+      var curSlug = (location.pathname.match(/\/work\/([^/]+)/) || [])[1] || '';
+      var curIndEl = document.querySelector('[data-current-industry]');
+      var curInd = curIndEl ? (curIndEl.getAttribute('data-current-industry') || '').trim() : '';
+      var keep = all.filter(function (c) { return slugOf(c) !== curSlug; });
+      if (curInd) {
+        var match = keep.filter(function (c) { return (indOf(c) || '').trim() === curInd; });
+        if (match.length >= 2) keep = match;
+      }
+      if (keep.length > 1) {                              /* deterministic per-project rotation — no page always leads with work #1 */
+        var hash = 0; for (var i = 0; i < curSlug.length; i++) hash = (hash * 31 + curSlug.charCodeAt(i)) >>> 0;
+        var selfIdx = all.map(slugOf).indexOf(curSlug);
+        var rot = (selfIdx >= 0 ? selfIdx : hash) % keep.length;
+        keep = keep.slice(rot).concat(keep.slice(0, rot));
+      }
+      if (track) { all.forEach(function (c) { c.style.display = 'none'; }); keep.forEach(function (c) { c.style.display = ''; track.appendChild(c); }); }
+      var cards = keep.length ? keep : all;
       cards.forEach(function (card) {
-        var sl = card.querySelector('[data-slug]'); var slug = sl && sl.getAttribute('data-slug');
+        var slug = slugOf(card);
         if (!slug) return;
         card.style.cursor = 'pointer';
         card.addEventListener('click', function () { window.location.href = '/work/' + slug; });
       });
-      var track = wrap.querySelector('.w-dyn-items');
       var controls = wrap.querySelector('.slider-controls');
       if (!track || cards.length < 2) return;
       var viewport = track.parentElement;
@@ -1578,6 +1607,7 @@
       var f = document.createElement('iframe'); f.allow = 'autoplay; fullscreen; picture-in-picture'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
       f.src = vimeoEmbed(url);                                            /* shared builder: background/autoplay/muted/loop */
       wrap.appendChild(f); c.appendChild(wrap);                           /* sits above the CMS image → image is a natural fallback */
+      c.appendChild(el('div', 'cedar-hero-watch cedar-card-watch', '&#9654;&nbsp; Watch with sound'));   /* affordance; the card click opens the lightbox */
       return true;
     }
     /* FALLBACK path — lazy-load the legacy .gallery-video embed's own iframe (it builds only when scrolled in). */
@@ -1746,6 +1776,8 @@
       var h = (f.src.match(/[?&]h=([0-9a-z]+)/i) || [])[1];
       if (h) b.setAttribute('data-cedar-vimeo-h', h);
       band.appendChild(b);
+      band.style.cursor = 'pointer';                       /* clicking anywhere on the film opens it with sound */
+      band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
       return true;
     }
     if (tryBtn()) return;
