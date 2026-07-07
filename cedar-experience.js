@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.23.0 · built by Origin · loaded site-wide (footer)
+ * v1.24.0 · built by Origin · loaded site-wide (footer)
+ * v1.24.0 (client review batch B — FEEL EXPERIMENTS): scroll snap-on-settle via Lenis (opt-in pages: / and /contact; SNAP_RANGE/DUR tunable) · work-grid clips preload + play muted as cards near the viewport, hover just fades them in (zero start-up gap; streams stop 1.5 screens away)
  * v1.23.0 (client review batch A): expand animation lands together (delay removed — equal-curve transitions keep the row sum constant) · /work grid 3-wide at 420px (home stays 2-up) · hero "Watch with sound" button opens the lightbox w/ controls · work-card hover title more prominent · about icons pulled in 8% so edge strokes never clip
  * v1.22.2: drag-scroll rows (info-cards / post partners) are desktop-only — mobile keeps the native stacked layout
  * v1.22.1: loader 3D mark rebuilt from the real brand path — the chamfered corners at each chevron's top and inner peak now render (the old trace had pointed apexes)
@@ -429,6 +430,7 @@
     if (RM || TOUCH || !window.Lenis) return;
     try {
       var lenis = new window.Lenis({ duration: 1.1, easing: function (t) { return 1 - Math.pow(1 - t, 3); } });
+      window.__cedarLenis = lenis;                       /* module 27 (scroll snap) rides the same instance */
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
       requestAnimationFrame(raf);
     } catch (e) {}
@@ -545,18 +547,32 @@
       if (anchor) card.insertBefore(wrap, anchor); else card.appendChild(wrap);
       card._cv = wrap;
     }
-    function playVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f && c._src) f.src = c._src; } }   /* (re)load → restarts from 0 */
-    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; } }        /* stop off-hover (no continuous loop) */
+    function playVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f && c._src && (!f.src || f.src === 'about:blank')) f.src = c._src; } }   /* idempotent: starts the muted loop only if not already streaming */
+    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; } }        /* reclaim bandwidth once far off-screen */
     function label(c, on) { var l = c && c.querySelector('.card-label'); if (l) l.style.opacity = on ? '1' : '0'; }
     /* single active card + debounced hover (intent-in, settle-out) so the moving edges can't ping-pong */
     var active = null, enterT, leaveT;
     function setActive(card) {
       if (active === card) return;
-      if (active) { active.classList.remove('cedar-hover'); label(active, false); stopVid(active); }
+      if (active) { active.classList.remove('cedar-hover'); label(active, false); }   /* clip keeps looping muted underneath — hover-out is just a fade */
       active = card;
       collapse();
       if (card) { mountVideo(card); card.classList.add('cedar-hover'); label(card, true); playVid(card); expand(card); }
     }
+    /* PRELOAD (client: kill the black gap between hover and playback): clips mount + start their muted
+       loop as the card NEARS the viewport, so hover only fades in an already-playing stream. Streams are
+       released once the card is ~1.5 screens away. Desktop only. */
+    if (DESK) afterLoader(function () {
+      if (!('IntersectionObserver' in window)) return;   /* fallback = old on-hover load */
+      var vio = new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) {
+          var c = en.target;
+          if (en.isIntersecting) { mountVideo(c); playVid(c); }
+          else if (Math.abs(en.boundingClientRect.top) > window.innerHeight * 1.5) { if (c !== active) stopVid(c); }
+        });
+      }, { rootMargin: '60% 0px 60% 0px' });
+      cards.forEach(function (c) { vio.observe(c); });
+    });
     if (DESK) cards.forEach(function (card) {
       card.addEventListener('mouseenter', function () { clearTimeout(leaveT); if (active === card) return; clearTimeout(enterT); enterT = setTimeout(function () { setActive(card); }, 80); });
       card.addEventListener('mouseleave', function () { clearTimeout(enterT); clearTimeout(leaveT); leaveT = setTimeout(function () { setActive(null); }, 130); });
@@ -1734,6 +1750,63 @@
     var mo = new MutationObserver(function () { if (tryBtn()) mo.disconnect(); });
     mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     setTimeout(function () { tryBtn(); mo.disconnect(); }, 12000);
+  });
+
+  /* =========================================================
+   * 27. SCROLL SNAP-ON-SETTLE (feel experiment) — when a Lenis
+   *   scroll comes to rest NEAR a section top, glide the rest of
+   *   the way so sections land framed (the client's "one scroll
+   *   takes you to the form"). Only on the opt-in pages, only
+   *   within SNAP_RANGE of a target (long sections still free-
+   *   scroll), never while a modal is open, and our own glide
+   *   can't re-trigger itself. Desktop + motion only (Lenis
+   *   doesn't run elsewhere). Tunables: SNAP_PAGES, SNAP_RANGE,
+   *   SNAP_DUR, SETTLE_MS.
+   * ======================================================= */
+  onReady(function () {
+    if (RM || TOUCH) return;
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    var SNAP_PAGES = ['/', '/contact'];              /* opt-in per page; add '/about', '/post', '/work' as the feel proves out */
+    if (SNAP_PAGES.indexOf(P) === -1) return;
+    var SNAP_RANGE = 0.38;                           /* snap when settled within this fraction of the viewport from a section top */
+    var SNAP_DUR = 0.95, SETTLE_MS = 150;
+    var targets = [];
+    function collect() {
+      targets = [];
+      document.querySelectorAll('section, .section-pad').forEach(function (s) {
+        var r = s.getBoundingClientRect();
+        if (r.height > window.innerHeight * 0.45) {   /* only substantial sections make snap targets */
+          var t = Math.round(r.top + window.pageYOffset);
+          if (targets.indexOf(t) === -1) targets.push(t);
+        }
+      });
+      targets.push(0);
+      targets.sort(function (a, b) { return a - b; });
+    }
+    afterLoader(function () {
+      var lenis = window.__cedarLenis;
+      if (!lenis) return;
+      collect();
+      window.addEventListener('load', collect);
+      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(collect, 250); });
+      var settleT = null, snapping = false, lastV = 0;
+      lenis.on('scroll', function (e) {
+        lastV = Math.abs(e.velocity || 0);
+        if (snapping) return;
+        clearTimeout(settleT);
+        settleT = setTimeout(function () {
+          if (snapping || lastV > 0.2) return;
+          if (document.querySelector('.cedar-lb.is-open,.cedar-cf.is-open,#cedar-modal-root.is-open,.cedar-mmenu.is-open')) return;
+          var y = window.pageYOffset || 0;
+          var best = null, bd = 1e9;
+          for (var i = 0; i < targets.length; i++) { var d = Math.abs(targets[i] - y); if (d < bd) { bd = d; best = targets[i]; } }
+          if (best == null || bd < 6 || bd > window.innerHeight * SNAP_RANGE) return;
+          snapping = true;
+          lenis.scrollTo(best, { duration: SNAP_DUR, onComplete: function () { setTimeout(function () { snapping = false; }, 90); } });
+          setTimeout(function () { snapping = false; }, (SNAP_DUR * 1000) + 400);   /* safety: never wedge the flag */
+        }, SETTLE_MS);
+      });
+    });
   });
 
   /* =========================================================
