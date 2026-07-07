@@ -136,7 +136,10 @@
        full-width container it fabricates ~2000px of height and space-between stretches the gap. Neutralize
        ONLY on the container that holds the partners row. */
     '.container.post-card:has(.post-partner-row){aspect-ratio:auto!important;height:auto!important;justify-content:flex-start!important;row-gap:28px;}',
-    /* filter row rides along the grid (client: less scroll-scroll-scroll to refilter) */
+    /* filter row rides along the grid (client: less scroll-scroll-scroll to refilter).
+       .page-wrap carries overflow hidden/auto, which silently kills sticky for every descendant —
+       overflow-x:clip clips the same horizontal overflow WITHOUT creating a scroll container. */
+    '.page-wrap{overflow-x:clip!important;overflow-y:visible!important;}',
     '.work-filter-row{position:sticky;top:20px;z-index:70;}',
     /* home info-card icon: the CMS icon is an <img> pointing at an SVG, so it can\'t take a text color —
        module 12 swaps it for a mask span painted with the card\'s text color */
