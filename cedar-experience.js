@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.27.0 · built by Origin · loaded site-wide (footer)
+ * v1.28.0 · built by Origin · loaded site-wide (footer)
+ * v1.28.0: scroll settle-assist reworked — catches the dying Lenis glide mid-motion (momentum projection + SOFT_V handoff) instead of tweening after full rest; capture radius .6→.26 viewport; never pulls backward beyond a .1vh nudge; distance-scaled ease-out duration (constant 0.95s was the mechanical feel)
  * v1.27.0: contact form survives submission (form stays visible + resets; success/"try again" notices sit BELOW it, site-styled hairline cards, not Webflow's floating grey box) · home hero gets a "Play with sound" glass pill (bottom-right, opens the reel in the module-14 lightbox; pill-only — the hero overlay keeps its own About CTA click)
  * v1.26.0: about icons clip KILLED at the source (svg overflow:visible + lottie's baked artboard clip-path stripped — scale alone shrank the clip with the art) · first project modal rebound to Ben's "More Information" label (heading mirrors the pill) and now lists the project's Awards (from the hidden on-page collection list; items render once the Name field is bound inside the Designer's collection item)
  * v1.25.1: page-wrap overflow-x:clip (its hidden/auto overflow was silently killing position:sticky for every descendant — the filter row now actually sticks)
@@ -1844,23 +1845,31 @@
   });
 
   /* =========================================================
-   * 27. SCROLL SNAP-ON-SETTLE (feel experiment) — when a Lenis
-   *   scroll comes to rest NEAR a section top, glide the rest of
-   *   the way so sections land framed (the client's "one scroll
-   *   takes you to the form"). Only on the opt-in pages, only
-   *   within SNAP_RANGE of a target (long sections still free-
-   *   scroll), never while a modal is open, and our own glide
-   *   can't re-trigger itself. Desktop + motion only (Lenis
-   *   doesn't run elsewhere). Tunables: SNAP_PAGES, SNAP_RANGE,
-   *   SNAP_DUR, SETTLE_MS.
+   * 27. SCROLL SETTLE-ASSIST (v1.28 rework) — instead of waiting
+   *   for the scroll to fully rest and then TWEENING to the
+   *   section (which read as a grab-and-drag), the assist now
+   *   catches the Lenis glide while it is dying: it projects
+   *   where the momentum will land, and if that rest point is
+   *   near a section top it hands the last stretch to a gentle
+   *   distance-scaled ease-out — one continuous motion that
+   *   pauses at rest ON the section. Rules that keep it calm:
+   *   tight capture radius (was .6 viewport, now .26), never
+   *   pulls backward against the direction of travel beyond a
+   *   small nudge, dead-zone when already basically there, and
+   *   a settled fallback for scrolls that die outside the glide
+   *   window. Opt-in pages, no modals, desktop + motion only.
+   *   Tunables: SNAP_PAGES, SNAP_RANGE, BACK_RANGE, SOFT_V,
+   *   SETTLE_MS, glideDur().
    * ======================================================= */
   onReady(function () {
     if (RM || TOUCH) return;
     var P = location.pathname.replace(/\/$/, '') || '/';
     var SNAP_PAGES = ['/', '/contact', '/about', '/post', '/work'];   /* opt-in per page */
     if (SNAP_PAGES.indexOf(P) === -1) return;
-    var SNAP_RANGE = 0.6;                            /* snap when settled within this fraction of the viewport from a section top (stronger hold) */
-    var SNAP_DUR = 0.95, SETTLE_MS = 130;
+    var SNAP_RANGE = 0.26;    /* assist only within this fraction of the viewport of a section top — outside it, rest wherever the scroll dies */
+    var BACK_RANGE = 0.1;     /* max backward correction against the direction of travel (small re-frame only, never a drag back) */
+    var SOFT_V = 2.4;         /* catch the glide once |velocity| decays below this (px/frame-ish) — the handoff feels like the same motion */
+    var SETTLE_MS = 120;      /* fallback: scrolls that die outside the glide window get one nearest-target check at rest */
     var targets = [];
     function collect() {
       targets = [];
@@ -1874,28 +1883,42 @@
       targets.push(0);
       targets.sort(function (a, b) { return a - b; });
     }
+    function glideDur(d) {    /* short hops settle quickly, longer assists take proportionally longer — constant duration is what felt mechanical */
+      var f = d / window.innerHeight;
+      return Math.min(1.1, Math.max(0.45, 0.45 + f * 1.6));
+    }
+    var easeOut = function (t) { return 1 - Math.pow(1 - t, 3); };    /* decaying tail, like the scroll itself coming to rest */
     afterLoader(function () {
       var lenis = window.__cedarLenis;
       if (!lenis) return;
       collect();
       window.addEventListener('load', collect);
       var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(collect, 250); });
-      var settleT = null, snapping = false, lastV = 0;
-      lenis.on('scroll', function (e) {
-        lastV = Math.abs(e.velocity || 0);
+      var settleT = null, snapping = false;
+      function maybeGlide(v) {
         if (snapping) return;
+        if (document.querySelector('.cedar-lb.is-open,.cedar-cf.is-open,#cedar-modal-root.is-open,.cedar-mmenu.is-open')) return;
+        var y = window.pageYOffset || 0;
+        var proj = y + v * 12;                        /* rough momentum projection: where this glide will die on its own */
+        var best = null, bd = 1e9;
+        for (var i = 0; i < targets.length; i++) { var d = Math.abs(targets[i] - proj); if (d < bd) { bd = d; best = targets[i]; } }
+        if (best == null || bd > window.innerHeight * SNAP_RANGE) return;
+        var dy = best - y;
+        if (Math.abs(dy) < 6) return;                 /* already there */
+        if (v > 0.05 && dy < -window.innerHeight * BACK_RANGE) return;   /* scrolling down: don't drag back up past a nudge */
+        if (v < -0.05 && dy > window.innerHeight * BACK_RANGE) return;   /* scrolling up: same, mirrored */
+        snapping = true;
+        var dur = glideDur(Math.abs(dy));
+        lenis.scrollTo(best, { duration: dur, easing: easeOut, onComplete: function () { setTimeout(function () { snapping = false; }, 90); } });
+        setTimeout(function () { snapping = false; }, (dur * 1000) + 400);   /* safety: never wedge the flag */
+      }
+      lenis.on('scroll', function (e) {
+        if (snapping) return;
+        var v = e.velocity || 0;
+        var av = Math.abs(v);
+        if (av > 0.05 && av < SOFT_V) maybeGlide(v);  /* catch the dying glide mid-motion — the smooth path */
         clearTimeout(settleT);
-        settleT = setTimeout(function () {
-          if (snapping || lastV > 0.2) return;
-          if (document.querySelector('.cedar-lb.is-open,.cedar-cf.is-open,#cedar-modal-root.is-open,.cedar-mmenu.is-open')) return;
-          var y = window.pageYOffset || 0;
-          var best = null, bd = 1e9;
-          for (var i = 0; i < targets.length; i++) { var d = Math.abs(targets[i] - y); if (d < bd) { bd = d; best = targets[i]; } }
-          if (best == null || bd < 6 || bd > window.innerHeight * SNAP_RANGE) return;
-          snapping = true;
-          lenis.scrollTo(best, { duration: SNAP_DUR, onComplete: function () { setTimeout(function () { snapping = false; }, 90); } });
-          setTimeout(function () { snapping = false; }, (SNAP_DUR * 1000) + 400);   /* safety: never wedge the flag */
-        }, SETTLE_MS);
+        settleT = setTimeout(function () { maybeGlide(0); }, SETTLE_MS);   /* fallback for scrolls that stop abruptly */
       });
     });
   });
