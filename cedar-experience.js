@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.29.1 · built by Origin · loaded site-wide (footer)
+ * v1.30.0 · built by Origin · loaded site-wide (footer)
+ * v1.30.0 (client edits, round 2): SCROLL STATIONS — module 27 reworked from fling-assist to the model (client: "train coming to a stop at a station", site-wide): every gesture, once the hand leaves the wheel, brakes into the best section top in the direction of travel via the velocity-matched Hermite (free glide while input is live; work grids/galleries still never stations; tall sections rest free past MAX_PULL; document end = the footer stop; a wheel tick mid-brake hands control straight back) · /post photo band above "Suite Specs" now runs the full CEDAR_POST_PHOTOS set as a full-screen slider — module 29 grew a COVER mode (one full-bleed photo at a time, band-width slides, roomier 4.6s/0.95s beat, no hover-pause, touch scroll-snap) and feeds the band itself from the already-uploaded site assets (responsive srcset; photo-1 stays slide 1; strip the data-cedar-slider tag to revert) · about intro hand-off at Lottie f85 instead of comp end — the baked tail held the finished lockup ~0.9s real (motion ends f70 of 104), client wanted ~0.5s of that gone; a ~0.4s beat remains (CUT tunable)
  * v1.29.1 (Ben's live review of v1.29.0): marquee overlap fixed — the logo SLOTS kept Webflow's fixed widths so resized images piled up; slots now hug their image, and logos come down 160→100px (160 read oversized on the band) · value icons no longer depend on the card copy naming them — match order is data-icon/class tokens on the embed or card → card text → leftover cards get the unused icons in order (the homepage cards only say "Vision") · work-grid hover clips RE-COVER on every width change (relock / expand / collapse) — a filtered-down row grows one card far past 16:9 and the mount-time size left side bars
  * v1.29.0 (client edit batch): buttons un-glitched — reveal modules (7/10) now STRIP their classes once landed (the lingering transform transition rubber-banded Ben's native GSAP hovers; footer CTA's transform transition dropped too) · project modal rebound to the renamed "Read More" pill (old labels still match) · modals wheel-scroll under Lenis (data-lenis-prevent; max-height 86vh was already there but Lenis ate the wheel) · settle-assist retuned for the Lenis feel — the catch now arms ONLY on a decaying fling after wheel input stops (the old any-slow-frame trigger hijacked deliberate slow scrolls, the "jerky scrolling up" complaint) and hands off through a velocity-matched ease (no kink at takeover) · sections holding work grids/galleries excluded from snap targets · /about nav now hides on scroll-down past the intro header (floor logic pinned it open) · sticky filter row drops 10px below the nav whenever the nav is shown · nav MARK light green (#9fb18f) over light backgrounds (wordmark/links stay charcoal) · hover/gallery video iframes sized to true 16:9 width-first cover (incl. the legacy embed path — no more pillarboxed cards) · marquee logos standardized 160px + 100px gap + constant slow px/s speed · about intro ~0.5s faster (lottie 1.25x) · "Reply within 24 hours" light green · NEW module 29: shared photo slider (.photo-slider / [data-cedar-slider] container → drag + auto-advance filmstrip, about + post; dormant until Ben places the photos)
  * v1.28.0: scroll settle-assist reworked — catches the dying Lenis glide mid-motion (momentum projection + SOFT_V handoff) instead of tweening after full rest; capture radius .6→.26 viewport; never pulls backward beyond a .1vh nudge; distance-scaled ease-out duration (constant 0.95s was the mechanical feel)
@@ -315,6 +316,12 @@
     '.cedar-ps-track{display:flex;gap:14px;width:max-content;align-items:stretch;}',
     '.cedar-ps-slide{flex:0 0 auto;overflow:hidden;border-radius:12px;}',
     '.cedar-ps-slide img{display:block;height:100%;width:auto;max-width:none;object-fit:cover;pointer-events:none;user-select:none;-webkit-user-select:none;}',
+    /* cover mode (module 29) — full-bleed one-photo-at-a-time: the viewport fills the host (the /post
+       photo band), slides are exactly one band wide (JS keeps their px width in sync), photos cover */
+    '.cedar-ps.cedar-ps-cover{position:absolute;inset:0;height:100%;}',
+    '.cedar-ps-cover .cedar-ps-track{gap:0;height:100%;}',
+    '.cedar-ps-cover .cedar-ps-slide{border-radius:0;height:100%;position:relative;}',
+    '.cedar-ps-cover .cedar-ps-slide img{width:100%;height:100%;object-fit:cover;position:static;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1575,7 +1582,9 @@
         var jsonUrl = me.replace(/[^/]+$/, 'cedar-logo-reveal-charcoal-transparent.json');
         var anim = window.lottie.loadAnimation({ container: stage, renderer: 'svg', loop: false, autoplay: true, path: jsonUrl });
         anim.setSpeed(1.25);                                            /* client: intro ~0.5s faster — trims the reveal without changing its shape */
-        anim.addEventListener('complete', handoff);
+        var CUT = 85;                                                   /* client: the finished lockup held ~0.5s too long — real motion ends f70 of the 104f comp (a 0.9s-real baked tail at 1.25x); handing off at f85 keeps a ~0.4s beat on the lockup */
+        anim.addEventListener('enterFrame', function () { if (anim.currentFrame >= CUT) handoff(); });
+        anim.addEventListener('complete', handoff);                     /* fallback if enterFrame never crosses CUT */
         anim.addEventListener('data_failed', abort);
       } catch (e) { abort(); }
     };
@@ -1907,53 +1916,53 @@
   });
 
   /* =========================================================
-   * 27. SCROLL SETTLE-ASSIST (v1.29 retune) — catches the DYING
-   *   Lenis fling and glides it into rest on a section top as one
-   *   continuous motion. Two things make it feel like Lenis and
-   *   not a grab (the v1.28 jerk, worst scrolling up): (1) it only
-   *   ARMS on a real fling — the scroll must have peaked above
-   *   ARM_V and wheel input must have stopped, so deliberate slow
-   *   scrolling is never hijacked (v1.28 fired on every frame
-   *   below SOFT_V); (2) the handoff ease is VELOCITY-MATCHED — a
-   *   Hermite curve whose initial slope equals the incoming glide
-   *   speed, decaying to zero, so there is no kink at takeover.
-   *   Sections holding work grids / galleries are not snap targets
-   *   (client: browse those freely). Still: tight capture radius,
-   *   never pulls backward past a nudge (direction remembered for
-   *   the at-rest fallback), dead-zone when already there. Opt-in
-   *   pages, no modals, desktop + motion only.
-   *   Tunables: SNAP_PAGES, SNAP_RANGE, BACK_RANGE, SOFT_V, ARM_V,
-   *   INPUT_IDLE, SETTLE_MS, MAX_SLOPE, glideDur().
+   * 27. SCROLL STATIONS (v1.30 rework — the "train" feel, client
+   *   direction after living with v1.29: not an assist that fires
+   *   when you happen to scroll the right amount, but the model —
+   *   EVERY gesture ends at a station). Free glide while the hand
+   *   is on the wheel; once input stops, the dying motion is
+   *   steered into the best station in the direction of travel as
+   *   one continuous velocity-matched brake (Hermite — no kink at
+   *   takeover), like a train easing into a platform. Stations are
+   *   section tops (+ full-bleed photo bands, page top, document
+   *   end = the footer stop). Sections holding work grids /
+   *   galleries are never stations (client: browse those freely),
+   *   and if no station sits within MAX_PULL viewports the scroll
+   *   rests free (mid-read in a tall section — never yanked).
+   *   Never pulls backward past a nudge; a wheel tick during the
+   *   brake hands control straight back (Lenis interrupts the
+   *   tween, we clear the flag). All pages, no modals, desktop +
+   *   motion only.
+   *   Tunables: CATCH_V, BACK_RANGE, MAX_PULL, INPUT_IDLE,
+   *   SETTLE_MS, MAX_SLOPE, glideDur().
    * ======================================================= */
   onReady(function () {
     if (RM || TOUCH) return;
-    var P = location.pathname.replace(/\/$/, '') || '/';
-    var SNAP_PAGES = ['/', '/contact', '/about', '/post', '/work'];   /* opt-in per page */
-    if (SNAP_PAGES.indexOf(P) === -1) return;
-    var SNAP_RANGE = 0.26;    /* assist only within this fraction of the viewport of a section top — outside it, rest wherever the scroll dies */
-    var BACK_RANGE = 0.1;     /* max backward correction against the direction of travel (small re-frame only, never a drag back) */
-    var SOFT_V = 3.0;         /* catch the dying fling once |velocity| decays below this (px/frame-ish; raised 2.4→3.0 — earlier catch arrests you INTO the section with more motion left to blend) */
-    var ARM_V = 4.5;          /* the scroll must have PEAKED above this to count as a fling — below it, the user is scrolling deliberately and we never interfere */
+    var CATCH_V = 3.2;        /* steer once the decaying glide drops below this (px/frame-ish) — above it, momentum still owns the ride */
+    var BACK_RANGE = 0.12;    /* max backward correction against the direction of travel (small re-frame only, never a drag back) */
+    var MAX_PULL = 1.35;      /* only pull when a station is within this many viewports of the resting point — further = rest free */
     var INPUT_IDLE = 140;     /* ms since the last wheel tick before takeover — never fight a hand that's still on the wheel */
-    var SETTLE_MS = 120;      /* fallback: armed scrolls that die outside the glide window get one nearest-target check at rest */
+    var SETTLE_MS = 120;      /* scrolls that die on their own get one at-rest station check */
     var MAX_SLOPE = 2.8;      /* cap on the matched ease's initial slope (≤3 keeps the Hermite monotonic — no overshoot) */
     var targets = [];
     function collect() {
       targets = [];
-      document.querySelectorAll('section, .section-pad').forEach(function (s) {
+      document.querySelectorAll('section, .section-pad, .photo-band').forEach(function (s) {
         if (s.querySelector('.work-grid,.gallery-card,.work-row')) return;   /* client: work grids + galleries scroll freely — never snap them */
         var r = s.getBoundingClientRect();
-        if (r.height > window.innerHeight * 0.3) {    /* only substantial sections make snap targets (contact's form section is shortish) */
+        if (r.height > window.innerHeight * 0.3) {    /* only substantial sections make stations (contact's form section is shortish) */
           var t = Math.round(r.top + window.pageYOffset);
           if (targets.indexOf(t) === -1) targets.push(t);
         }
       });
       targets.push(0);
+      var end = Math.round(Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight);
+      if (end > 0 && targets.indexOf(end) === -1) targets.push(end);   /* the footer stop — the last station on the line */
       targets.sort(function (a, b) { return a - b; });
     }
-    function glideDur(d) {    /* short hops settle quickly, longer assists take proportionally longer — constant duration is what felt mechanical */
+    function glideDur(d) {    /* short hops settle quickly, longer brakes take proportionally longer — constant duration is what felt mechanical */
       var f = d / window.innerHeight;
-      return Math.min(1.1, Math.max(0.45, 0.45 + f * 1.6));
+      return Math.min(1.4, Math.max(0.55, 0.55 + f * 1.5));
     }
     function velEase(s0) {    /* Hermite ease: leaves at slope s0 (the glide's own speed), lands at slope 0 — the takeover is invisible */
       s0 = Math.max(0, Math.min(MAX_SLOPE, s0));
@@ -1966,8 +1975,11 @@
       window.addEventListener('load', collect);
       var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(collect, 250); });
       var settleT = null, snapping = false;
-      var lastWheel = 0, peak = 0, lastDir = 0;
-      window.addEventListener('wheel', function () { lastWheel = Date.now(); }, { passive: true });
+      var lastWheel = 0, lastDir = 0;
+      window.addEventListener('wheel', function () {
+        lastWheel = Date.now();
+        snapping = false;                             /* a hand on the wheel outranks the brake — Lenis interrupts the tween, we re-arm */
+      }, { passive: true });
       /* own velocity in px/ms — Lenis's e.velocity is px/frame (refresh-rate dependent): fine for
          thresholds, wrong for slope matching */
       var lvY = window.pageYOffset || 0, lvT = 0, lvV = 0;
@@ -1976,16 +1988,21 @@
         if (Date.now() - lastWheel < INPUT_IDLE) return;
         if (document.querySelector('.cedar-lb.is-open,.cedar-cf.is-open,#cedar-modal-root.is-open,.cedar-mmenu.is-open')) return;
         var y = window.pageYOffset || 0;
-        var proj = y + v * 12;                        /* rough momentum projection: where this glide will die on its own */
+        var vh = window.innerHeight;
+        var proj = y + v * 12;                        /* rough momentum projection: where this glide would die on its own */
+        var dir = v > 0.05 ? 1 : v < -0.05 ? -1 : (lastDir || 1);        /* at-rest fallback keeps the last direction of travel */
         var best = null, bd = 1e9;
-        for (var i = 0; i < targets.length; i++) { var d = Math.abs(targets[i] - proj); if (d < bd) { bd = d; best = targets[i]; } }
-        if (best == null || bd > window.innerHeight * SNAP_RANGE) return;
+        for (var i = 0; i < targets.length; i++) {
+          var t = targets[i];
+          if ((t - y) * dir < -vh * BACK_RANGE) continue;   /* behind us beyond the nudge — the train doesn't back up */
+          if (Math.abs(t - y) > vh * MAX_PULL) continue;    /* too far to pull — rest free inside a tall section */
+          var d = Math.abs(t - proj);
+          if (d < bd) { bd = d; best = t; }
+        }
+        if (best == null) return;
         var dy = best - y;
-        if (Math.abs(dy) < 6) return;                 /* already there */
-        var dir = v > 0.05 ? 1 : v < -0.05 ? -1 : lastDir;               /* at-rest fallback keeps the last direction of travel */
-        if (dir > 0 && dy < -window.innerHeight * BACK_RANGE) return;    /* scrolling down: don't drag back up past a nudge */
-        if (dir < 0 && dy > window.innerHeight * BACK_RANGE) return;     /* scrolling up: same, mirrored */
-        snapping = true; peak = 0;
+        if (Math.abs(dy) < 6) return;                 /* already at the platform */
+        snapping = true;
         var dur = glideDur(Math.abs(dy));
         var s0 = (vpms || 0) * dur * 1000 / dy;       /* normalized initial slope; a sign mismatch (re-frame nudge) clamps to 0 = smoothstep start */
         lenis.scrollTo(best, { duration: dur, easing: velEase(s0), onComplete: function () { setTimeout(function () { snapping = false; }, 90); } });
@@ -2000,11 +2017,10 @@
         if (snapping) return;
         var v = e.velocity || 0;
         var av = Math.abs(v);
-        peak = Math.max(peak, av);
         if (v > 0.05) lastDir = 1; else if (v < -0.05) lastDir = -1;
-        if (peak >= ARM_V && av > 0.05 && av < SOFT_V) maybeGlide(v, lvV);   /* armed fling, decaying — catch it mid-motion */
+        if (av > 0.05 && av < CATCH_V) maybeGlide(v, lvV);   /* decaying glide — catch it mid-motion (INPUT_IDLE inside keeps hands-on scrolling free) */
         clearTimeout(settleT);
-        settleT = setTimeout(function () { if (peak >= ARM_V) maybeGlide(0, 0); peak = 0; }, SETTLE_MS);   /* armed scrolls that stop abruptly get one at-rest check; either way the next scroll starts unarmed */
+        settleT = setTimeout(function () { maybeGlide(0, 0); }, SETTLE_MS);   /* scrolls that die on their own get the at-rest check — every gesture ends at a station */
       });
     });
   });
@@ -2621,14 +2637,61 @@
    *   time on the BTS beat, drag to scrub (desktop gets the
    *   "Drag" cursor pill; touch keeps native swipe), seamless
    *   wrap. Auto-advance pauses while hovered, dragging,
-   *   off-screen, or the tab is hidden. Dormant until a matching
-   *   container exists. Reduced motion: a plain scrollable row.
-   *   Tunables: PS_AUTO_MS, PS_SLIDE_MS, PS_H().
+   *   off-screen, or the tab is hidden. Reduced motion: a plain
+   *   scrollable row (or the untouched band in cover mode).
+   *   COVER MODE (v1.30): data-cedar-slider="cover" → one photo
+   *   at a time, full-bleed (object-fit cover, no gap, no radius),
+   *   filling the container — used by the /post photo band, which
+   *   this module now feeds itself: the band above "Suite Specs"
+   *   gets the full CEDAR_POST_PHOTOS set (already site assets,
+   *   responsive variants included) with the band's own photo-1
+   *   staying slide 1. Slower, roomier beat than the filmstrip.
+   *   Tunables: PS_AUTO_MS, PS_SLIDE_MS (filmstrip), CV_AUTO_MS,
+   *   CV_SLIDE_MS (cover), PS_H().
    * ======================================================= */
   onReady(function () {
+    /* /post band feed — client: the photo band above "Suite Specs" runs the whole set as a
+       full-screen slider. Photos are already Webflow assets; feed them in (hidden) and tag
+       the band as a cover slider. Removing the tag/imgs reverts to the static band. */
+    (function () {
+      var P = location.pathname.replace(/\/$/, '') || '/';
+      if (P !== '/post') return;
+      var band = document.querySelector('.photo-band:not(.hero-band)');
+      if (!band || band.hasAttribute('data-cedar-slider')) return;
+      var CDN = 'https://cdn.prod.website-files.com/6a2027613280b41b9b3c3276/';
+      var SET = [   /* CEDAR_POST_PHOTOS 3..31 (photo-1 already lives in the band) */
+        '6a285a90100213d9c6d6502c_CEDAR_POST_PHOTOS-3_52819346',
+        '6a285a90a85c76cdc86b821f_CEDAR_POST_PHOTOS-5_8181be99',
+        '6a285a9054408ff7b931a0b3_CEDAR_POST_PHOTOS-7_f8bd801a',
+        '6a285a90c9f0ef1c6536ae7f_CEDAR_POST_PHOTOS-9_e88b15af',
+        '6a285a8a7d392b65d4c2a5df_CEDAR_POST_PHOTOS-11_1a11d857',
+        '6a285a8aa85c76cdc86b7ee8_CEDAR_POST_PHOTOS-15_054c0a6f',
+        '6a285a8a948a06b79eb3e674_CEDAR_POST_PHOTOS-17_d410bf8a',
+        '6a285a8b84f943749bfd19a0_CEDAR_POST_PHOTOS-19_3a657d38',
+        '6a285a890e652dd4fdf412be_CEDAR_POST_PHOTOS-21_94c8fcdf',
+        '6a285a8af11201fbeb28374f_CEDAR_POST_PHOTOS-23_f397a161',
+        '6a285a8a6eac0e2b17cbbbeb_CEDAR_POST_PHOTOS-25_076b0bb9',
+        '6a285a8a21191a0e075f7009_CEDAR_POST_PHOTOS-27_61e8e7aa',
+        '6a285a8ab71787ddf0ef8cac_CEDAR_POST_PHOTOS-29_90605c31',
+        '6a285a8a8d6fa658ea15f353_CEDAR_POST_PHOTOS-31_59e80d96'
+      ];
+      var feed = el('div', 'cedar-ps-feed', '');
+      feed.style.display = 'none';
+      SET.forEach(function (f) {
+        var im = document.createElement('img');
+        im.src = CDN + f + '.jpg';
+        im.setAttribute('srcset', CDN + f + '-p-1080.jpg 1080w, ' + CDN + f + '-p-1600.jpg 1600w, ' + CDN + f + '-p-2000.jpg 2000w, ' + CDN + f + '.jpg 2500w');
+        im.setAttribute('sizes', '100vw');
+        im.alt = 'Inside The Post at Cedar';
+        feed.appendChild(im);
+      });
+      band.appendChild(feed);
+      band.setAttribute('data-cedar-slider', 'cover');
+    })();
     var hosts = [].slice.call(document.querySelectorAll('.photo-slider,[data-cedar-slider]'));
     if (!hosts.length) return;
-    var PS_AUTO_MS = 3400, PS_SLIDE_MS = 700;             /* matches the BTS auto-cycle beat */
+    var PS_AUTO_MS = 3400, PS_SLIDE_MS = 700;             /* filmstrip: matches the BTS auto-cycle beat */
+    var CV_AUTO_MS = 4600, CV_SLIDE_MS = 950;             /* cover: full-bleed photos want a roomier dwell + a longer glide */
     function PS_H(host) {
       var h = host.getBoundingClientRect().height;
       if (h > 60) return Math.round(h);                   /* Ben sized the container — honor it */
@@ -2636,19 +2699,23 @@
     }
     hosts.forEach(function (host) {
       if (host.classList.contains('cedar-ps-init')) return;
+      var COVER = host.getAttribute('data-cedar-slider') === 'cover';
+      if (COVER && RM) return;                            /* cover mode under reduced motion: leave the static band untouched */
       var imgs = [].slice.call(host.querySelectorAll('img')).filter(function (im) { return !im.classList.contains('w-dyn-bind-empty'); });
       if (imgs.length < 2) return;                        /* one photo is not a slider — leave the layout alone */
       host.classList.add('cedar-ps-init');
+      var GAP = COVER ? 0 : 14;
+      var AUTO_MS = COVER ? CV_AUTO_MS : PS_AUTO_MS, SLIDE_MS = COVER ? CV_SLIDE_MS : PS_SLIDE_MS;
       var H = PS_H(host);
-      var vp = el('div', 'cedar-ps', '');
-      vp.style.height = H + 'px';
+      var vp = el('div', 'cedar-ps' + (COVER ? ' cedar-ps-cover' : ''), '');
       var track = el('div', 'cedar-ps-track', '');
-      track.style.height = H + 'px';
+      if (!COVER) { vp.style.height = H + 'px'; track.style.height = H + 'px'; }   /* cover fills the host via CSS (100%) so breakpoint height changes just work */
       function slideOf(im) {
         var s = el('div', 'cedar-ps-slide', '');
-        s.style.height = H + 'px';
+        if (!COVER) s.style.height = H + 'px';
         var c = im.cloneNode(true);
-        c.removeAttribute('sizes'); c.removeAttribute('srcset');   /* the CMS srcset picks a tiny variant for the clone's unknown width — pin to the full src */
+        if (COVER) { c.setAttribute('sizes', '100vw'); c.style.display = ''; }   /* full-bleed slides: the responsive srcset is correct at 100vw */
+        else { c.removeAttribute('sizes'); c.removeAttribute('srcset'); }        /* the CMS srcset picks a tiny variant for the clone's unknown width — pin to the full src */
         c.loading = 'lazy';
         s.appendChild(c);
         return s;
@@ -2658,7 +2725,13 @@
       vp.appendChild(track); host.appendChild(vp);
       /* one clone set after the originals = seamless wrap window */
       var setEnd = 0;
-      function measure() { setEnd = 0; for (var i = 0; i < imgs.length; i++) setEnd += track.children[i].getBoundingClientRect().width + 14; }
+      function measure() {
+        if (COVER) {                                      /* cover slides are exactly one viewport of the band wide */
+          var w = vp.clientWidth;
+          [].slice.call(track.children).forEach(function (s) { s.style.width = w + 'px'; });
+        }
+        setEnd = 0; for (var i = 0; i < imgs.length; i++) setEnd += track.children[i].getBoundingClientRect().width + GAP;
+      }
       imgs.forEach(function (im) { track.appendChild(slideOf(im)); });
       window.addEventListener('load', measure); measure();
       if (RM) return;                                     /* reduced motion: static scrollable row, no auto-advance, no takeover */
@@ -2672,7 +2745,7 @@
         if (tweenRaf) cancelAnimationFrame(tweenRaf);
         var from = vp.scrollLeft, d = x - from, t0 = performance.now();
         (function step(now) {
-          var p = Math.min(1, (now - t0) / PS_SLIDE_MS);
+          var p = Math.min(1, (now - t0) / SLIDE_MS);
           vp.scrollLeft = from + d * (1 - Math.pow(1 - p, 3));
           if (p < 1 && !dragging) tweenRaf = requestAnimationFrame(step); else { tweenRaf = null; wrap(); }
         })(t0);
@@ -2680,19 +2753,22 @@
       function nextEdge() {
         var x = vp.scrollLeft + 4, acc = 0;
         for (var i = 0; i < track.children.length; i++) {
-          var w = track.children[i].getBoundingClientRect().width + 14;
+          var w = track.children[i].getBoundingClientRect().width + GAP;
           if (acc > x) return acc;
           acc += w;
         }
         return acc;
       }
-      function paused() { return dragging || hover || document.hidden || !onScreen || document.querySelector('#cedar-modal-root.is-open,.cedar-lb.is-open,.cedar-cf.is-open'); }
-      function schedule() { clearTimeout(timer); timer = setTimeout(function () { if (!paused()) { wrap(); tweenTo(nextEdge()); } schedule(); }, PS_AUTO_MS); }
+      function paused() { return dragging || (hover && !COVER) || document.hidden || !onScreen || document.querySelector('#cedar-modal-root.is-open,.cedar-lb.is-open,.cedar-cf.is-open'); }   /* a full-screen band is hovered almost constantly — cover only pauses for a drag */
+      function schedule() { clearTimeout(timer); timer = setTimeout(function () { if (!paused()) { wrap(); tweenTo(nextEdge()); } schedule(); }, AUTO_MS); }
       if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { onScreen = !!(en[0] && en[0].isIntersecting); }).observe(host);
       vp.addEventListener('mouseenter', function () { hover = true; });
       vp.addEventListener('mouseleave', function () { hover = false; });
       schedule();
-      if (TOUCH) return;                                  /* touch: native swipe on the hidden-scrollbar viewport */
+      if (TOUCH) {                                        /* touch: native swipe on the hidden-scrollbar viewport; cover slides snap to their edges */
+        if (COVER) { vp.style.scrollSnapType = 'x mandatory'; [].slice.call(track.children).forEach(function (s) { s.style.scrollSnapAlign = 'start'; }); }
+        return;
+      }
       /* desktop drag-scrub with the shared cursor pill */
       vp.classList.add('cedar-nocursor');
       var pill = el('div', 'cedar-cf-pill', 'Drag');
