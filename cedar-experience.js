@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.29.0 · built by Origin · loaded site-wide (footer)
+ * v1.29.1 · built by Origin · loaded site-wide (footer)
+ * v1.29.1 (Ben's live review of v1.29.0): marquee overlap fixed — the logo SLOTS kept Webflow's fixed widths so resized images piled up; slots now hug their image, and logos come down 160→100px (160 read oversized on the band) · value icons no longer depend on the card copy naming them — match order is data-icon/class tokens on the embed or card → card text → leftover cards get the unused icons in order (the homepage cards only say "Vision") · work-grid hover clips RE-COVER on every width change (relock / expand / collapse) — a filtered-down row grows one card far past 16:9 and the mount-time size left side bars
  * v1.29.0 (client edit batch): buttons un-glitched — reveal modules (7/10) now STRIP their classes once landed (the lingering transform transition rubber-banded Ben's native GSAP hovers; footer CTA's transform transition dropped too) · project modal rebound to the renamed "Read More" pill (old labels still match) · modals wheel-scroll under Lenis (data-lenis-prevent; max-height 86vh was already there but Lenis ate the wheel) · settle-assist retuned for the Lenis feel — the catch now arms ONLY on a decaying fling after wheel input stops (the old any-slow-frame trigger hijacked deliberate slow scrolls, the "jerky scrolling up" complaint) and hands off through a velocity-matched ease (no kink at takeover) · sections holding work grids/galleries excluded from snap targets · /about nav now hides on scroll-down past the intro header (floor logic pinned it open) · sticky filter row drops 10px below the nav whenever the nav is shown · nav MARK light green (#9fb18f) over light backgrounds (wordmark/links stay charcoal) · hover/gallery video iframes sized to true 16:9 width-first cover (incl. the legacy embed path — no more pillarboxed cards) · marquee logos standardized 160px + 100px gap + constant slow px/s speed · about intro ~0.5s faster (lottie 1.25x) · "Reply within 24 hours" light green · NEW module 29: shared photo slider (.photo-slider / [data-cedar-slider] container → drag + auto-advance filmstrip, about + post; dormant until Ben places the photos)
  * v1.28.0: scroll settle-assist reworked — catches the dying Lenis glide mid-motion (momentum projection + SOFT_V handoff) instead of tweening after full rest; capture radius .6→.26 viewport; never pulls backward beyond a .1vh nudge; distance-scaled ease-out duration (constant 0.95s was the mechanical feel)
  * v1.27.0: contact form survives submission (form stays visible + resets; success/"try again" notices sit BELOW it, site-styled hairline cards, not Webflow's floating grey box) · home hero gets a "Play with sound" glass pill (bottom-right, opens the reel in the module-14 lightbox; pill-only — the hero overlay keeps its own About CTA click)
@@ -259,8 +260,11 @@
     '.cedar-marquee{overflow:hidden;position:relative;left:50%;transform:translateX(-50%);width:100vw;max-width:100vw;}',   /* full-bleed centred on the viewport (parent .container is centred); track repeats to fill so the -50% loop stays seamless */
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 60s linear infinite;}',   /* duration is recomputed per-width in JS for a constant px/s crawl; 60s is only the pre-measure fallback */
     '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
-    /* client: logos standardized — every logo 160px tall at its natural width */
-    '.cedar-marquee-track img{height:160px!important;width:auto!important;max-width:none!important;max-height:none!important;object-fit:contain;}',
+    /* client: logos standardized — every logo one shared height at its natural width. The SLOTS must hug
+       their image too: Webflow's wrappers keep fixed widths, so a resized image overflows its slot and the
+       logos pile onto each other (the v1.29.0 overlap). 160px read way too big on the yellow band → 100px. */
+    '.cedar-marquee-track > *,.cedar-marquee-track .w-dyn-item{flex:0 0 auto;width:auto!important;max-width:none!important;min-width:0!important;height:auto!important;}',
+    '.cedar-marquee-track img{height:100px!important;width:auto!important;max-width:none!important;max-height:none!important;object-fit:contain;display:block;}',
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
     /* gallery (project pages) — HOME-GRID RHYTHM: JS lays cards 2-per-row at a fixed height, cycling the home work grid's 3 asymmetric width patterns. Media covers the box (image object-fit:cover; video fills, black behind any non-16:9 film) */
     '.gallery-card.cedar-gal{overflow:hidden;position:relative;}',
@@ -558,7 +562,7 @@
       var vis = visible();
       vis.forEach(function (c) { c.style.transition = 'none'; c.style.flex = '1 1 ' + Math.round(c._nat) + 'px'; });
       vis.forEach(function (c) { c._rw = c.getBoundingClientRect().width; });
-      vis.forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; });   /* shrink:1 + exact (unrounded) so a sub-pixel total never wraps a card to the next row */
+      vis.forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; coverCV(c, c._rw); });   /* shrink:1 + exact (unrounded) so a sub-pixel total never wraps a card to the next row; clips re-cover the new width (a filtered-down row can grow a card well past 16:9) */
       if (enableTrans !== false) requestAnimationFrame(function () { vis.forEach(function (c) { c.style.transition = TRANS; }); });
     }
     if (DESK) relock();
@@ -579,25 +583,32 @@
         c.style.transition = TRANS;
         c.style.flex = '0 1 ' + (isH ? target : remain * c._rw / otherRest) + 'px';
       });
+      coverCV(card, target);                                            /* clip covers the width it's growing to */
     }
-    function collapse() { visible().forEach(function (c) { c.style.transition = TRANS; c.style.flex = '0 1 ' + c._rw + 'px'; }); }
+    function collapse() { visible().forEach(function (c) { c.style.transition = TRANS; c.style.flex = '0 1 ' + c._rw + 'px'; coverCV(c, c._rw); }); }
+    /* width-first 16:9 COVER that FOLLOWS the card's width: the clip fills the card's width even when the
+       card is wider than 16:9 (crop top/bottom). The card's width is a moving target — filter can leave one
+       card to grow across the whole row, hover-expand widens it — so this is re-applied on relock, expand
+       and collapse, sized to the width the card is heading to (w argument), never just its mount width. */
+    function coverCV(card, w) {
+      if (!card || !card._cv) return;
+      var f = card._cv.querySelector('iframe'); if (!f) return;
+      var h = card.getBoundingClientRect().height || 600;
+      var iw = Math.ceil(Math.max(w || card.getBoundingClientRect().width, h * 16 / 9)) + 4;
+      f.style.width = iw + 'px'; f.style.height = Math.ceil(iw * 9 / 16) + 'px';
+    }
     function mountVideo(card) {
       if ('_cv' in card) return;
       var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
       if (!src) { card._cv = null; return; }
       card._src = src;
-      var r = card.getBoundingClientRect(), h = r.height || 600;
       var wrap = document.createElement('div'); wrap.className = 'cedar-cardvid';
       var f = document.createElement('iframe'); f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
-      /* width-first 16:9 COVER: the clip fills the card's WIDTH even when the card is wider than 16:9
-         (crop top/bottom), and its height when it isn't (crop sides). Expansion tops out at 16:9, so
-         sizing against max(rest width, 16:9-of-height) covers every in-between width. */
-      var iw = Math.ceil(Math.max(r.width, h * 16 / 9)) + 4;
-      f.style.width = iw + 'px'; f.style.height = Math.ceil(iw * 9 / 16) + 'px';   /* src set on hover (restarts each time) */
       wrap.appendChild(f);
       var anchor = card.querySelector('.card-label') || card.querySelector('.overlay');
       if (anchor) card.insertBefore(wrap, anchor); else card.appendChild(wrap);
       card._cv = wrap;
+      coverCV(card, card._rw);   /* src set on hover (restarts each time) */
     }
     function playVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f && c._src && (!f.src || f.src === 'about:blank')) f.src = c._src; } }   /* idempotent: starts the muted loop only if not already streaming */
     function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; } }        /* reclaim bandwidth once far off-screen */
@@ -2066,11 +2077,25 @@
       { re: /sustainab/i,      json: 'Sustainability.json', seg0: 4, drawn: 116 }
     ];
     ensureLottie(function (lottie) {
+      /* match order: explicit data-icon / class tokens on the embed or its card (Ben's homepage cards carry
+         a class and their copy never says the keyword) → card text → leftovers get the unused icons in
+         FILES order (home reads Vision / craft / long-term but only card 1 says "Vision") */
+      var used = {}, jobs = [], leftovers = [];
       icons.forEach(function (host) {
         var card = host.closest('.about-card') || host.parentElement;
-        var txt = (card ? card.textContent : '') || '';
-        var pick = FILES.filter(function (f) { return f.re.test(txt); })[0];
-        if (!pick) return;                          /* unknown card → leave placeholder */
+        var keys = [host.getAttribute('data-icon'), card && card.getAttribute('data-icon'), host.className, card ? card.className : ''].join(' ');
+        var pick = FILES.filter(function (f) { return f.re.test(keys); })[0] ||
+                   FILES.filter(function (f) { return f.re.test((card ? card.textContent : '') || ''); })[0];
+        if (pick && !used[pick.json]) { used[pick.json] = 1; jobs.push([host, card, pick]); }
+        else leftovers.push([host, card]);
+      });
+      leftovers.forEach(function (lo) {
+        var pick = FILES.filter(function (f) { return !used[f.json]; })[0];
+        if (!pick) return;                          /* more hosts than icons → leave placeholder */
+        used[pick.json] = 1; jobs.push([lo[0], lo[1], pick]);
+      });
+      jobs.forEach(function (job) {
+        var host = job[0], card = job[1], pick = job[2];
         var DRAWN = pick.drawn;
         host.textContent = '';
         host.style.display = 'block'; host.style.width = '100%'; host.style.textAlign = 'center';   /* span the card so the icon can center */
