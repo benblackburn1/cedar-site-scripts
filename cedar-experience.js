@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.30.0 · built by Origin · loaded site-wide (footer)
+ * v1.31.0 · built by Origin · loaded site-wide (footer)
+ * v1.31.0 (client feel note on the stations): the catch could fire AFTER the glide had carried past a section top and pull the user BACK — root cause was choosing the station nearest a projected rest with a backward-nudge allowance. Reworked: (1) Lenis itself is slower and heavier (duration 1.1→1.55, easeOutCubic→easeOutExpo's long tail, wheelMultiplier 0.9) so a gesture has the runway to slow into a section rather than overshoot it; (2) module 27 reads Lenis's true destination (targetScroll, no projection guesswork) the moment wheel input idles and takes over EARLY — while still short of the platform — braking into the furthest station the glide would pass, or easing forward into the next one within FORWARD_PULL (1vh); a station behind the current position is never a target (the train does not reverse — backward grabs eliminated); at speed the brake duration shortens so the velocity-matched entry stays monotonic (firm brake), at a crawl it stretches (long settle)
  * v1.30.0 (client edits, round 2): SCROLL STATIONS — module 27 reworked from fling-assist to the model (client: "train coming to a stop at a station", site-wide): every gesture, once the hand leaves the wheel, brakes into the best section top in the direction of travel via the velocity-matched Hermite (free glide while input is live; work grids/galleries still never stations; tall sections rest free past MAX_PULL; document end = the footer stop; a wheel tick mid-brake hands control straight back) · /post photo band above "Suite Specs" now runs the full CEDAR_POST_PHOTOS set as a full-screen slider — module 29 grew a COVER mode (one full-bleed photo at a time, band-width slides, roomier 4.6s/0.95s beat, no hover-pause, touch scroll-snap) and feeds the band itself from the already-uploaded site assets (responsive srcset; photo-1 stays slide 1; strip the data-cedar-slider tag to revert) · about intro hand-off at Lottie f85 instead of comp end — the baked tail held the finished lockup ~0.9s real (motion ends f70 of 104), client wanted ~0.5s of that gone; a ~0.4s beat remains (CUT tunable)
  * v1.29.1 (Ben's live review of v1.29.0): marquee overlap fixed — the logo SLOTS kept Webflow's fixed widths so resized images piled up; slots now hug their image, and logos come down 160→100px (160 read oversized on the band) · value icons no longer depend on the card copy naming them — match order is data-icon/class tokens on the embed or card → card text → leftover cards get the unused icons in order (the homepage cards only say "Vision") · work-grid hover clips RE-COVER on every width change (relock / expand / collapse) — a filtered-down row grows one card far past 16:9 and the mount-time size left side bars
  * v1.29.0 (client edit batch): buttons un-glitched — reveal modules (7/10) now STRIP their classes once landed (the lingering transform transition rubber-banded Ben's native GSAP hovers; footer CTA's transform transition dropped too) · project modal rebound to the renamed "Read More" pill (old labels still match) · modals wheel-scroll under Lenis (data-lenis-prevent; max-height 86vh was already there but Lenis ate the wheel) · settle-assist retuned for the Lenis feel — the catch now arms ONLY on a decaying fling after wheel input stops (the old any-slow-frame trigger hijacked deliberate slow scrolls, the "jerky scrolling up" complaint) and hands off through a velocity-matched ease (no kink at takeover) · sections holding work grids/galleries excluded from snap targets · /about nav now hides on scroll-down past the intro header (floor logic pinned it open) · sticky filter row drops 10px below the nav whenever the nav is shown · nav MARK light green (#9fb18f) over light backgrounds (wordmark/links stay charcoal) · hover/gallery video iframes sized to true 16:9 width-first cover (incl. the legacy embed path — no more pillarboxed cards) · marquee logos standardized 160px + 100px gap + constant slow px/s speed · about intro ~0.5s faster (lottie 1.25x) · "Reply within 24 hours" light green · NEW module 29: shared photo slider (.photo-slider / [data-cedar-slider] container → drag + auto-advance filmstrip, about + post; dormant until Ben places the photos)
@@ -488,7 +489,15 @@
   onReady(function () {
     if (RM || TOUCH || !window.Lenis) return;
     try {
-      var lenis = new window.Lenis({ duration: 1.1, easing: function (t) { return 1 - Math.pow(1 - t, 3); } });
+      /* the train ride (client, v1.31): heavier, slower glide — a gesture travels a touch less
+         (wheelMultiplier) and decays over a long expo tail (duration + easing), so the motion has
+         time to slow INTO a section instead of shooting past it and getting pulled back (module 27
+         brakes forward-only and needs this runway). Tunables: duration, wheelMultiplier. */
+      var lenis = new window.Lenis({
+        duration: 1.55,
+        easing: function (t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); },
+        wheelMultiplier: 0.9
+      });
       window.__cedarLenis = lenis;                       /* module 27 (scroll snap) rides the same instance */
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
       requestAnimationFrame(raf);
@@ -1916,34 +1925,36 @@
   });
 
   /* =========================================================
-   * 27. SCROLL STATIONS (v1.30 rework — the "train" feel, client
-   *   direction after living with v1.29: not an assist that fires
-   *   when you happen to scroll the right amount, but the model —
-   *   EVERY gesture ends at a station). Free glide while the hand
-   *   is on the wheel; once input stops, the dying motion is
-   *   steered into the best station in the direction of travel as
-   *   one continuous velocity-matched brake (Hermite — no kink at
-   *   takeover), like a train easing into a platform. Stations are
+   * 27. SCROLL STATIONS (v1.31 rework — brake BEFORE the platform,
+   *   never pull back past it. v1.30 chose the station nearest the
+   *   projected rest, so a gesture that had already carried past a
+   *   section top got GRABBED backward — the client's exact
+   *   complaint. Now: once wheel input stops, read where Lenis is
+   *   actually headed (targetScroll — the true natural rest, no
+   *   projection guesswork) and take over IMMEDIATELY, while still
+   *   short of the station: if the glide would reach or pass any
+   *   stations, brake into the FURTHEST one it passes; if it falls
+   *   short, ease forward into the next one when it's within
+   *   FORWARD_PULL. A station already behind the current position
+   *   is never a target — the train does not reverse. The brake is
+   *   the same velocity-matched Hermite; at speed the duration
+   *   shortens so the entry slope stays monotonic (firm brake),
+   *   at a crawl it stretches (long settle). Paired with the
+   *   slower, heavier Lenis tune in module 2 — the glide now has
+   *   the runway to slow and stop AT the section. Stations are
    *   section tops (+ full-bleed photo bands, page top, document
-   *   end = the footer stop). Sections holding work grids /
-   *   galleries are never stations (client: browse those freely),
-   *   and if no station sits within MAX_PULL viewports the scroll
-   *   rests free (mid-read in a tall section — never yanked).
-   *   Never pulls backward past a nudge; a wheel tick during the
-   *   brake hands control straight back (Lenis interrupts the
-   *   tween, we clear the flag). All pages, no modals, desktop +
-   *   motion only.
-   *   Tunables: CATCH_V, BACK_RANGE, MAX_PULL, INPUT_IDLE,
-   *   SETTLE_MS, MAX_SLOPE, glideDur().
+   *   end = the footer stop); work-grid / gallery sections are
+   *   never stations. A wheel tick during the brake hands control
+   *   straight back. All pages, no modals, desktop + motion only.
+   *   Tunables: FORWARD_PULL, INPUT_IDLE, SETTLE_MS, MAX_SLOPE,
+   *   glideDur().
    * ======================================================= */
   onReady(function () {
     if (RM || TOUCH) return;
-    var CATCH_V = 3.2;        /* steer once the decaying glide drops below this (px/frame-ish) — above it, momentum still owns the ride */
-    var BACK_RANGE = 0.12;    /* max backward correction against the direction of travel (small re-frame only, never a drag back) */
-    var MAX_PULL = 1.35;      /* only pull when a station is within this many viewports of the resting point — further = rest free */
+    var FORWARD_PULL = 1.0;   /* if the glide dies short of the next station, pull forward into it when it's within this many viewports — further = rest free (mid-read in a tall section) */
     var INPUT_IDLE = 140;     /* ms since the last wheel tick before takeover — never fight a hand that's still on the wheel */
     var SETTLE_MS = 120;      /* scrolls that die on their own get one at-rest station check */
-    var MAX_SLOPE = 2.8;      /* cap on the matched ease's initial slope (≤3 keeps the Hermite monotonic — no overshoot) */
+    var MAX_SLOPE = 2.8;      /* cap on the matched ease's initial slope (≤3 keeps the Hermite monotonic — no overshoot); at speed the duration shortens to honor it */
     var targets = [];
     function collect() {
       targets = [];
@@ -1989,22 +2000,30 @@
         if (document.querySelector('.cedar-lb.is-open,.cedar-cf.is-open,#cedar-modal-root.is-open,.cedar-mmenu.is-open')) return;
         var y = window.pageYOffset || 0;
         var vh = window.innerHeight;
-        var proj = y + v * 12;                        /* rough momentum projection: where this glide would die on its own */
+        var rest = Math.max(0, Math.min(lenis.limit || 1e9, lenis.targetScroll != null ? lenis.targetScroll : y));   /* where this glide actually ends — Lenis's own destination, not a projection */
         var dir = v > 0.05 ? 1 : v < -0.05 ? -1 : (lastDir || 1);        /* at-rest fallback keeps the last direction of travel */
-        var best = null, bd = 1e9;
+        /* forward-only pick: the furthest station the glide reaches/passes (brake into it while
+           still short of it), else the next one ahead of the rest point when it's close enough
+           to arrive at. Anything behind the CURRENT position is off the table — no reversing. */
+        var passed = null, next = null, nd = 1e9;
         for (var i = 0; i < targets.length; i++) {
           var t = targets[i];
-          if ((t - y) * dir < -vh * BACK_RANGE) continue;   /* behind us beyond the nudge — the train doesn't back up */
-          if (Math.abs(t - y) > vh * MAX_PULL) continue;    /* too far to pull — rest free inside a tall section */
-          var d = Math.abs(t - proj);
-          if (d < bd) { bd = d; best = t; }
+          var ahead = (t - y) * dir;
+          if (ahead < 6) continue;                    /* behind us (or where we already stand) — never a target */
+          var beyond = (t - rest) * dir;              /* negative = the glide passes it, positive = it dies short */
+          if (beyond <= 0) { if (passed == null || (t - passed) * dir > 0) passed = t; }
+          else if (beyond < nd) { nd = beyond; next = t; }
         }
+        var best = passed != null ? passed : (next != null && nd <= vh * FORWARD_PULL ? next : null);
         if (best == null) return;
         var dy = best - y;
         if (Math.abs(dy) < 6) return;                 /* already at the platform */
         snapping = true;
         var dur = glideDur(Math.abs(dy));
-        var s0 = (vpms || 0) * dur * 1000 / dy;       /* normalized initial slope; a sign mismatch (re-frame nudge) clamps to 0 = smoothstep start */
+        var vp = (vpms || 0);
+        if (vp * dy > 0) dur = Math.min(dur, MAX_SLOPE * Math.abs(dy) / (Math.abs(vp) * 1000) || dur);   /* fast entry → shorter, firmer brake so the matched slope stays ≤ MAX_SLOPE (no kink) */
+        dur = Math.max(0.35, dur);
+        var s0 = vp * dur * 1000 / dy;                /* normalized initial slope; a sign mismatch clamps to 0 = smoothstep start */
         lenis.scrollTo(best, { duration: dur, easing: velEase(s0), onComplete: function () { setTimeout(function () { snapping = false; }, 90); } });
         setTimeout(function () { snapping = false; }, (dur * 1000) + 400);   /* safety: never wedge the flag */
       }
@@ -2016,11 +2035,10 @@
         lvY = y; lvT = now;
         if (snapping) return;
         var v = e.velocity || 0;
-        var av = Math.abs(v);
         if (v > 0.05) lastDir = 1; else if (v < -0.05) lastDir = -1;
-        if (av > 0.05 && av < CATCH_V) maybeGlide(v, lvV);   /* decaying glide — catch it mid-motion (INPUT_IDLE inside keeps hands-on scrolling free) */
+        if (Math.abs(v) > 0.05) maybeGlide(v, lvV);   /* input idle (checked inside) → take over NOW, while still short of the station — braking early is the whole point */
         clearTimeout(settleT);
-        settleT = setTimeout(function () { maybeGlide(0, 0); }, SETTLE_MS);   /* scrolls that die on their own get the at-rest check — every gesture ends at a station */
+        settleT = setTimeout(function () { maybeGlide(0, 0); }, SETTLE_MS);   /* scrolls that die on their own get the at-rest check */
       });
     });
   });
