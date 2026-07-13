@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.31.0 · built by Origin · loaded site-wide (footer)
+ * v1.32.0 · built by Origin · loaded site-wide (footer)
+ * v1.32.0 (client edit batch): filter pills keep their YELLOW on hover (Ben's Webflow :hover tinted them light-green, read as "no background") · the nav MARK stays CHARCOAL on /about (module 11 tags the navbar .cedar-on-about; the light-green-over-light rule is scoped around it) · post photo COVER slider: a drag now snaps you ONTO the next photo (round scrollLeft to the nearest band-width on pointerup — no more stuck between two) · post horizontal hairlines + accordion separators forced to FULL opacity to match the vertical lines (were #9fb18f80 / 50%); footer vertical divider full opacity too (was 32%) · /work drops the scroll STATIONS (it is one big work grid — the stations kept yanking back up to the title); Lenis smooth scroll stays on there, only the section-braking is off · "Grown in Birmingham" (/about) reveals as soon as its column top enters the viewport instead of off its own top (was landing after you had scrolled past) · NEW video-loading mark: the click-to-play lightbox shows a small white-on-black rotating 3D wireframe chevron (the loader's brand mark, one reused WebGL context; CSS-3D SVG fallback) over the black stage until Vimeo reports the film is playing
  * v1.31.0 (client feel note on the stations): the catch could fire AFTER the glide had carried past a section top and pull the user BACK — root cause was choosing the station nearest a projected rest with a backward-nudge allowance. Reworked: (1) Lenis itself is slower and heavier (duration 1.1→1.55, easeOutCubic→easeOutExpo's long tail, wheelMultiplier 0.9) so a gesture has the runway to slow into a section rather than overshoot it; (2) module 27 reads Lenis's true destination (targetScroll, no projection guesswork) the moment wheel input idles and takes over EARLY — while still short of the platform — braking into the furthest station the glide would pass, or easing forward into the next one within FORWARD_PULL (1vh); a station behind the current position is never a target (the train does not reverse — backward grabs eliminated); at speed the brake duration shortens so the velocity-matched entry stays monotonic (firm brake), at a crawl it stretches (long settle)
  * v1.30.0 (client edits, round 2): SCROLL STATIONS — module 27 reworked from fling-assist to the model (client: "train coming to a stop at a station", site-wide): every gesture, once the hand leaves the wheel, brakes into the best section top in the direction of travel via the velocity-matched Hermite (free glide while input is live; work grids/galleries still never stations; tall sections rest free past MAX_PULL; document end = the footer stop; a wheel tick mid-brake hands control straight back) · /post photo band above "Suite Specs" now runs the full CEDAR_POST_PHOTOS set as a full-screen slider — module 29 grew a COVER mode (one full-bleed photo at a time, band-width slides, roomier 4.6s/0.95s beat, no hover-pause, touch scroll-snap) and feeds the band itself from the already-uploaded site assets (responsive srcset; photo-1 stays slide 1; strip the data-cedar-slider tag to revert) · about intro hand-off at Lottie f85 instead of comp end — the baked tail held the finished lockup ~0.9s real (motion ends f70 of 104), client wanted ~0.5s of that gone; a ~0.4s beat remains (CUT tunable)
  * v1.29.1 (Ben's live review of v1.29.0): marquee overlap fixed — the logo SLOTS kept Webflow's fixed widths so resized images piled up; slots now hug their image, and logos come down 160→100px (160 read oversized on the band) · value icons no longer depend on the card copy naming them — match order is data-icon/class tokens on the embed or card → card text → leftover cards get the unused icons in order (the homepage cards only say "Vision") · work-grid hover clips RE-COVER on every width change (relock / expand / collapse) — a filtered-down row grows one card far past 16:9 and the mount-time size left side bars
@@ -199,7 +200,7 @@
     '.cedar-foot{padding:20px;}',
     '.cedar-foot-cols{display:flex;min-height:250px;}',
     '.cedar-foot-col.c1{flex:0 0 55.3%;display:flex;flex-direction:column;align-items:flex-start;padding:6px 28px 0 0;}',
-    '.cedar-foot-col.c2{flex:1 1 auto;border-left:1px solid rgba(159,177,143,.32);padding:6px 0 0 28px;}',
+    '.cedar-foot-col.c2{flex:1 1 auto;border-left:1px solid #9fb18f;padding:6px 0 0 28px;}',   /* client: footer divider full opacity (was 32%) */
     '.cedar-foot .cf-tag{font-size:21px;line-height:1.3;color:#9fb18f;margin:0 0 18px;max-width:28ch;}',
     '.cedar-foot .cf-cta{display:inline-block;background:#9fb18f;color:#29341a;border-radius:12px;padding:12px 22px;font-size:14px;line-height:1;text-decoration:none;transition:opacity .25s ' + EASE + ';}',   /* radius matches the site .btn-pill; NO transform transition — Ben's native GSAP hover owns any lift, and a CSS transition on transform rubber-bands it */
     '.cedar-foot .cf-cta:hover{opacity:.88;}',
@@ -287,6 +288,14 @@
     '.cedar-lb-frame{position:absolute;inset:0;width:100%;height:100%;border:0;}',
     '.cedar-lb-close{position:absolute;top:22px;right:26px;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:26px;line-height:1;color:#f4f4f2;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background-color .25s ' + EASE + ';display:flex;align-items:center;justify-content:center;}',
     '.cedar-lb-close:hover{background:rgba(255,255,255,.28);}',
+    /* video-loading mark (module 14): white-on-black rotating wireframe chevron over the black stage until the film plays */
+    '.cedar-lb-spin{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;background:#000;opacity:1;transition:opacity .55s ' + EASE + ';}',
+    '.cedar-lb-spin.is-off{opacity:0;pointer-events:none;}',
+    '.cedar-lb-spin-stage{width:74px;height:74px;perspective:520px;}',
+    '.cedar-lb-spin canvas{display:block;width:100%;height:100%;}',
+    '.cedar-lb-spin-svg{width:100%;height:100%;transform-style:preserve-3d;animation:cedar-vspin 1.6s linear infinite;}',
+    '.cedar-lb-spin-svg path{fill:none;stroke:#f4f4f2;stroke-width:12;stroke-linejoin:round;}',
+    '@keyframes cedar-vspin{to{transform:rotateY(360deg);}}',
     /* contact outline mark: force a crisp 1px stroke-only outline (the lottie paths default to a solid black SVG fill; fill:none + a non-scaling 1px stroke = clean thin outline at any size) */
     '.cedar-lottie-mark svg path{fill:none!important;stroke-width:1px!important;vector-effect:non-scaling-stroke!important;}',
     /* /work heading intro — module 17 owns the transform (scroll scrub), so only opacity lives here */
@@ -323,6 +332,11 @@
     '.cedar-ps-cover .cedar-ps-track{gap:0;height:100%;}',
     '.cedar-ps-cover .cedar-ps-slide{border-radius:0;height:100%;position:relative;}',
     '.cedar-ps-cover .cedar-ps-slide img{width:100%;height:100%;object-fit:cover;position:static;}',
+    /* client overrides (v1.32) */
+    '.filter-pill:hover{background-color:var(--cedar-yellow)!important;}',   /* keep the yellow on hover (Ben: the light-green tint read as "no background") */
+    '.horizontal-line.light-green{color:#9fb18f!important;}',                /* post hairlines to full opacity — match the vertical lines (were 50%) */
+    '.acc-item.light-green{border-top-color:#9fb18f!important;}',           /* accordion separators (drawn by module 6) to full opacity too */
+    '.navbar.cedar-on-about.cedar-nav-light .cedar-mark-mask{color:' + CHARCOAL + '!important;}',   /* on /about the MARK stays charcoal, not light green */
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -1262,7 +1276,12 @@
       return !n.closest('.navbar,.site-footer,#cedar-loader,.cedar-marquee,.acc-inner'); /* never hide chrome/logos, or accordion body copy (it opens on click) */
     });
     if (!nodes.length) return;
-    nodes.forEach(function (n) { n.classList.add('cedar-reveal'); });
+    nodes.forEach(function (n) {
+      n.classList.add('cedar-reveal');
+      /* client: "Grown in Birmingham" (/about) landed too late — the tall gib column revealed off its own top.
+         Trigger the gib column + everything inside it as soon as the column's top enters the viewport. */
+      if (n.classList.contains('gib-left') || n.classList.contains('gib-right') || (n.closest && n.closest('.gib-left,.gib-right'))) n._cedarEarly = 1;
+    });
     function show(n, d) {
       if (n.classList.contains('cedar-in')) return;
       n.style.transitionDelay = (d || 0) + 'ms';
@@ -1280,11 +1299,13 @@
       var pending = nodes.slice(), ticking = false;
       function sweep() {
         ticking = false;
-        var line = (window.innerHeight || document.documentElement.clientHeight) * 0.85;
+        var vh = (window.innerHeight || document.documentElement.clientHeight);
+        var line = vh * 0.85;
         var batch = 0, any = false;
         for (var i = 0; i < pending.length; i++) {
           var n = pending[i]; if (!n) continue;
-          if (n.getBoundingClientRect().top < line) { show(n, (batch++) * 90); pending[i] = null; any = true; }
+          var trigger = n._cedarEarly ? vh : line;         /* gib reveals the instant its top enters the viewport (earlier) */
+          if (n.getBoundingClientRect().top < trigger) { show(n, (batch++) * 90); pending[i] = null; any = true; }
         }
         if (any) pending = pending.filter(Boolean);
         if (!pending.length) { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); }
@@ -1507,6 +1528,7 @@
     var P = location.pathname.replace(/\/$/, '') || '/';
     if (P !== '/about') return;
     var nav = document.querySelector('.navbar');
+    if (nav) nav.classList.add('cedar-on-about');   /* client: mark stays charcoal on /about (CSS override) */
     var section = document.querySelector('.section-pad') || document.querySelector('section');
 
     /* charcoal brand SVGs for the placeholder embeds — width:100% so each fills its flex-basis (set below); height auto keeps aspect */
@@ -1840,7 +1862,43 @@
    *   cards (no data-cedar-vimeo) are ignored.
    * ======================================================= */
   onReady(function () {
-    var overlay = null, frame = null;
+    var overlay = null, frame = null, spin = null, spinRaf = null, spinFallback = null, _R = null, _S = null, _C = null, _G = null;
+    /* white-on-black rotating wireframe chevron shown over the black stage while the film buffers
+       (client: signal loading). Reuses the loader's brand geometry; one WebGL context, reused across
+       opens; CSS-3D-spun SVG fallback if THREE isn't up. Dismissed on Vimeo 'play' or a 5s cap. */
+    function buildSpin(stage) {
+      spin = el('div', 'cedar-lb-spin', '');
+      var ss = el('div', 'cedar-lb-spin-stage', '');
+      spin.appendChild(ss); stage.appendChild(spin);
+      var built = false;
+      function svg() { if (built) return; ss.innerHTML = '<svg class="cedar-lb-spin-svg" viewBox="0 0 374 283"><path d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z"/><path d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z"/></svg>'; }
+      (function wait(t) {
+        if (built) return;
+        if (!window.THREE) { if (t > 0) setTimeout(function () { wait(t - 1); }, 80); else svg(); return; }
+        try {
+          var T = window.THREE;
+          _R = new T.WebGLRenderer({ alpha: true, antialias: true });
+          _R.setSize(74, 74); _R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); ss.appendChild(_R.domElement);
+          _S = new T.Scene(); _C = new T.PerspectiveCamera(28, 1, 0.1, 200); _C.position.set(0, 0, 95);
+          var RAW = [[178.04,0],[0,126.555],[0,137.94],[25.0235,144.296],[178.04,83.6805],[195.051,83.6805],[348.067,144.296],[373.09,137.94],[373.09,126.555],[195.051,0]];
+          var MK = 45.009 / 373.09, MOFF = 137.979; _G = new T.Group();
+          var mat = new T.LineBasicMaterial({ color: 0xf4f4f2, transparent: true, opacity: 0.96 });
+          [RAW.map(function (p) { return [p[0]*MK, p[1]*MK]; }), RAW.map(function (p) { return [p[0]*MK, (p[1]+MOFF)*MK]; })].forEach(function (poly) {
+            var s = new T.Shape(); poly.forEach(function (p, i) { var x = p[0]-22.5, y = -(p[1]-17.4); if (i) s.lineTo(x, y); else s.moveTo(x, y); }); s.closePath();
+            var geo = new T.ExtrudeGeometry(s, { depth: 7, bevelEnabled: false }); geo.translate(0, 0, -3.5);
+            _G.add(new T.LineSegments(new T.EdgesGeometry(geo, 12), mat));
+          });
+          _G.scale.setScalar(0.46); _S.add(_G); built = true;
+        } catch (e) { svg(); }
+      })(30);
+    }
+    function spinLoop() {
+      if (!overlay || !overlay.classList.contains('is-open')) { spinRaf = null; return; }   /* idle when closed */
+      if (_R && _G && spin && !spin.classList.contains('is-off')) {
+        _G.rotation.y += 0.02; _G.rotation.x = Math.sin(Date.now() / 2200) * 0.16; _R.render(_S, _C);
+      }
+      spinRaf = requestAnimationFrame(spinLoop);
+    }
     function build() {
       overlay = el('div', 'cedar-lb');
       var stage = el('div', 'cedar-lb-stage');
@@ -1850,18 +1908,28 @@
       var close = el('button', 'cedar-lb-close', '&times;');
       close.setAttribute('aria-label', 'Close video');
       stage.appendChild(frame);
+      buildSpin(stage);                                        /* spinner sits above the iframe on the black stage */
       overlay.appendChild(stage);
       overlay.appendChild(close);
       document.body.appendChild(overlay);
       close.addEventListener('click', hide);
       overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
+      frame.addEventListener('load', function () { try { frame.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*'); } catch (_) {} });
+      window.addEventListener('message', function (e) {        /* Vimeo reports play/bufferend → drop the loading mark */
+        if (!spin || (e.origin || '').indexOf('vimeo') === -1) return;
+        var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
+        if (d && (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend')) spin.classList.add('is-off');
+      });
     }
     function show(id, hash) {
       if (!id) return;
       if (!overlay) build();
+      if (spin) spin.classList.remove('is-off');               /* fresh loading state each open */
+      clearTimeout(spinFallback); spinFallback = setTimeout(function () { if (spin) spin.classList.add('is-off'); }, 5000);   /* never strand the mark if Vimeo never reports */
       frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
       document.documentElement.style.overflow = 'hidden';
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
+      if (!spinRaf) spinRaf = requestAnimationFrame(spinLoop);
       document.addEventListener('keydown', onKey);
     }
     function hide() {
@@ -1869,6 +1937,7 @@
       overlay.classList.remove('is-open');
       document.documentElement.style.overflow = '';
       document.removeEventListener('keydown', onKey);
+      clearTimeout(spinFallback);
       setTimeout(function () { if (frame) frame.src = 'about:blank'; }, 320);   /* stop playback after the fade */
     }
     function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) hide(); }
@@ -1951,6 +2020,8 @@
    * ======================================================= */
   onReady(function () {
     if (RM || TOUCH) return;
+    var P27 = location.pathname.replace(/\/$/, '') || '/';
+    if (P27 === '/work') return;   /* client: /work is one big work grid — the stations kept pulling back up to the title. Lenis smooth scroll (module 2) stays on; only the station braking is off here. */
     var FORWARD_PULL = 1.0;   /* if the glide dies short of the next station, pull forward into it when it's within this many viewports — further = rest free (mid-read in a tall section) */
     var INPUT_IDLE = 140;     /* ms since the last wheel tick before takeover — never fight a hand that's still on the wheel */
     var SETTLE_MS = 120;      /* scrolls that die on their own get one at-rest station check */
@@ -2815,7 +2886,12 @@
         vp.scrollLeft = sl - (e.clientX - sx);
         if (setEnd) { if (vp.scrollLeft >= setEnd) { vp.scrollLeft -= setEnd; sl -= setEnd; } else if (vp.scrollLeft <= 0 && sl > setEnd / 2) { vp.scrollLeft += setEnd; sl += setEnd; } }
       });
-      function up() { if (!dragging) return; dragging = false; pill.classList.remove('is-down'); wrap(); schedule(); }
+      function up() {
+        if (!dragging) return; dragging = false; pill.classList.remove('is-down');
+        if (COVER) { var w = vp.clientWidth || 1; wrap(); tweenTo(Math.round(vp.scrollLeft / w) * w); }   /* client: a drag lands you ON the next photo, never stuck between two */
+        else wrap();
+        schedule();
+      }
       vp.addEventListener('pointerup', up);
       vp.addEventListener('pointercancel', up);
       var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(measure, 200); });
