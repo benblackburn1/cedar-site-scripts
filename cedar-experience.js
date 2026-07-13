@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.33.0 · built by Origin · loaded site-wide (footer)
+ * v1.34.0 · built by Origin · loaded site-wide (footer)
+ * v1.34.0 (client edit batch): scroll STATIONS turned OFF site-wide (module 27 early-returns) — only Lenis's subtle smooth scroll remains · revealed-after-scroll NAV gets a solid WHITE background + charcoal ink (module 9 toggles .cedar-nav-solid once y>90 and the nav is shown; transparent over the hero at the very top) · LOADER now holds until the text finishes typing + .2s (finish() polls typedAt+200ms & LOADER_MIN, with a ceiling so a stalled typewriter can't wedge it) · LOADER line 2 is now a RANDOM saying — reads .loader-saying / [data-loader-saying] elements (Ben binds a hidden "Loading Screen Sayings" Collection List) and picks one per page load; falls back to "Transformative films & inspiring ideas" until the list exists · NEW module 32: /about "Our Team" bio cards hide the name+bio at rest and fade them in on hover, with a dark bottom gradient rising on the image (person cards only; touch/RM keep the info visible)
  * v1.33.0 (client): marquee logos halved (height 100→50px) after the trim/normalize pass made them consistent; the gap only drops 20% (100→80px, module 8) so the smaller logos read more spaced out
  * v1.32.0 (client edit batch): filter pills keep their YELLOW on hover (Ben's Webflow :hover tinted them light-green, read as "no background") · the nav MARK stays CHARCOAL on /about (module 11 tags the navbar .cedar-on-about; the light-green-over-light rule is scoped around it) · post photo COVER slider: a drag now snaps you ONTO the next photo (round scrollLeft to the nearest band-width on pointerup — no more stuck between two) · post horizontal hairlines + accordion separators forced to FULL opacity to match the vertical lines (were #9fb18f80 / 50%); footer vertical divider full opacity too (was 32%) · /work drops the scroll STATIONS (it is one big work grid — the stations kept yanking back up to the title); Lenis smooth scroll stays on there, only the section-braking is off · "Grown in Birmingham" (/about) reveals as soon as its column top enters the viewport instead of off its own top (was landing after you had scrolled past) · NEW video-loading mark: the click-to-play lightbox shows a small white-on-black rotating 3D wireframe chevron (the loader's brand mark, one reused WebGL context; CSS-3D SVG fallback) over the black stage until Vimeo reports the film is playing
  * v1.31.0 (client feel note on the stations): the catch could fire AFTER the glide had carried past a section top and pull the user BACK — root cause was choosing the station nearest a projected rest with a backward-nudge allowance. Reworked: (1) Lenis itself is slower and heavier (duration 1.1→1.55, easeOutCubic→easeOutExpo's long tail, wheelMultiplier 0.9) so a gesture has the runway to slow into a section rather than overshoot it; (2) module 27 reads Lenis's true destination (targetScroll, no projection guesswork) the moment wheel input idles and takes over EARLY — while still short of the platform — braking into the furthest station the glide would pass, or easing forward into the next one within FORWARD_PULL (1vh); a station behind the current position is never a target (the train does not reverse — backward grabs eliminated); at speed the brake duration shortens so the velocity-matched entry stays monotonic (firm brake), at a crawl it stretches (long settle)
@@ -242,8 +243,11 @@
     /* line draw-in: SVG overlay sits on the host edge, line strokes in */
     '.cedar-line-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1;}',
     /* nav: transparent + blur veil on hover/focus; auto-hides on scroll-down, slides back on scroll-up; ink (links + masked logo/mark) flips by what's behind it — JS toggles cedar-nav-dark / cedar-nav-light per scroll position */
-    '.navbar{transition:transform .55s ' + EASE + ';will-change:transform;}',
+    '.navbar{transition:transform .55s ' + EASE + ',background-color .35s ' + EASE + ';will-change:transform;}',
     '.navbar.cedar-nav-hidden{transform:translateY(-100%);}',
+    /* client: revealed-after-scroll nav = solid white field + charcoal ink everywhere (legible on any section) */
+    '.navbar.cedar-nav-solid{background-color:#fff;box-shadow:0 1px 0 rgba(41,34,27,.07);}',
+    '.navbar.cedar-nav-solid .nav-link,.navbar.cedar-nav-solid .cedar-logo-mask,.navbar.cedar-nav-solid .cedar-mark-mask{color:' + CHARCOAL + '!important;}',
     /* masked logo + mark: shape from the brand SVG, painted with currentColor so it rides the nav ink; width tracks the source aspect ratio (no squish) */
     '.cedar-logo-mask,.cedar-mark-mask{display:block;background-color:currentColor;color:#f4f4f2;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;transition:background-color .45s ' + EASE + ';}',
     '.nav-link{transition:color .45s ' + EASE + ';}',
@@ -338,6 +342,12 @@
     '.horizontal-line.light-green{color:#9fb18f!important;}',                /* post hairlines to full opacity — match the vertical lines (were 50%) */
     '.acc-item.light-green{border-top-color:#9fb18f!important;}',           /* accordion separators (drawn by module 6) to full opacity too */
     '.navbar.cedar-on-about.cedar-nav-light .cedar-mark-mask{color:' + CHARCOAL + '!important;}',   /* on /about the MARK stays charcoal, not light green */
+    /* team bio cards (module 32): name + bio fade in only on hover; a dark gradient rises over the image bottom */
+    '.cedar-bio{position:relative;overflow:hidden;}',
+    '.cedar-bio .bio-card-info{opacity:0;transition:opacity .45s ' + EASE + ';}',
+    '.cedar-bio:hover .bio-card-info,.cedar-bio:focus-within .bio-card-info{opacity:1;}',
+    '.cedar-bio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,0));z-index:2;opacity:0;transition:opacity .45s ' + EASE + ';pointer-events:none;}',
+    '.cedar-bio:hover::after,.cedar-bio:focus-within::after{opacity:1;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -401,12 +411,19 @@
     loader.appendChild(top); loader.appendChild(stage); loader.appendChild(bottom);
     (document.body || document.documentElement).appendChild(loader);
 
-    /* typewriter */
-    var lines = ['NOW LOADING:', 'TRANSFORMATIVE FILMS & INSPIRING IDEAS'];
+    /* typewriter — line 2 is a random "Loading Screen Saying". Ben binds a hidden Collection List
+       (each item's text in a .loader-saying element); we read those and pick one per page load, so
+       each visit says something different. Falls back to the default line until the CMS list exists.
+       (.cl-bottom is uppercased in CSS, so sayings can be entered in normal case.) */
+    var SAYINGS = [].slice.call(document.querySelectorAll('.loader-saying,[data-loader-saying]'))
+      .map(function (e) { return (e.textContent || '').trim(); }).filter(Boolean);
+    if (!SAYINGS.length) SAYINGS = ['Transformative films & inspiring ideas'];
+    var lines = ['NOW LOADING:', SAYINGS[Math.floor(Math.random() * SAYINGS.length)]];
     var li = 0, ci = 0, l1 = el('div', null, ''), l2 = el('div', null, '');
     bottom.appendChild(l1); bottom.appendChild(l2);
+    var typedAt = 0;                                   /* stamped when the last character lands — the loader holds .2s past this */
     (function type() {
-      if (li >= lines.length) return;
+      if (li >= lines.length) { typedAt = Date.now(); return; }
       var target = li === 0 ? l1 : l2;
       target.textContent = lines[li].slice(0, ++ci);
       if (ci >= lines[li].length) { li++; ci = 0; setTimeout(type, 260); }
@@ -464,13 +481,18 @@
     var t0 = Date.now(), done = false;
     function finish() {
       if (done) return; done = true;
-      var wait = Math.max(0, LOADER_MIN - (Date.now() - t0));
-      setTimeout(function () {
-        loader.classList.add('is-done');
-        window.__cedarReady = true;                                   /* release gated scroll motion */
-        document.dispatchEvent(new CustomEvent('cedar:ready'));
-        setTimeout(function () { if (spin) cancelAnimationFrame(spin); loader.remove(); }, 700);
-      }, wait);
+      (function close() {
+        var elapsed = Date.now() - t0;
+        var typedHeld = typedAt && (Date.now() - typedAt) >= 200;      /* client: let the text finish typing, then hold .2s */
+        if ((typedHeld && elapsed >= LOADER_MIN) || elapsed >= LOADER_MAX + 1500) {   /* ceiling so a stalled typewriter never wedges the loader */
+          loader.classList.add('is-done');
+          window.__cedarReady = true;                                 /* release gated scroll motion */
+          document.dispatchEvent(new CustomEvent('cedar:ready'));
+          setTimeout(function () { if (spin) cancelAnimationFrame(spin); loader.remove(); }, 700);
+        } else {
+          setTimeout(close, 60);
+        }
+      })();
     }
     /* hold the loader until the hero background video is actually playing (masks the
        buffer flash); fall back to full page load, then a hard cap */
@@ -1462,6 +1484,10 @@
         }
       }
       setShown(!hidden);
+      /* client: once scrolled down from the top, a revealed nav gets a solid WHITE background (charcoal
+         ink, forced in CSS) so the links read on any section; at the very top it stays transparent over
+         the hero. */
+      nav.classList.toggle('cedar-nav-solid', !hidden && y > 90 && !window.__cedarAboutIntro);
       lastY = y;
     }
     function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(onFrame); } }
@@ -2020,6 +2046,7 @@
    *   glideDur().
    * ======================================================= */
   onReady(function () {
+    return;   /* client 2026-07-13: scroll STATIONS turned OFF site-wide — keep only Lenis's subtle smooth scroll (module 2). The section-braking was too controlling; remove this one line to bring the stations back. */
     if (RM || TOUCH) return;
     var P27 = location.pathname.replace(/\/$/, '') || '/';
     if (P27 === '/work') return;   /* client: /work is one big work grid — the stations kept pulling back up to the title. Lenis smooth scroll (module 2) stays on; only the station braking is off here. */
@@ -2908,6 +2935,21 @@
     var RX = /reply within 24 hours/i;
     [].slice.call(document.querySelectorAll('p,div,span,em,strong,.caption')).forEach(function (n) {
       if (!n.children.length && RX.test(n.textContent || '')) n.classList.add('cedar-reply-24');
+    });
+  });
+
+  /* =========================================================
+   * 32. TEAM BIO CARDS (/about "Our Team") — name + bio hidden at
+   *   rest, fade in on hover; a dark bottom gradient rises on the
+   *   image at the same time (CSS on .cedar-bio does the reveal).
+   *   Only person cards (image + info) opt in — the CTA "no-outline"
+   *   card is left alone. Touch / reduced motion keep the info
+   *   visible (no hover to trigger it).
+   * ======================================================= */
+  onReady(function () {
+    if (TOUCH || RM) return;                            /* no hover on touch, and RM users keep names visible */
+    [].slice.call(document.querySelectorAll('.bio-card')).forEach(function (c) {
+      if (c.querySelector('img.bio-image') && c.querySelector('.bio-card-info')) c.classList.add('cedar-bio');
     });
   });
 })();
