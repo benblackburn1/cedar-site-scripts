@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.34.0 · built by Origin · loaded site-wide (footer)
+ * v1.35.0 · built by Origin · loaded site-wide (footer)
+ * v1.35.0 (client): footer CTA copy above the "Say hello" pill → "Let's make something that lasts." (was the Webflow tagline)
  * v1.34.0 (client edit batch): scroll STATIONS turned OFF site-wide (module 27 early-returns) — only Lenis's subtle smooth scroll remains · revealed-after-scroll NAV gets a solid WHITE background + charcoal ink (module 9 toggles .cedar-nav-solid once y>90 and the nav is shown; transparent over the hero at the very top) · LOADER now holds until the text finishes typing + .2s (finish() polls typedAt+200ms & LOADER_MIN, with a ceiling so a stalled typewriter can't wedge it) · LOADER line 2 is now a RANDOM saying — reads .loader-saying / [data-loader-saying] elements (Ben binds a hidden "Loading Screen Sayings" Collection List) and picks one per page load; falls back to "Transformative films & inspiring ideas" until the list exists · NEW module 32: /about "Our Team" bio cards hide the name+bio at rest and fade them in on hover, with a dark bottom gradient rising on the image (person cards only; touch/RM keep the info visible)
  * v1.33.0 (client): marquee logos halved (height 100→50px) after the trim/normalize pass made them consistent; the gap only drops 20% (100→80px, module 8) so the smaller logos read more spaced out
  * v1.32.0 (client edit batch): filter pills keep their YELLOW on hover (Ben's Webflow :hover tinted them light-green, read as "no background") · the nav MARK stays CHARCOAL on /about (module 11 tags the navbar .cedar-on-about; the light-green-over-light rule is scoped around it) · post photo COVER slider: a drag now snaps you ONTO the next photo (round scrollLeft to the nearest band-width on pointerup — no more stuck between two) · post horizontal hairlines + accordion separators forced to FULL opacity to match the vertical lines (were #9fb18f80 / 50%); footer vertical divider full opacity too (was 32%) · /work drops the scroll STATIONS (it is one big work grid — the stations kept yanking back up to the title); Lenis smooth scroll stays on there, only the section-braking is off · "Grown in Birmingham" (/about) reveals as soon as its column top enters the viewport instead of off its own top (was landing after you had scrolled past) · NEW video-loading mark: the click-to-play lightbox shows a small white-on-black rotating 3D wireframe chevron (the loader's brand mark, one reused WebGL context; CSS-3D SVG fallback) over the black stage until Vimeo reports the film is playing
@@ -2566,7 +2567,7 @@
     var root = el('div', 'cedar-foot', '');
     var cols = el('div', 'cedar-foot-cols', '');
     var c1 = el('div', 'cedar-foot-col c1', '');
-    c1.appendChild(el('p', 'cf-tag', tag.replace(/\s*Say hello\.?\s*$/i, '')));      /* "Say hello" becomes the pill below */
+    c1.appendChild(el('p', 'cf-tag', "Let's make something that lasts."));      /* client copy (was the Webflow tagline); "Say hello" is the pill below */
     var cta = el('a', 'cf-cta', 'Say hello'); cta.href = '/contact';
     c1.appendChild(cta);
     var c2 = el('div', 'cedar-foot-col c2', '');
