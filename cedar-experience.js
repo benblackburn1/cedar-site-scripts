@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.35.0 · built by Origin · loaded site-wide (footer)
+ * v1.36.0 · built by Origin · loaded site-wide (footer)
+ * v1.36.0 (client): HOME work-grid filters from ALL works — module 3 gains a HOME cap: when the homepage Works Collection List is opened past 6 items (Ben sets Show=all, sorted by Homepage Feature Order; filter removed), the grid shows only the first 6 at rest and the first 6 MATCHING on filter (so "Brand Film" now returns 6 brand films, not just the 1 that was in the featured 6), with all filter chips built from the full set. Each shown card takes one of the 6 design SLOT widths by position so the 2-up rhythm holds whichever 6 show; cross-fade on filter. NO-OP while the list is still limited to 6 (safe to ship before Ben opens it).
  * v1.35.0 (client): footer CTA copy above the "Say hello" pill → "Let's make something that lasts." (was the Webflow tagline)
  * v1.34.0 (client edit batch): scroll STATIONS turned OFF site-wide (module 27 early-returns) — only Lenis's subtle smooth scroll remains · revealed-after-scroll NAV gets a solid WHITE background + charcoal ink (module 9 toggles .cedar-nav-solid once y>90 and the nav is shown; transparent over the hero at the very top) · LOADER now holds until the text finishes typing + .2s (finish() polls typedAt+200ms & LOADER_MIN, with a ceiling so a stalled typewriter can't wedge it) · LOADER line 2 is now a RANDOM saying — reads .loader-saying / [data-loader-saying] elements (Ben binds a hidden "Loading Screen Sayings" Collection List) and picks one per page load; falls back to "Transformative films & inspiring ideas" until the list exists · NEW module 32: /about "Our Team" bio cards hide the name+bio at rest and fade them in on hover, with a dark bottom gradient rising on the image (person cards only; touch/RM keep the info visible)
  * v1.33.0 (client): marquee logos halved (height 100→50px) after the trim/normalize pass made them consistent; the gap only drops 20% (100→80px, module 8) so the smaller logos read more spaced out
@@ -610,6 +611,19 @@
       if (lb && DESK) { lb.classList.remove('hidden'); lb.style.opacity = '0'; lb.style.pointerEvents = 'none'; lb.style.zIndex = '4'; lb.style.transition = 'opacity .5s ' + EASE; }
       else if (lb) { lb.classList.remove('hidden'); }   /* mobile: CSS pins the title-only label visible */
     });
+    /* HOME cap+filter-from-all (client): when Ben opens the homepage Works list past 6 (Show=all, sorted by
+       Homepage Feature Order), show only the first 6 at rest and 6 MATCHING on filter — so the filter pulls
+       from ALL works but the grid stays 6-up. Each shown card is given one of the 6 design SLOT widths by
+       position, so the 2-up asymmetric rhythm holds whichever 6 show. No-op while the list is still 6. */
+    var HOME = path === '/', HOME_CAP = 6;
+    var SLOTS = HOME ? cards.slice(0, HOME_CAP).map(function (c) { return c._nat; }) : null;
+    var HOME_MODE = HOME && cards.length > HOME_CAP;
+    function homeShow(list) {
+      var show = list.slice(0, HOME_CAP);
+      cards.forEach(function (c) { c.style.display = show.indexOf(c) > -1 ? '' : 'none'; });
+      show.forEach(function (c, i) { c._nat = SLOTS[i % SLOTS.length] || c._nat; });
+    }
+    if (HOME_MODE) homeShow(cards.slice(0, HOME_CAP));
     assignPattern();
     function visible() { return cards.filter(function (c) { return c.style.display !== 'none'; }); }
     function relock(enableTrans) {                     /* grow visible cards to fill their rows, then freeze as px so hover can animate flex-basis cleanly */
@@ -736,6 +750,23 @@
       function match(c) { return GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }
       function capUpd() { var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); if (caption) caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); if (xbtn) xbtn.style.display = picks.length ? 'inline-flex' : 'none'; }
       function apply() {
+        if (HOME_MODE) {                                /* home: pick the first 6 MATCHING across all works, cross-fade the grid */
+          var kept = cards.filter(match).slice(0, HOME_CAP);
+          if (!kept.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); kept = cards.slice(0, HOME_CAP); }
+          capUpd();
+          if (!DESK) { homeShow(kept); return; }
+          var cur = visible();
+          cur.forEach(function (c) { c.style.transition = 'opacity .3s ' + EASE; c.style.opacity = '0'; });
+          setTimeout(function () {
+            homeShow(kept); relock(false);
+            visible().forEach(function (c) { c.style.transition = 'none'; c.style.opacity = '0'; });
+            requestAnimationFrame(function () {
+              visible().forEach(function (c) { c.style.transition = 'opacity .5s ' + EASE; c.style.opacity = '1'; });
+              setTimeout(function () { visible().forEach(function (c) { c.style.transition = TRANS; c.style.opacity = ''; }); }, 520);
+            });
+          }, 220);
+          return;
+        }
         var keep = cards.filter(match);
         if (!keep.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); keep = cards.slice(); }  /* never empty the grid */
         if (!DESK) {                                    /* touch / reduced motion: simple show-hide, no FLIP reflow */
