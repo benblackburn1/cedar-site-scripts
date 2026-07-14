@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.45.0 · built by Origin · loaded site-wide (footer)
+ * v1.46.0 · built by Origin · loaded site-wide (footer)
+ * v1.46.0 (client): crop refinements. (1) the click-to-play LIGHTBOX is no longer cropped — it's the full-frame "watch it properly" view, and cropping zoomed the Vimeo player controls. (2) the project-page HERO crop is hardened for the nested embed (video-card-item → wrapper → container → iframe): it now zooms the film IN PLACE via a transform (no re-centering against the wrong container), the band clips the overflow, and the mobile hero picks up the same crop through module 25. Tag the hero's band or its embed with data-cedar-crop.
  * v1.45.0 (client): CMS-DRIVEN CROP — replaces v1.44's hardcoded data-cedar-fill with a per-item "Crop" dropdown (None/5/10/15/20%) that follows a film/still EVERYWHERE it renders. Add a Crop option field to Works (fixes its grid thumbnail + hero at once) and Gallery Items (fixes the gallery), bind data-cedar-crop to it on the item container, and dial each asset until its black bars vanish. The % is trimmed off each edge via a uniform zoom (no stretching); applied to the grid hover clips (module 3), gallery films (13), the project hero band (34), the lightbox (14), and stills (module 35, .img-cover). NO-OP until a Crop value is set — nothing changes on untagged items.
  * v1.44.0 (client): NEW module 34 — letterbox crop for cinemascope films. A film wider than 16:9 (e.g. the Breakneck hero) is letterboxed by Vimeo inside its 16:9 player, showing black bars top + bottom of the card. Tag the video's band with a data-cedar-fill custom attribute (value = the film's aspect ratio, e.g. 2.4; blank defaults to 2.4) and the script cover-fills the film to the band's height so the picture fills the frame and the bars overflow — the card keeps its own shape. Tune the number in Webflow until the bars vanish, no redeploy. NO-OP until a band is tagged.
  * v1.43.0 (client): dragging the /about team cards to scroll no longer grabs the photo as a native browser drag ghost — the bio-image (and every image inside a drag-scroll row) is now non-draggable (-webkit-user-drag:none + user-select:none), with a dragstart preventDefault on the team row for Firefox.
@@ -2111,12 +2112,11 @@
         if (d && (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend')) spin.classList.add('is-off');
       });
     }
-    function show(id, hash, z) {
+    function show(id, hash) {
       if (!id) return;
       if (!overlay) build();
       if (spin) spin.classList.remove('is-off');               /* fresh loading state each open */
       clearTimeout(spinFallback); spinFallback = setTimeout(function () { if (spin) spin.classList.add('is-off'); }, 5000);   /* never strand the mark if Vimeo never reports */
-      frame.style.transform = (z && z !== 1) ? 'scale(' + z + ')' : '';   /* CMS Crop follows the film into the lightbox */
       frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
       document.documentElement.style.overflow = 'hidden';
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
@@ -2136,7 +2136,7 @@
       var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo],.cedar-hero-watch[data-cedar-vimeo]');
       if (!card) return;
       e.preventDefault();
-      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'), cropZoomNear(card));
+      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));   /* lightbox is NOT cropped — it's the full-frame "watch it properly" view (cropping would zoom the player controls) */
     });
   });
 
@@ -2888,7 +2888,9 @@
       f.style.setProperty('position', 'absolute', 'important');
       f.style.setProperty('top', '50%', 'important');
       f.style.setProperty('left', '50%', 'important');
-      f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
+      var ch = band.hasAttribute('data-cedar-crop') ? band : band.querySelector('[data-cedar-crop]');   /* CMS Crop tagged on the band or its embed */
+      var cz = ch ? cropZoom(ch) : 1;
+      f.style.setProperty('transform', 'translate(-50%,-50%)' + (cz !== 1 ? ' scale(' + cz + ')' : ''), 'important');
       f._cedarBandSized = true;
     }
     size();
@@ -3204,32 +3206,25 @@
     var hosts = [].slice.call(document.querySelectorAll('[data-cedar-crop]'));
     if (!hosts.length) return;
     hosts.forEach(function (host) {
-      if (host.closest('.work-grid') || host.closest('.gallery-card')) return;   /* those films are handled by modules 3 & 13 */
+      if (host.closest('.work-grid') || host.closest('.gallery-card')) return;   /* grid + gallery films are cropped in modules 3 & 13 */
       var z = cropZoom(host); if (z === 1) return;
-      host.style.overflow = 'hidden';
-      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-      function fit() {
+      var band = host.closest('.hero-band, .photo-band') || (host.matches('.hero-band, .photo-band') ? host : null);
+      host.style.overflow = 'hidden'; if (band) band.style.overflow = 'hidden';   /* the band clips the zoomed film */
+      function apply() {
+        if (band && window.innerWidth < 768) return true;    /* mobile hero band is sized+cropped by module 25 (it owns the mobile geometry) */
         var f = host.querySelector('iframe'); if (!f) return false;
-        var r = host.getBoundingClientRect(); if (r.height < 2) return false;
-        var w = Math.ceil(Math.max(r.width, r.height * 16 / 9) * z) + 2;   /* cover the band, then zoom by the crop factor */
-        f.style.setProperty('position', 'absolute', 'important');
-        f.style.setProperty('top', '50%', 'important');
-        f.style.setProperty('left', '50%', 'important');
-        f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
-        f.style.setProperty('width', w + 'px', 'important');
-        f.style.setProperty('height', Math.ceil(w * 9 / 16) + 'px', 'important');
-        f.style.setProperty('min-width', '0', 'important');
-        f.style.setProperty('min-height', '0', 'important');
-        f.style.setProperty('max-width', 'none', 'important');
-        f.style.setProperty('max-height', 'none', 'important');
+        var t = f.style.transform || '';
+        var tr = /translate\([^)]*\)/.test(t) ? t.match(/translate\([^)]*\)/)[0] + ' ' : '';   /* preserve any centering already on the iframe */
+        f.style.setProperty('transform-origin', 'center center', 'important');
+        f.style.setProperty('transform', tr + 'scale(' + z + ')', 'important');   /* zoom the film in place — the bars overflow and the band clips them */
         return true;
       }
-      if (!fit()) {                                                       /* the #vimeo-bg embed builds its iframe / sets src late (an image-only host just times out) */
-        var mo = new MutationObserver(function () { fit(); });
+      if (!apply()) {                                          /* the #vimeo-bg embed builds its iframe / sets src late (an image-only host just times out harmlessly) */
+        var mo = new MutationObserver(function () { apply(); });
         mo.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
         setTimeout(function () { try { mo.disconnect(); } catch (_) {} }, 12000);
       }
-      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(fit, 160); });
+      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(apply, 200); });
     });
   });
 
