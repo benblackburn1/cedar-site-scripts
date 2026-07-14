@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.42.0 · built by Origin · loaded site-wide (footer)
+ * v1.43.0 · built by Origin · loaded site-wide (footer)
+ * v1.43.0 (client): dragging the /about team cards to scroll no longer grabs the photo as a native browser drag ghost — the bio-image (and every image inside a drag-scroll row) is now non-draggable (-webkit-user-drag:none + user-select:none), with a dragstart preventDefault on the team row for Firefox.
  * v1.42.0 (client): removed the bare "All Work" pill's hover fill — the transparent-at-rest pill no longer fills on hover (it stays at its rest state). The script now applies no hover effect at all to .btn-pill (the lift is Ben's own Webflow interaction).
  * v1.41.0 (client): two fixes. (1) /about "Our Team" cards were squishing to fit the viewport instead of holding their width and scrolling — the Webflow .bio-card is flex-basis:25% but its flex-shrink was left at the default 1, so 7 cards crammed into the 100vw row; pinned flex-shrink:0 (desktop) so they keep their width, the row overflows, and module 33's drag-to-scroll + "Click and drag" pill finally arms (it only engages when the row actually overflows). (2) The "Play with sound" pill + lightbox is now extensible: tag ANY video container with a data-cedar-watch custom attribute (e.g. the /post Cedar Suite film) and it gets the same glass pill and click-to-open player as the hero — value can be a Vimeo URL/id or left blank to read the container's own embed; add data-cedar-watch-click to make the whole film clickable.
  * v1.40.0 (client): STALL WATCHDOG on the work-grid hover clips — rarely a preloaded clip loads to a dead/black frame and never starts (a transient Vimeo load failure on one clip in the batch). Module 3 now watches each clip once it begins loading: if the Vimeo player never reports coming up within ~6.5s (no 'ready'/'play'), or Vimeo posts an 'error', the clip is reloaded cache-busted, up to twice. A clip that DID initialize but is only slow to buffer gets one extra window before any reload, and reloads are jittered, so good-but-slow connections aren't churned and a coincidental batch can't re-storm Vimeo. Silent and self-healing — no visual change when clips load fine.
@@ -368,6 +369,9 @@
        Pin shrink:0 (desktop) so the cards keep their width and the row overflows — which also lets module 33's
        overflow check finally arm the drag-scroll + "Click and drag" pill (chicken-and-egg: no overflow, no arm). */
     '@media (min-width:768px){.bio-row .bio-card{flex-shrink:0!important;}}',
+    /* dragging a card to scroll must NOT grab the image as a native HTML5 drag ghost (client: it tried to
+       drag the photo off the page). Non-draggable + non-selectable across the drag-scroll rows. */
+    '.cedar-hscroll img,.bio-row img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -3130,6 +3134,7 @@
     if (P !== '/about') return;
     var row = document.querySelector('.bio-row.w-dyn-items') || document.querySelector('.bio-row');
     if (!row) return;
+    row.addEventListener('dragstart', function (e) { e.preventDefault(); });   /* stop the native image-drag ghost when dragging to scroll (Firefox needs this; CSS handles WebKit) */
     var armed = false;
     function check() {
       var need = row.scrollWidth > row.clientWidth + 8;
