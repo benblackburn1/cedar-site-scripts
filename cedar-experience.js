@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.39.0 · built by Origin · loaded site-wide (footer)
+ * v1.40.0 · built by Origin · loaded site-wide (footer)
+ * v1.40.0 (client): STALL WATCHDOG on the work-grid hover clips — rarely a preloaded clip loads to a dead/black frame and never starts (a transient Vimeo load failure on one clip in the batch). Module 3 now watches each clip once it begins loading: if the Vimeo player never reports coming up within ~6.5s (no 'ready'/'play'), or Vimeo posts an 'error', the clip is reloaded cache-busted, up to twice. A clip that DID initialize but is only slow to buffer gets one extra window before any reload, and reloads are jittered, so good-but-slow connections aren't churned and a coincidental batch can't re-storm Vimeo. Silent and self-healing — no visual change when clips load fine.
  * v1.39.0 (client): the white wireframe LOADING MARK (lightbox) now also shows on the work-grid HOVER clips — module 3 gained one shared spinner (same chevron, WebGL + SVG fallback) that moves into the hovered card's black .cedar-cardvid and shows until that clip reports playing; since the grid PRELOADS most clips, it only appears when a card is genuinely still buffering. Card iframes subscribe to Vimeo 'play'; stopVid resets the flag so a re-buffered clip shows it again.
  * v1.38.0 (client): the hero/gallery "Play/Watch with sound" pill's play icon was the U+25B6 glyph (&#9654;), which iOS/mobile rendered as the colour emoji ▶️ — swapped for an inline SVG triangle in currentColor (.cedar-play-ico), so it's a clean white play icon on every browser
  * v1.37.0 (client): NEW module 33 — the /about "Our Team" horizontal .bio-row gets the drag-to-scroll + "Click and drag" cursor pill (same treatment as the post-partners row, module 24); arms only when the team cards overflow the row, hides the scrollbar, suppresses the click at drag-release; touch keeps native swipe. Coexists with the module-32 hover reveal.
@@ -690,8 +691,45 @@
       card._cv = wrap;
       coverCV(card, card._rw);   /* src set on hover (restarts each time) */
     }
-    function playVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f && c._src && (!f.src || f.src === 'about:blank')) f.src = c._src; } }   /* idempotent: starts the muted loop only if not already streaming */
-    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; c._playing = false; } }        /* reclaim bandwidth once far off-screen; next hover re-buffers -> mark shows again */
+    /* STALL WATCHDOG (client: rare — some preloaded clips load to a dead/black frame and never start,
+       a transient Vimeo load failure on one clip in the batch). When a clip begins loading we watch it;
+       if the player never even comes up (no 'ready'/'play' message from Vimeo within WATCH_MS) we reload
+       it, cache-busted so it's a genuinely fresh request, up to MAX_RELOAD times. A clip that DID init but
+       is only slow to buffer (any message = _alive) is granted one extra window before any reload, so a
+       good-but-slow connection isn't churned; the reload is jittered so a coincidental batch can't re-storm
+       Vimeo. Gives up quietly after MAX_RELOAD (a scroll-away-and-back re-arms it via the preload observer). */
+    var WATCH_MS = 6500, MAX_RELOAD = 2;
+    function clearWatch(c) { if (c && c._watch) { clearTimeout(c._watch); c._watch = null; } }
+    function reloadVid(c) {
+      if (!c || !c._cv || !c._src) return;
+      c._reloads = (c._reloads || 0) + 1; c._alive = false; c._playing = false;
+      var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank';
+      setTimeout(function () {
+        if (!c._cv) return; var g = c._cv.querySelector('iframe'); if (!g || g.src !== 'about:blank') return;
+        g.src = c._src + (c._src.indexOf('?') > -1 ? '&' : '?') + '_r=' + c._reloads;   /* cache-bust → fresh load, not a cached 429/error */
+      }, 80 + Math.random() * 700);                                                     /* jitter desyncs any coincidental batch */
+    }
+    function armWatch(c) {
+      clearWatch(c);
+      c._watch = setTimeout(function () {
+        if (!c || !c._cv || c._playing) return;                       /* healthy (or the watch was cleared on play) */
+        var f = c._cv.querySelector('iframe');
+        if (!f || !f.src || f.src === 'about:blank') return;          /* released by stopVid — not a failure */
+        if ((c._reloads || 0) >= MAX_RELOAD) return;                  /* gave up quietly, no hammering */
+        if (c._alive && !c._extended) { c._extended = true; armWatch(c); return; }   /* player is up, just buffering — one more window */
+        reloadVid(c); armWatch(c);                                    /* never came up (or still dead) → reload and keep watching */
+      }, WATCH_MS + Math.random() * 1200);
+    }
+    function playVid(c) {
+      if (c && c._cv) {
+        var f = c._cv.querySelector('iframe');
+        if (f && c._src && (!f.src || f.src === 'about:blank')) {
+          c._reloads = 0; c._extended = false; c._alive = false; c._playing = false;
+          f.src = c._src; armWatch(c);   /* idempotent: starts the muted loop only if not already streaming, then watches the load */
+        }
+      }
+    }
+    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; c._playing = false; clearWatch(c); } }        /* reclaim bandwidth once far off-screen; next hover re-buffers -> mark shows again */
     function label(c, on) { var l = c && c.querySelector('.card-label'); if (l) l.style.opacity = on ? '1' : '0'; }
     /* hover-clip LOADING MARK (client: same white wireframe chevron as the lightbox, now on the grid).
        ONE shared spinner moved into the hovered card's black .cedar-cardvid, shown until that clip reports
@@ -734,14 +772,22 @@
         if (!gRaf) gRaf = requestAnimationFrame(gridSpinLoop);
       } else hideGridSpin();
     }
-    window.addEventListener('message', function (e) {   /* a clip reports playing -> mark it, drop the mark if it's the hovered card */
+    window.addEventListener('message', function (e) {   /* a clip reports in -> mark it live, drop the loading mark, feed the stall watchdog */
       if ((e.origin || '').indexOf('vimeo') === -1) return;
       var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
-      if (!d || (d.event !== 'play' && d.event !== 'playing' && d.event !== 'bufferend')) return;
+      if (!d) return;
+      var c = null;
       for (var i = 0; i < cards.length; i++) {
         var cv = cards[i]._cv; if (!cv) continue;
         var f = cv.querySelector('iframe');
-        if (f && f.contentWindow === e.source) { cards[i]._playing = true; if (cards[i] === active) hideGridSpin(); break; }
+        if (f && f.contentWindow === e.source) { c = cards[i]; break; }
+      }
+      if (!c) return;
+      c._alive = true;                                   /* ANY message means the Vimeo player initialized (not a dead load) */
+      if (d.event === 'error') { clearWatch(c); if ((c._reloads || 0) < MAX_RELOAD) { reloadVid(c); armWatch(c); } return; }
+      if (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend') {
+        c._playing = true; clearWatch(c);               /* genuinely playing -> stop watching */
+        if (c === active) hideGridSpin();
       }
     });
     /* single active card + debounced hover (intent-in, settle-out) so the moving edges can't ping-pong */
