@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.36.0 · built by Origin · loaded site-wide (footer)
+ * v1.37.0 · built by Origin · loaded site-wide (footer)
+ * v1.37.0 (client): NEW module 33 — the /about "Our Team" horizontal .bio-row gets the drag-to-scroll + "Click and drag" cursor pill (same treatment as the post-partners row, module 24); arms only when the team cards overflow the row, hides the scrollbar, suppresses the click at drag-release; touch keeps native swipe. Coexists with the module-32 hover reveal.
  * v1.36.0 (client): HOME work-grid filters from ALL works — module 3 gains a HOME cap: when the homepage Works Collection List is opened past 6 items (Ben sets Show=all, sorted by Homepage Feature Order; filter removed), the grid shows only the first 6 at rest and the first 6 MATCHING on filter (so "Brand Film" now returns 6 brand films, not just the 1 that was in the featured 6), with all filter chips built from the full set. Each shown card takes one of the 6 design SLOT widths by position so the 2-up rhythm holds whichever 6 show; cross-fade on filter. NO-OP while the list is still limited to 6 (safe to ship before Ben opens it).
  * v1.35.0 (client): footer CTA copy above the "Say hello" pill → "Let's make something that lasts." (was the Webflow tagline)
  * v1.34.0 (client edit batch): scroll STATIONS turned OFF site-wide (module 27 early-returns) — only Lenis's subtle smooth scroll remains · revealed-after-scroll NAV gets a solid WHITE background + charcoal ink (module 9 toggles .cedar-nav-solid once y>90 and the nav is shown; transparent over the hero at the very top) · LOADER now holds until the text finishes typing + .2s (finish() polls typedAt+200ms & LOADER_MIN, with a ceiling so a stalled typewriter can't wedge it) · LOADER line 2 is now a RANDOM saying — reads .loader-saying / [data-loader-saying] elements (Ben binds a hidden "Loading Screen Sayings" Collection List) and picks one per page load; falls back to "Transformative films & inspiring ideas" until the list exists · NEW module 32: /about "Our Team" bio cards hide the name+bio at rest and fade them in on hover, with a dark bottom gradient rising on the image (person cards only; touch/RM keep the info visible)
@@ -2983,5 +2984,62 @@
     [].slice.call(document.querySelectorAll('.bio-card')).forEach(function (c) {
       if (c.querySelector('img.bio-image') && c.querySelector('.bio-card-info')) c.classList.add('cedar-bio');
     });
+  });
+
+  /* =========================================================
+   * 33. TEAM ROW DRAG-SCROLL (/about "Our Team") — the horizontal
+   *   .bio-row Ben set to scroll gets the same drag-to-scroll +
+   *   "Click and drag" cursor pill as the post-partners row (module
+   *   24). Arms only when the cards overflow the row; scrollbar
+   *   hidden; a drag suppresses the click at release so cards don't
+   *   fire mid-drag. Touch keeps native swipe; rechecks on resize.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/about') return;
+    var row = document.querySelector('.bio-row.w-dyn-items') || document.querySelector('.bio-row');
+    if (!row) return;
+    var armed = false;
+    function check() {
+      var need = row.scrollWidth > row.clientWidth + 8;
+      row.classList.toggle('cedar-hscroll', need);
+      if (!TOUCH) row.classList.toggle('cedar-nocursor', need);
+      if (need && !armed && !TOUCH) arm();
+    }
+    function arm() {
+      armed = true;
+      var pill = el('div', 'cedar-cf-pill', 'Click and drag');
+      document.body.appendChild(pill);
+      var mx = 0, my = 0, px = -200, py = -200, raf = null, over = false;
+      function loop() {
+        if (!over) { raf = null; return; }
+        px += (mx - px) * 0.22; py += (my - py) * 0.22;
+        pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px';
+        raf = requestAnimationFrame(loop);
+      }
+      row.addEventListener('pointerenter', function (e) { if (!row.classList.contains('cedar-hscroll')) return; over = true; px = mx = e.clientX; py = my = e.clientY; pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
+      row.addEventListener('pointerleave', function () { over = false; pill.classList.remove('is-on'); });
+      var down = false, moved = false, sx = 0, sl = 0;
+      row.addEventListener('pointerdown', function (e) {
+        if (!row.classList.contains('cedar-hscroll')) return;
+        down = true; moved = false; sx = e.clientX; sl = row.scrollLeft;
+        try { row.setPointerCapture(e.pointerId); } catch (_) {}
+        pill.classList.add('is-down');
+      });
+      row.addEventListener('pointermove', function (e) {
+        mx = e.clientX; my = e.clientY;
+        if (!down) return;
+        var dx = e.clientX - sx;
+        if (Math.abs(dx) > 5) moved = true;
+        row.scrollLeft = sl - dx;
+      });
+      function up() { down = false; pill.classList.remove('is-down'); }
+      row.addEventListener('pointerup', up);
+      row.addEventListener('pointercancel', up);
+      row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    }
+    check();
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(check, 160); });
+    window.addEventListener('load', check);
   });
 })();
