@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.44.0 · built by Origin · loaded site-wide (footer)
+ * v1.45.0 · built by Origin · loaded site-wide (footer)
+ * v1.45.0 (client): CMS-DRIVEN CROP — replaces v1.44's hardcoded data-cedar-fill with a per-item "Crop" dropdown (None/5/10/15/20%) that follows a film/still EVERYWHERE it renders. Add a Crop option field to Works (fixes its grid thumbnail + hero at once) and Gallery Items (fixes the gallery), bind data-cedar-crop to it on the item container, and dial each asset until its black bars vanish. The % is trimmed off each edge via a uniform zoom (no stretching); applied to the grid hover clips (module 3), gallery films (13), the project hero band (34), the lightbox (14), and stills (module 35, .img-cover). NO-OP until a Crop value is set — nothing changes on untagged items.
  * v1.44.0 (client): NEW module 34 — letterbox crop for cinemascope films. A film wider than 16:9 (e.g. the Breakneck hero) is letterboxed by Vimeo inside its 16:9 player, showing black bars top + bottom of the card. Tag the video's band with a data-cedar-fill custom attribute (value = the film's aspect ratio, e.g. 2.4; blank defaults to 2.4) and the script cover-fills the film to the band's height so the picture fills the frame and the bars overflow — the card keeps its own shape. Tune the number in Webflow until the bars vanish, no redeploy. NO-OP until a band is tagged.
  * v1.43.0 (client): dragging the /about team cards to scroll no longer grabs the photo as a native browser drag ghost — the bio-image (and every image inside a drag-scroll row) is now non-draggable (-webkit-user-drag:none + user-select:none), with a dragstart preventDefault on the team row for Firefox.
  * v1.42.0 (client): removed the bare "All Work" pill's hover fill — the transparent-at-rest pill no longer fills on hover (it stays at its rest state). The script now applies no hover effect at all to .btn-pill (the lift is Ben's own Webflow interaction).
@@ -52,6 +53,12 @@
   var RM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var TOUCH = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
   var EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  /* CROP (client): a "Crop" CMS dropdown (None/5/10/15/20%) bound to a data-cedar-crop attribute lets a
+     film or still be zoom-cropped to hide letterbox/pillarbox bars. The value is a % trimmed off EACH edge;
+     since cropping a video without stretching means a uniform zoom, Z = 1/(1 - 2·n/100). Returns 1 (no-op)
+     when unset — so every hook below leaves the element untouched unless a tagged ancestor opts in. */
+  function cropZoom(host) { var n = host ? (parseFloat(host.getAttribute('data-cedar-crop')) || 0) : 0; if (n > 45) n = 45; return n > 0 ? 1 / (1 - 2 * n / 100) : 1; }
+  function cropZoomNear(el) { return cropZoom(el && el.closest ? el.closest('[data-cedar-crop]') : null); }
   var CHARCOAL = '#29221b';
   var GREY = '#dddad7';
   var YELLOW = '#ffd900';
@@ -687,6 +694,7 @@
       var h = card.getBoundingClientRect().height || 600;
       var iw = Math.ceil(Math.max(w || card.getBoundingClientRect().width, h * 16 / 9)) + 4;
       f.style.width = iw + 'px'; f.style.height = Math.ceil(iw * 9 / 16) + 'px';
+      var z = cropZoomNear(card); if (z !== 1) f.style.transform = 'translate(-50%,-50%) scale(' + z + ')';   /* CMS Crop: zoom the hover clip to hide letterbox bars */
     }
     function mountVideo(card) {
       if ('_cv' in card) return;
@@ -1978,8 +1986,10 @@
     function coverIframe(c, w) {
       var h = rowH();
       var iw = Math.ceil(Math.max(w, h * 16 / 9)) + 4, ih = Math.ceil(iw * 9 / 16) + 4;   /* width-first 16:9 cover: always spans the card's width; crop top/bottom when the card is wider than 16:9 */
+      var z = cropZoomNear(c);   /* CMS Crop: zoom the gallery film to hide letterbox bars */
+      var tf = z !== 1 ? 'translate(-50%,-50%) scale(' + z + ')' : 'translate(-50%,-50%)';
       var f = c.querySelector('.cedar-galvid iframe');
-      if (f) { f.style.width = iw + 'px'; f.style.height = ih + 'px'; return; }
+      if (f) { f.style.width = iw + 'px'; f.style.height = ih + 'px'; if (z !== 1) f.style.transform = tf; return; }
       /* legacy fallback embeds: the base stylesheet stretches them to the card box (non-16:9 box → Vimeo
          letterboxes INSIDE the frame, side bars on wide cards) — override with the same cover math */
       f = c.querySelector('.vimeo-container iframe');
@@ -1988,7 +1998,7 @@
       f.style.setProperty('height', ih + 'px', 'important');
       f.style.setProperty('top', '50%', 'important');
       f.style.setProperty('left', '50%', 'important');
-      f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
+      f.style.setProperty('transform', tf, 'important');
     }
     function set(c, w) {
       c.style.setProperty('flex', '0 0 auto', 'important');
@@ -2101,11 +2111,12 @@
         if (d && (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend')) spin.classList.add('is-off');
       });
     }
-    function show(id, hash) {
+    function show(id, hash, z) {
       if (!id) return;
       if (!overlay) build();
       if (spin) spin.classList.remove('is-off');               /* fresh loading state each open */
       clearTimeout(spinFallback); spinFallback = setTimeout(function () { if (spin) spin.classList.add('is-off'); }, 5000);   /* never strand the mark if Vimeo never reports */
+      frame.style.transform = (z && z !== 1) ? 'scale(' + z + ')' : '';   /* CMS Crop follows the film into the lightbox */
       frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
       document.documentElement.style.overflow = 'hidden';
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
@@ -2125,7 +2136,7 @@
       var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo],.cedar-hero-watch[data-cedar-vimeo]');
       if (!card) return;
       e.preventDefault();
-      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));
+      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'), cropZoomNear(card));
     });
   });
 
@@ -3181,29 +3192,26 @@
   });
 
   /* =========================================================
-   * 34. LETTERBOX CROP (client) — a film WIDER than 16:9 (cinemascope, e.g.
-   *   the Breakneck hero) is letterboxed by Vimeo INSIDE its 16:9 player, so
-   *   black bars show top + bottom of the card. Tag the video's band with a
-   *   data-cedar-fill custom attribute (value = the film's aspect ratio, e.g.
-   *   2.4 for scope; blank defaults to 2.4) and this cover-fills the film to
-   *   the band's real height so the picture fills the frame and the bars
-   *   overflow the card — the card keeps its own shape (no need to reshape it).
-   *   Crops the sides a touch (unavoidable when fitting a wider film into a
-   *   narrower box). Tune the number in Webflow until the bars just vanish;
-   *   no redeploy needed. Waits for the lazy #vimeo-bg embed; re-fits on resize.
+   * 34. VIDEO CROP — background films outside the work grid / gallery
+   *   (i.e. the project-page HERO band's #vimeo-bg). A film wider than 16:9
+   *   (cinemascope) is letterboxed by Vimeo inside its 16:9 player → black
+   *   bars top + bottom. The CMS "Crop" dropdown, bound to data-cedar-crop on
+   *   the band, zooms the film to hide the bars (see cropZoom). Grid + gallery
+   *   films are cropped in their own modules (3 & 13); the lightbox in 14. NO-OP
+   *   until a band is tagged. Waits for the lazy embed; re-fits on resize.
    * ======================================================= */
   onReady(function () {
-    var bands = [].slice.call(document.querySelectorAll('[data-cedar-fill]'));
-    if (!bands.length) return;
-    bands.forEach(function (band) {
-      var R = parseFloat(band.getAttribute('data-cedar-fill')) || 2.4;   /* film aspect ratio; 16:9 = 1.78, scope ≈ 2.39, univisium = 2.0 */
-      if (R <= 1.78) return;                                              /* not wider than the frame → nothing to crop */
-      band.style.overflow = 'hidden';
-      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+    var hosts = [].slice.call(document.querySelectorAll('[data-cedar-crop]'));
+    if (!hosts.length) return;
+    hosts.forEach(function (host) {
+      if (host.closest('.work-grid') || host.closest('.gallery-card')) return;   /* those films are handled by modules 3 & 13 */
+      var z = cropZoom(host); if (z === 1) return;
+      host.style.overflow = 'hidden';
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
       function fit() {
-        var f = band.querySelector('iframe'); if (!f) return false;
-        var h = band.getBoundingClientRect().height; if (h < 2) return false;
-        var w = Math.ceil(h * R) + 2;                                    /* cover: the film (letterboxed to R inside a 16:9 player) fills the band height */
+        var f = host.querySelector('iframe'); if (!f) return false;
+        var r = host.getBoundingClientRect(); if (r.height < 2) return false;
+        var w = Math.ceil(Math.max(r.width, r.height * 16 / 9) * z) + 2;   /* cover the band, then zoom by the crop factor */
         f.style.setProperty('position', 'absolute', 'important');
         f.style.setProperty('top', '50%', 'important');
         f.style.setProperty('left', '50%', 'important');
@@ -3216,12 +3224,32 @@
         f.style.setProperty('max-height', 'none', 'important');
         return true;
       }
-      if (!fit()) {                                                       /* the #vimeo-bg embed builds its iframe / sets src late */
+      if (!fit()) {                                                       /* the #vimeo-bg embed builds its iframe / sets src late (an image-only host just times out) */
         var mo = new MutationObserver(function () { fit(); });
-        mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+        mo.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
         setTimeout(function () { try { mo.disconnect(); } catch (_) {} }, 12000);
       }
       var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(fit, 160); });
+    });
+  });
+
+  /* =========================================================
+   * 35. IMAGE CROP — the same CMS "Crop" dropdown applied to stills. Any
+   *   .img-cover inside a data-cedar-crop host (grid thumbnail, gallery still)
+   *   is zoom-scaled to match its film's crop, so a project's thumbnail and its
+   *   film stay consistent. NO-OP until a host is tagged.
+   * ======================================================= */
+  onReady(function () {
+    [].slice.call(document.querySelectorAll('[data-cedar-crop]')).forEach(function (host) {
+      var z = cropZoom(host); if (z === 1) return;
+      var imgs = [].slice.call(host.querySelectorAll('.img-cover'));
+      if (host.classList && host.classList.contains('img-cover')) imgs.push(host);
+      imgs.forEach(function (im) {
+        im.style.transform = 'scale(' + z + ')';
+        im.style.transformOrigin = 'center';
+        var par = im.parentElement;                                       /* make sure the zoomed still is clipped */
+        if (par && getComputedStyle(par).overflow === 'visible') par.style.overflow = 'hidden';
+      });
     });
   });
 })();
