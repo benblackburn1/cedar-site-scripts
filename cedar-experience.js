@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.48.0 · built by Origin · loaded site-wide (footer)
+ * v1.49.0 · built by Origin · loaded site-wide (footer)
+ * v1.49.0 (client): MOBILE gallery grid no longer crops. On phones each gallery card was forced to full-width x 50vh with the media cover-cropped, so a wide still (e.g. the "Unless U got Talent" graphic) lost its sides. Now mobile cards keep full width but take AUTO height following the media's own aspect — films stay 16:9, stills use their natural ratio (re-laid-out once a slow image decodes) — so nothing is cropped. Desktop grid unchanged.
  * v1.48.0 (client): NEW module 36 — a fixed "View gallery" button on project pages. It fades in whenever the project's gallery section is on screen (top-right on desktop, bottom-right on mobile) and opens the gallery assets in a drag-coverflow with the same feel as the BTS gallery. The assets show UNCROPPED — full frames, ignoring the CMS Crop: images are rebuilt from source and every card is sized to its media's own aspect, so nothing is cropped or letterboxed. Video cards show their poster with a play glyph; a tap on the centered video opens the full-controls lightbox (module 14) with sound. Complements the BTS "View the gallery" and the per-video "Watch with sound" — there was no gallery-section view before. No-op on any page without a .gallery-card.
  * v1.47.0 (client): FIX the project-hero crop shoving the film into a corner (v1.46 regression). The hero embed nests the iframe in aspect-boxed wrappers that anchor it off-centre, so v1.46's "zoom in place" pivoted off-centre. Module 34 now collapses every wrapper between the iframe and the band (same technique the mobile hero uses), then sizes the iframe to cover the band × the crop factor, centred — so the zoom is symmetric and the film fills the band. Grid/gallery/mobile crop unchanged.
  * v1.46.0 (client): crop refinements. (1) the click-to-play LIGHTBOX is no longer cropped — it's the full-frame "watch it properly" view, and cropping zoomed the Vimeo player controls. (2) the project-page HERO crop is hardened for the nested embed (video-card-item → wrapper → container → iframe): it now zooms the film IN PLACE via a transform (no re-centering against the wrong container), the band clips the overflow, and the mobile hero picks up the same crop through module 25. Tag the hero's band or its embed with data-cedar-crop.
@@ -2002,8 +2003,8 @@
       }
     });
 
-    function coverIframe(c, w) {
-      var h = rowH();
+    function coverIframe(c, w, boxH) {
+      var h = boxH || rowH();
       var iw = Math.ceil(Math.max(w, h * 16 / 9)) + 4, ih = Math.ceil(iw * 9 / 16) + 4;   /* width-first 16:9 cover: always spans the card's width; crop top/bottom when the card is wider than 16:9 */
       var z = cropZoomNear(c);   /* CMS Crop: zoom the gallery film to hide letterbox bars */
       var tf = z !== 1 ? 'translate(-50%,-50%) scale(' + z + ')' : 'translate(-50%,-50%)';
@@ -2023,7 +2024,21 @@
       c.style.setProperty('flex', '0 0 auto', 'important');
       c.style.setProperty('width', w + 'px', 'important');
       c.style.setProperty('height', rowH() + 'px', 'important');
-      coverIframe(c, w);
+      coverIframe(c, w, rowH());
+    }
+    /* mobile: fixed (full) width, AUTO height following the media's own aspect — nothing crops.
+       Films are 16:9; stills take their natural aspect (read from the loaded on-page image). */
+    function mediaAR(c) {
+      if (c.getAttribute('data-cedar-vimeo')) return 16 / 9;
+      var im = c.querySelector('img');
+      return (im && im.naturalWidth) ? im.naturalWidth / im.naturalHeight : 16 / 9;
+    }
+    function setMobile(c, w) {
+      var h = Math.round(w / mediaAR(c));
+      c.style.setProperty('flex', '0 0 auto', 'important');
+      c.style.setProperty('width', w + 'px', 'important');
+      c.style.setProperty('height', h + 'px', 'important');
+      coverIframe(c, w, h);
     }
     function layout() {
       groups.forEach(function (g) {
@@ -2035,8 +2050,8 @@
         p.style.setProperty('justify-content', 'flex-start', 'important');
         p.style.setProperty('align-items', 'flex-start', 'important');
         var items = g.items;
-        if (window.innerWidth < 768) {                            /* mobile: every card full-width at 50vh, cover */
-          items.forEach(function (c) { set(c, W); });
+        if (window.innerWidth < 768) {                            /* mobile: full-width cards, height follows the media aspect so nothing crops */
+          items.forEach(function (c) { setMobile(c, W); });
           return;
         }
         var avail = W - gap;                                      /* two cards + one gap span the row */
@@ -2056,6 +2071,8 @@
     }
     layout();
     var rt;
+    /* a still not yet decoded reports naturalWidth 0 → mobile height would fall back to 16:9; re-lay-out on load */
+    cards.forEach(function (c) { var im = c.querySelector('img'); if (im && !im.complete) im.addEventListener('load', function () { clearTimeout(rt); rt = setTimeout(layout, 60); }, { once: true }); });
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 150); });
   });
 
