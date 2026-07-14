@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.40.0 · built by Origin · loaded site-wide (footer)
+ * v1.41.0 · built by Origin · loaded site-wide (footer)
+ * v1.41.0 (client): two fixes. (1) /about "Our Team" cards were squishing to fit the viewport instead of holding their width and scrolling — the Webflow .bio-card is flex-basis:25% but its flex-shrink was left at the default 1, so 7 cards crammed into the 100vw row; pinned flex-shrink:0 (desktop) so they keep their width, the row overflows, and module 33's drag-to-scroll + "Click and drag" pill finally arms (it only engages when the row actually overflows). (2) The "Play with sound" pill + lightbox is now extensible: tag ANY video container with a data-cedar-watch custom attribute (e.g. the /post Cedar Suite film) and it gets the same glass pill and click-to-open player as the hero — value can be a Vimeo URL/id or left blank to read the container's own embed; add data-cedar-watch-click to make the whole film clickable.
  * v1.40.0 (client): STALL WATCHDOG on the work-grid hover clips — rarely a preloaded clip loads to a dead/black frame and never starts (a transient Vimeo load failure on one clip in the batch). Module 3 now watches each clip once it begins loading: if the Vimeo player never reports coming up within ~6.5s (no 'ready'/'play'), or Vimeo posts an 'error', the clip is reloaded cache-busted, up to twice. A clip that DID initialize but is only slow to buffer gets one extra window before any reload, and reloads are jittered, so good-but-slow connections aren't churned and a coincidental batch can't re-storm Vimeo. Silent and self-healing — no visual change when clips load fine.
  * v1.39.0 (client): the white wireframe LOADING MARK (lightbox) now also shows on the work-grid HOVER clips — module 3 gained one shared spinner (same chevron, WebGL + SVG fallback) that moves into the hovered card's black .cedar-cardvid and shows until that clip reports playing; since the grid PRELOADS most clips, it only appears when a card is genuinely still buffering. Card iframes subscribe to Vimeo 'play'; stopVid resets the flag so a re-buffered clip shows it again.
  * v1.38.0 (client): the hero/gallery "Play/Watch with sound" pill's play icon was the U+25B6 glyph (&#9654;), which iOS/mobile rendered as the colour emoji ▶️ — swapped for an inline SVG triangle in currentColor (.cedar-play-ico), so it's a clean white play icon on every browser
@@ -362,6 +363,11 @@
     '.cedar-bio:hover .bio-card-info,.cedar-bio:focus-within .bio-card-info{opacity:1;}',
     '.cedar-bio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,0));z-index:2;opacity:0;transition:opacity .45s ' + EASE + ';pointer-events:none;}',
     '.cedar-bio:hover::after,.cedar-bio:focus-within::after{opacity:1;}',
+    /* team bio cards were squishing to fit 100vw instead of holding their 25% basis + overflowing: the Webflow
+       .bio-card is flex-grow:0/flex-basis:25% but flex-shrink defaults to 1, so 7 cards crammed into the row.
+       Pin shrink:0 (desktop) so the cards keep their width and the row overflows — which also lets module 33's
+       overflow check finally arm the drag-scroll + "Click and drag" pill (chicken-and-egg: no overflow, no arm). */
+    '@media (min-width:768px){.bio-row .bio-card{flex-shrink:0!important;}}',
     /* reduced motion: kill transitions + reveals + marquee */
     '@media (prefers-reduced-motion: reduce){#cedar-loader,.cedar-card-video,.cedar-card-meta,.cedar-modal,.cedar-modal-backdrop,.cedar-vo-track,.cedar-bts-thumb,.cedar-play,.cedar-acc-init .acc-body,.cedar-acc-init .acc-body > .acc-inner,.acc-ico::before,.acc-ico::after,.cedar-mmenu,.cedar-mmenu nav a,.cedar-cf,.cedar-chr{transition:none!important;}.cedar-reveal,.cedar-chr{opacity:1!important;transform:none!important;}.cedar-marquee-track{animation:none!important;}}'
   ].join('');
@@ -2132,34 +2138,50 @@
   onReady(function () {
     var P = location.pathname.replace(/\/$/, '') || '/';
     var isWork = P.indexOf('/work/') === 0;
+    function idFrom(s) { return (s.match(/player\.vimeo\.com\/video\/(\d+)/) || s.match(/vimeo\.com\/(?:video\/)?(\d+)/) || [])[1]; }
+    function hashFrom(s) { return (s.match(/[?&]h=([0-9a-z]+)/i) || s.match(/vimeo\.com\/(?:video\/)?\d+\/([0-9a-z]+)/i) || [])[1]; }
+    /* attach the glass pill to any "band" (a container holding a muted Vimeo bg loop). forcedSrc lets a
+       marked video carry its own URL/id; otherwise the film id is parsed from the band's own iframe, waiting
+       for a lazy embed (e.g. #vimeo-bg, whose src Webflow fills at runtime) via a MutationObserver. */
+    function mountWatch(band, labelTxt, clickAnywhere, forcedSrc) {
+      if (!band || band._cedarWatch) return;
+      var done = false;
+      function tryBtn() {
+        if (done) return true;
+        var src = forcedSrc || '';
+        if (!src) { var f = band.querySelector('iframe'); if (!f || !f.src) return false; src = f.src; }
+        var id = idFrom(src); if (!id) return false;
+        done = true; band._cedarWatch = true;
+        if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+        var b = el('button', 'cedar-hero-watch', PLAY_SVG + labelTxt);
+        b.type = 'button';
+        b.setAttribute('data-cedar-vimeo', id);
+        var h = hashFrom(src);
+        if (h) b.setAttribute('data-cedar-vimeo-h', h);
+        band.appendChild(b);
+        if (clickAnywhere) {                                /* clicking anywhere on the film opens it with sound */
+          band.style.cursor = 'pointer';
+          band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
+        }
+        return true;
+      }
+      if (tryBtn()) return;
+      var mo = new MutationObserver(function () { if (tryBtn()) mo.disconnect(); });
+      mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+      setTimeout(function () { tryBtn(); try { mo.disconnect(); } catch (_) {} }, 12000);
+    }
+    /* the page hero (existing behavior): /work/* = click-anywhere, home hero = pill only (its overlay owns the About CTA) */
     var band = isWork ? document.querySelector('.hero-band, .photo-band')
                       : (P === '/' ? document.querySelector('.hero-media') : null);
-    if (!band) return;
-    var done = false;
-    function tryBtn() {
-      if (done) return true;
-      var f = band.querySelector('iframe');
-      if (!f || !f.src) return false;
-      var id = (f.src.match(/player\.vimeo\.com\/video\/(\d+)/) || [])[1];
-      if (!id) return false;
-      done = true;
-      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
-      var b = el('button', 'cedar-hero-watch', isWork ? PLAY_SVG + 'Watch with sound' : PLAY_SVG + 'Play with sound');
-      b.type = 'button';
-      b.setAttribute('data-cedar-vimeo', id);
-      var h = (f.src.match(/[?&]h=([0-9a-z]+)/i) || [])[1];
-      if (h) b.setAttribute('data-cedar-vimeo-h', h);
-      band.appendChild(b);
-      if (isWork) {                                        /* project pages: clicking anywhere on the film opens it with sound */
-        band.style.cursor = 'pointer';
-        band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
-      }
-      return true;
-    }
-    if (tryBtn()) return;
-    var mo = new MutationObserver(function () { if (tryBtn()) mo.disconnect(); });
-    mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
-    setTimeout(function () { tryBtn(); mo.disconnect(); }, 12000);
+    if (band) mountWatch(band, isWork ? 'Watch with sound' : 'Play with sound', isWork, null);
+    /* client: tag ANY video container with data-cedar-watch to give it the same pill + lightbox (e.g. the /post
+       Cedar Suite film). Value can be a Vimeo URL/id, or left blank/"true" to read the container's own embed.
+       Add data-cedar-watch-click to also make the whole film clickable. */
+    [].slice.call(document.querySelectorAll('[data-cedar-watch]')).forEach(function (m) {
+      var v = (m.getAttribute('data-cedar-watch') || '').trim();
+      var forced = /\d/.test(v) ? (/^\d+$/.test(v) ? 'https://vimeo.com/' + v : (/vimeo/i.test(v) ? v : null)) : null;
+      mountWatch(m, 'Play with sound', m.hasAttribute('data-cedar-watch-click'), forced);
+    });
   });
 
   /* =========================================================
