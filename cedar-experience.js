@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.43.0 · built by Origin · loaded site-wide (footer)
+ * v1.44.0 · built by Origin · loaded site-wide (footer)
+ * v1.44.0 (client): NEW module 34 — letterbox crop for cinemascope films. A film wider than 16:9 (e.g. the Breakneck hero) is letterboxed by Vimeo inside its 16:9 player, showing black bars top + bottom of the card. Tag the video's band with a data-cedar-fill custom attribute (value = the film's aspect ratio, e.g. 2.4; blank defaults to 2.4) and the script cover-fills the film to the band's height so the picture fills the frame and the bars overflow — the card keeps its own shape. Tune the number in Webflow until the bars vanish, no redeploy. NO-OP until a band is tagged.
  * v1.43.0 (client): dragging the /about team cards to scroll no longer grabs the photo as a native browser drag ghost — the bio-image (and every image inside a drag-scroll row) is now non-draggable (-webkit-user-drag:none + user-select:none), with a dragstart preventDefault on the team row for Firefox.
  * v1.42.0 (client): removed the bare "All Work" pill's hover fill — the transparent-at-rest pill no longer fills on hover (it stays at its rest state). The script now applies no hover effect at all to .btn-pill (the lift is Ben's own Webflow interaction).
  * v1.41.0 (client): two fixes. (1) /about "Our Team" cards were squishing to fit the viewport instead of holding their width and scrolling — the Webflow .bio-card is flex-basis:25% but its flex-shrink was left at the default 1, so 7 cards crammed into the 100vw row; pinned flex-shrink:0 (desktop) so they keep their width, the row overflows, and module 33's drag-to-scroll + "Click and drag" pill finally arms (it only engages when the row actually overflows). (2) The "Play with sound" pill + lightbox is now extensible: tag ANY video container with a data-cedar-watch custom attribute (e.g. the /post Cedar Suite film) and it gets the same glass pill and click-to-open player as the hero — value can be a Vimeo URL/id or left blank to read the container's own embed; add data-cedar-watch-click to make the whole film clickable.
@@ -3177,5 +3178,50 @@
     check();
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(check, 160); });
     window.addEventListener('load', check);
+  });
+
+  /* =========================================================
+   * 34. LETTERBOX CROP (client) — a film WIDER than 16:9 (cinemascope, e.g.
+   *   the Breakneck hero) is letterboxed by Vimeo INSIDE its 16:9 player, so
+   *   black bars show top + bottom of the card. Tag the video's band with a
+   *   data-cedar-fill custom attribute (value = the film's aspect ratio, e.g.
+   *   2.4 for scope; blank defaults to 2.4) and this cover-fills the film to
+   *   the band's real height so the picture fills the frame and the bars
+   *   overflow the card — the card keeps its own shape (no need to reshape it).
+   *   Crops the sides a touch (unavoidable when fitting a wider film into a
+   *   narrower box). Tune the number in Webflow until the bars just vanish;
+   *   no redeploy needed. Waits for the lazy #vimeo-bg embed; re-fits on resize.
+   * ======================================================= */
+  onReady(function () {
+    var bands = [].slice.call(document.querySelectorAll('[data-cedar-fill]'));
+    if (!bands.length) return;
+    bands.forEach(function (band) {
+      var R = parseFloat(band.getAttribute('data-cedar-fill')) || 2.4;   /* film aspect ratio; 16:9 = 1.78, scope ≈ 2.39, univisium = 2.0 */
+      if (R <= 1.78) return;                                              /* not wider than the frame → nothing to crop */
+      band.style.overflow = 'hidden';
+      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+      function fit() {
+        var f = band.querySelector('iframe'); if (!f) return false;
+        var h = band.getBoundingClientRect().height; if (h < 2) return false;
+        var w = Math.ceil(h * R) + 2;                                    /* cover: the film (letterboxed to R inside a 16:9 player) fills the band height */
+        f.style.setProperty('position', 'absolute', 'important');
+        f.style.setProperty('top', '50%', 'important');
+        f.style.setProperty('left', '50%', 'important');
+        f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
+        f.style.setProperty('width', w + 'px', 'important');
+        f.style.setProperty('height', Math.ceil(w * 9 / 16) + 'px', 'important');
+        f.style.setProperty('min-width', '0', 'important');
+        f.style.setProperty('min-height', '0', 'important');
+        f.style.setProperty('max-width', 'none', 'important');
+        f.style.setProperty('max-height', 'none', 'important');
+        return true;
+      }
+      if (!fit()) {                                                       /* the #vimeo-bg embed builds its iframe / sets src late */
+        var mo = new MutationObserver(function () { fit(); });
+        mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+        setTimeout(function () { try { mo.disconnect(); } catch (_) {} }, 12000);
+      }
+      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(fit, 160); });
+    });
   });
 })();
