@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.47.0 · built by Origin · loaded site-wide (footer)
+ * v1.48.0 · built by Origin · loaded site-wide (footer)
+ * v1.48.0 (client): NEW module 36 — a fixed "View gallery" button on project pages. It fades in whenever the project's gallery section is on screen (top-right on desktop, bottom-right on mobile) and opens the gallery assets in a drag-coverflow with the same feel as the BTS gallery. The assets show UNCROPPED — full frames, ignoring the CMS Crop: images are rebuilt from source and every card is sized to its media's own aspect, so nothing is cropped or letterboxed. Video cards show their poster with a play glyph; a tap on the centered video opens the full-controls lightbox (module 14) with sound. Complements the BTS "View the gallery" and the per-video "Watch with sound" — there was no gallery-section view before. No-op on any page without a .gallery-card.
  * v1.47.0 (client): FIX the project-hero crop shoving the film into a corner (v1.46 regression). The hero embed nests the iframe in aspect-boxed wrappers that anchor it off-centre, so v1.46's "zoom in place" pivoted off-centre. Module 34 now collapses every wrapper between the iframe and the band (same technique the mobile hero uses), then sizes the iframe to cover the band × the crop factor, centred — so the zoom is symmetric and the film fills the band. Grid/gallery/mobile crop unchanged.
  * v1.46.0 (client): crop refinements. (1) the click-to-play LIGHTBOX is no longer cropped — it's the full-frame "watch it properly" view, and cropping zoomed the Vimeo player controls. (2) the project-page HERO crop is hardened for the nested embed (video-card-item → wrapper → container → iframe): it now zooms the film IN PLACE via a transform (no re-centering against the wrong container), the band clips the overflow, and the mobile hero picks up the same crop through module 25. Tag the hero's band or its embed with data-cedar-crop.
  * v1.45.0 (client): CMS-DRIVEN CROP — replaces v1.44's hardcoded data-cedar-fill with a per-item "Crop" dropdown (None/5/10/15/20%) that follows a film/still EVERYWHERE it renders. Add a Crop option field to Works (fixes its grid thumbnail + hero at once) and Gallery Items (fixes the gallery), bind data-cedar-crop to it on the item container, and dial each asset until its black bars vanish. The % is trimmed off each edge via a uniform zoom (no stretching); applied to the grid hover clips (module 3), gallery films (13), the project hero band (34), the lightbox (14), and stills (module 35, .img-cover). NO-OP until a Crop value is set — nothing changes on untagged items.
@@ -43,7 +44,7 @@
  *          line draw-in (site-wide hairline rules → stroked SVGs, draw on scroll-in)
  *          nav: masked logo+mark (ink follows the background) + hover blur-veil + scroll hide/show + dark/light ink probe · section reveals (fade+rise on scroll-in) · about "what defines us" cards cascade in from the right · partner-logo marquee
  *          about intro (/about only): yellow-field Lottie logo reveal → mark + "Cedar" fly out of the lockup and settle into the header layout (mark bottom-left, big "Cedar" bottom-right; "mark"/"Cedar" embed placeholders filled with the charcoal brand SVGs at the official lockup ratio); nav hidden through the header, animates in once scrolled past it
- *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback); click a video card → 16:9 lightbox modal (full controls, close via X/backdrop/Esc)
+ *          gallery (project /work pages): cards laid 2-up at a fixed height, cycling the home grid's 3 asymmetric width patterns; data-vimeo-url background video (home-grid parity, legacy embed fallback); click a video card → 16:9 lightbox modal (full controls, close via X/backdrop/Esc); fixed "View gallery" button (module 36) fades in over the gallery section and opens the assets uncropped in a drag-coverflow
  *          contact (/contact): outline-mark Lottie (full container width) traces in once on scroll and holds · "Tell us about your project." heading cascades in per-character · about value icons (/about): Quality/Vision/Sustainability Lotties (200px, centered) — hover = instant draw-in, hold 1s, undraw, loop; hover-out settles on the finished icon
  *          /work heading ("Work / that / endures.") converges onto one shared baseline as you scroll — scrubbed, damped, finishes within the first ~320px of scroll
  * Scroll-in motion (lines + reveals) is gated behind the loader (cedar:ready) so it isn't spent off-screen.
@@ -150,6 +151,22 @@
     '.cedar-cf-pill{position:fixed;z-index:100001;left:-200px;top:-200px;pointer-events:none;background:#f4f4f2;color:' + CHARCOAL + ';border-radius:999px;padding:12px 18px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%) scale(.35);opacity:0;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',
     '.cedar-cf-pill.is-on{opacity:1;transform:translate(-50%,-50%) scale(1);}',
     '.cedar-cf-pill.is-on.is-down{transform:translate(-50%,-50%) scale(.88);}',
+    /* gallery view (module 36): a fixed "View gallery" button that fades in over the gallery section on /work/*,
+       opening the gallery assets UNCROPPED in a drag-coverflow (its own namespace so the BTS .cedar-cf cover-crop
+       CSS never touches it; each card is sized to its media's aspect so cover == no crop) */
+    '.cedar-gv-btn{position:fixed;top:calc(var(--cedar-nav-h,74px) + 18px);right:24px;z-index:9000;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .4s ' + EASE + ',transform .4s ' + EASE + ',background-color .25s ' + EASE + ';}',
+    '.cedar-gv-btn.is-on{opacity:1;transform:none;pointer-events:auto;}',
+    '.cedar-gv-btn:hover{background:rgba(20,15,10,.72);}',
+    '@media (max-width:767px){.cedar-gv-btn{top:auto;bottom:20px;right:16px;padding:10px 15px;font-size:10px;}}',
+    '.cedar-gv{position:fixed;inset:0;z-index:99999;background:rgba(20,15,10,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .35s ' + EASE + ';}',
+    '.cedar-gv.is-open{opacity:1;pointer-events:auto;}',
+    '.cedar-gv-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
+    '.cedar-gv-card{position:absolute;left:50%;top:50%;border-radius:12px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#000;}',
+    '.cedar-gv-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',   /* card box == media aspect, so cover crops nothing */
+    '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
+    '.cedar-gv-play .cedar-play-ico{width:20px;height:24px;margin-left:3px;}',
+    '.cedar-gv .cedar-lb-close{z-index:100002;cursor:pointer;}',
+    '@media (prefers-reduced-motion: reduce){.cedar-gv{transition:none!important;}}',
     /* mobile menu (≤767px): mark pinned left, "Menu" pinned right, warm-grey overlay fills top-down, pages 36px bottom-left */
     '.cedar-mmenu-btn{display:none;position:absolute;right:20px;top:50%;transform:translateY(-50%);background:none;border:0;padding:6px 2px;cursor:pointer;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:inherit;transition:color .45s ' + EASE + ';}',
     '.navbar.cedar-nav-dark .cedar-mmenu-btn{color:#f4f4f2;}',
@@ -3272,5 +3289,166 @@
         if (par && getComputedStyle(par).overflow === 'visible') par.style.overflow = 'hidden';
       });
     });
+  });
+
+  /* =========================================================
+   * 36. GALLERY VIEW (project pages) — a fixed "View gallery"
+   *   button, top-right, that fades in whenever the gallery
+   *   section is on screen and opens the gallery assets in a
+   *   drag-coverflow (same feel as the BTS gallery, module 4).
+   *   The assets are shown UNCROPPED — full frames, ignoring the
+   *   CMS Crop: images are rebuilt fresh from source (no crop
+   *   zoom) and each card is sized to its media's natural aspect,
+   *   so nothing is letterboxed OR cropped. Video cards show
+   *   their poster with a play glyph; a tap (not a drag) on the
+   *   centered video opens the module-14 lightbox with full
+   *   controls + sound (reused via a hidden .cedar-hero-watch
+   *   bridge). /work/* only; no-op with no .gallery-card.
+   * ======================================================= */
+  onReady(function () {
+    if ((location.pathname.replace(/\/$/, '') || '/').indexOf('/work/') !== 0) return;
+    var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
+    if (!cards.length) return;
+
+    /* collect assets in DOM order; natural aspect comes from the on-page (already loaded) image */
+    var assets = [];
+    cards.forEach(function (c) {
+      var vid = c.getAttribute('data-cedar-vimeo');
+      var img = c.querySelector('img');
+      var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
+      var ar = (img && img.naturalWidth) ? img.naturalWidth / img.naturalHeight : (vid ? 16 / 9 : 1);
+      if (vid) assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar });
+      else if (src) assets.push({ type: 'image', src: src, ar: ar });
+    });
+    if (!assets.length) return;
+
+    var GRID_SVG = '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><g fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="8" y="0" width="6" height="6" rx="1"/><rect x="0" y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></g></svg>';
+    var btn = el('button', 'cedar-gv-btn', GRID_SVG + 'View gallery');
+    btn.type = 'button';
+    document.body.appendChild(btn);
+
+    /* fade the button in whenever any gallery card is on screen (covers multiple gallery groups) */
+    var visible = 0, gv = null;
+    function syncBtn() { btn.classList.toggle('is-on', visible > 0 && !(gv && gv.classList.contains('is-open')) && !window.__cedarMenuOpen); }
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) { visible += en.isIntersecting ? 1 : -1; });
+        if (visible < 0) visible = 0;
+        syncBtn();
+      }, { rootMargin: '-8% 0px -8% 0px', threshold: 0.01 });
+      cards.forEach(function (c) { io.observe(c); });
+    } else { visible = 1; syncBtn(); }
+
+    /* ---- drag-coverflow (mirrors the BTS coverflow feel; cards sized to media aspect = uncropped) ---- */
+    var gvCards = [], pos = 0, vel = 0, sp = 380, raf = null, drag = false, moved = false;
+    var pill, mx = 0, my = 0, px = -200, py = -200, downX = 0;
+
+    function sizeCard(card, ar) {
+      var H = Math.min(window.innerHeight * 0.66, 600);
+      var maxW = Math.min(window.innerWidth * 0.82, 1120);
+      var w = H * ar;
+      if (w > maxW) { w = maxW; H = w / ar; }
+      card.style.width = Math.round(w) + 'px';
+      card.style.height = Math.round(H) + 'px';
+    }
+    function render() {
+      var m = gvCards.length;
+      sp = Math.min(440, window.innerWidth * 0.30);
+      for (var i = 0; i < m; i++) {
+        var off = (((i - pos) % m) + m) % m;
+        if (off > m / 2) off -= m;
+        var a = Math.abs(off), c = gvCards[i];
+        if (a > 3.2) { c.style.display = 'none'; continue; }
+        c.style.display = '';
+        var sc = a < 1 ? (1 + (0.8 - 1) * a) : Math.max(0.4, 1 - 0.18 * a);
+        c.style.transform = 'translate(calc(-50% + ' + (off * sp).toFixed(1) + 'px),-50%) scale(' + sc.toFixed(3) + ')';
+        c.style.opacity = Math.max(0, 1 - 0.32 * a).toFixed(3);
+        c.style.zIndex = String(200 - Math.round(a * 10));
+      }
+    }
+    function loop() {
+      if (!gv || !gv.classList.contains('is-open')) { raf = null; return; }
+      document.documentElement.style.overflow = 'hidden';   /* re-assert the lock (a nested lightbox close resets it) */
+      if (!drag) {
+        if (!RM && Math.abs(vel) > 0.0012) { pos += vel; vel *= 0.92; }
+        else { var t = Math.round(pos); pos += (t - pos) * 0.14; }
+      }
+      render();
+      px += (mx - px) * 0.22; py += (my - py) * 0.22;
+      pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px';
+      raf = requestAnimationFrame(loop);
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+
+    function playCentered() {   /* tap on the centered card: if it's a video, open the module-14 lightbox */
+      var idx = ((Math.round(pos) % assets.length) + assets.length) % assets.length;
+      var as = assets[idx];
+      if (!as || as.type !== 'video') return;
+      var bridge = el('button', 'cedar-hero-watch', '');   /* module 14 delegates on .cedar-hero-watch[data-cedar-vimeo] */
+      bridge.style.display = 'none';
+      bridge.setAttribute('data-cedar-vimeo', as.id);
+      if (as.hash) bridge.setAttribute('data-cedar-vimeo-h', as.hash);
+      document.body.appendChild(bridge);
+      bridge.click();
+      setTimeout(function () { bridge.remove(); }, 0);
+    }
+
+    function build() {
+      gv = el('div', 'cedar-gv', '');
+      var stage = el('div', 'cedar-gv-stage', '');
+      assets.forEach(function (as) {
+        var card = el('div', 'cedar-gv-card', '');
+        sizeCard(card, as.ar || (16 / 9));
+        if (as.src) { var im = document.createElement('img'); im.src = as.src; im.alt = ''; im.draggable = false; card.appendChild(im); }
+        if (as.type === 'video') card.appendChild(el('div', 'cedar-gv-play', PLAY_SVG));
+        stage.appendChild(card); gvCards.push(card);
+      });
+      var close = el('button', 'cedar-lb-close', '&times;'); close.setAttribute('aria-label', 'Close gallery');
+      pill = el('div', 'cedar-cf-pill', 'Drag to browse');
+      gv.appendChild(stage); gv.appendChild(close); gv.appendChild(pill);
+      document.body.appendChild(gv);
+      close.addEventListener('click', hide);
+      var lastX = 0;
+      stage.addEventListener('pointerdown', function (e) {
+        drag = true; moved = false; vel = 0; lastX = e.clientX; downX = e.clientX;
+        try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+        pill.classList.add('is-down');
+      });
+      stage.addEventListener('pointermove', function (e) {
+        mx = e.clientX; my = e.clientY; pill.classList.add('is-on');
+        if (drag) {
+          if (Math.abs(e.clientX - downX) > 4) moved = true;
+          var d = (e.clientX - lastX) / sp;
+          pos -= d; vel = vel * 0.75 + (-d) * 0.55;
+          lastX = e.clientX;
+        }
+      });
+      function up() { if (drag && !moved) playCentered(); drag = false; pill.classList.remove('is-down'); }
+      stage.addEventListener('pointerup', up);
+      stage.addEventListener('pointercancel', function () { drag = false; pill.classList.remove('is-down'); });
+      stage.addEventListener('pointerleave', function () { pill.classList.remove('is-on'); });
+      document.addEventListener('keydown', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && gv.classList.contains('is-open')) hide(); });
+      window.addEventListener('resize', function () {
+        if (!gv.classList.contains('is-open')) return;
+        gvCards.forEach(function (c, i) { sizeCard(c, assets[i].ar || (16 / 9)); });
+        render();
+      });
+    }
+    function show() {
+      if (!gv) build();
+      if (!gvCards.length) return;
+      pos = 0; vel = 0; px = mx = window.innerWidth / 2; py = my = window.innerHeight / 2;
+      render();
+      document.documentElement.style.overflow = 'hidden';
+      syncBtn();
+      requestAnimationFrame(function () { gv.classList.add('is-open'); kick(); });
+    }
+    function hide() {
+      gv.classList.remove('is-open');
+      pill.classList.remove('is-on');
+      document.documentElement.style.overflow = '';
+      syncBtn();
+    }
+    btn.addEventListener('click', show);
   });
 })();
