@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.38.0 · built by Origin · loaded site-wide (footer)
+ * v1.39.0 · built by Origin · loaded site-wide (footer)
+ * v1.39.0 (client): the white wireframe LOADING MARK (lightbox) now also shows on the work-grid HOVER clips — module 3 gained one shared spinner (same chevron, WebGL + SVG fallback) that moves into the hovered card's black .cedar-cardvid and shows until that clip reports playing; since the grid PRELOADS most clips, it only appears when a card is genuinely still buffering. Card iframes subscribe to Vimeo 'play'; stopVid resets the flag so a re-buffered clip shows it again.
  * v1.38.0 (client): the hero/gallery "Play/Watch with sound" pill's play icon was the U+25B6 glyph (&#9654;), which iOS/mobile rendered as the colour emoji ▶️ — swapped for an inline SVG triangle in currentColor (.cedar-play-ico), so it's a clean white play icon on every browser
  * v1.37.0 (client): NEW module 33 — the /about "Our Team" horizontal .bio-row gets the drag-to-scroll + "Click and drag" cursor pill (same treatment as the post-partners row, module 24); arms only when the team cards overflow the row, hides the scrollbar, suppresses the click at drag-release; touch keeps native swipe. Coexists with the module-32 hover reveal.
  * v1.36.0 (client): HOME work-grid filters from ALL works — module 3 gains a HOME cap: when the homepage Works Collection List is opened past 6 items (Ben sets Show=all, sorted by Homepage Feature Order; filter removed), the grid shows only the first 6 at rest and the first 6 MATCHING on filter (so "Brand Film" now returns 6 brand films, not just the 1 that was in the featured 6), with all filter chips built from the full set. Each shown card takes one of the 6 design SLOT widths by position so the 2-up rhythm holds whichever 6 show; cross-fade on filter. NO-OP while the list is still limited to 6 (safe to ship before Ben opens it).
@@ -164,6 +165,11 @@
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
     '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:none;}',   /* gallery video cards: affordance only — the card itself opens the lightbox */
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
+    /* hover-clip loading mark (module 3) — white wireframe chevron over the black card clip while it buffers */
+    '.cedar-grid-spin{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .3s ' + EASE + ';}',
+    '.cedar-grid-spin.is-on{opacity:1;}',
+    '.cedar-grid-spin-stage{width:52px;height:52px;perspective:520px;}',
+    '.cedar-grid-spin canvas{display:block;width:100%;height:100%;}',
     /* post partners: the .post-card class carries aspect-ratio 3/4 (right for the small cards) — on the
        full-width container it fabricates ~2000px of height and space-between stretches the gap. Neutralize
        ONLY on the container that holds the partners row. */
@@ -677,6 +683,7 @@
       card._src = src;
       var wrap = document.createElement('div'); wrap.className = 'cedar-cardvid';
       var f = document.createElement('iframe'); f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+      f.addEventListener('load', function () { try { f.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*'); } catch (_) {} });   /* subscribe so we know when the clip actually plays (drops the loading mark) */
       wrap.appendChild(f);
       var anchor = card.querySelector('.card-label') || card.querySelector('.overlay');
       if (anchor) card.insertBefore(wrap, anchor); else card.appendChild(wrap);
@@ -684,16 +691,68 @@
       coverCV(card, card._rw);   /* src set on hover (restarts each time) */
     }
     function playVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f && c._src && (!f.src || f.src === 'about:blank')) f.src = c._src; } }   /* idempotent: starts the muted loop only if not already streaming */
-    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; } }        /* reclaim bandwidth once far off-screen */
+    function stopVid(c) { if (c && c._cv) { var f = c._cv.querySelector('iframe'); if (f) f.src = 'about:blank'; c._playing = false; } }        /* reclaim bandwidth once far off-screen; next hover re-buffers -> mark shows again */
     function label(c, on) { var l = c && c.querySelector('.card-label'); if (l) l.style.opacity = on ? '1' : '0'; }
+    /* hover-clip LOADING MARK (client: same white wireframe chevron as the lightbox, now on the grid).
+       ONE shared spinner moved into the hovered card's black .cedar-cardvid, shown until that clip reports
+       playing — so it only appears when the clip is genuinely still buffering (most are preloaded). */
+    var gSpin = null, gR = null, gS = null, gC = null, gG = null, gRaf = null, gBuilt = false;
+    function buildGridSpin() {
+      gSpin = el('div', 'cedar-grid-spin', '');
+      var st = el('div', 'cedar-grid-spin-stage', ''); gSpin.appendChild(st);
+      function svg() { if (gBuilt) return; st.innerHTML = '<svg class="cedar-lb-spin-svg" viewBox="0 0 374 283"><path d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z"/><path d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z"/></svg>'; }
+      (function wait(t) {
+        if (gBuilt) return;
+        if (!window.THREE) { if (t > 0) setTimeout(function () { wait(t - 1); }, 80); else svg(); return; }
+        try {
+          var T = window.THREE;
+          gR = new T.WebGLRenderer({ alpha: true, antialias: true }); gR.setSize(52, 52); gR.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); st.appendChild(gR.domElement);
+          gS = new T.Scene(); gC = new T.PerspectiveCamera(28, 1, 0.1, 200); gC.position.set(0, 0, 95);
+          var RAW = [[178.04,0],[0,126.555],[0,137.94],[25.0235,144.296],[178.04,83.6805],[195.051,83.6805],[348.067,144.296],[373.09,137.94],[373.09,126.555],[195.051,0]];
+          var MK = 45.009 / 373.09, MOFF = 137.979; gG = new T.Group();
+          var mat = new T.LineBasicMaterial({ color: 0xf4f4f2, transparent: true, opacity: 0.96 });
+          [RAW.map(function (p) { return [p[0]*MK, p[1]*MK]; }), RAW.map(function (p) { return [p[0]*MK, (p[1]+MOFF)*MK]; })].forEach(function (poly) {
+            var s = new T.Shape(); poly.forEach(function (p, i) { var x = p[0]-22.5, y = -(p[1]-17.4); if (i) s.lineTo(x, y); else s.moveTo(x, y); }); s.closePath();
+            var geo = new T.ExtrudeGeometry(s, { depth: 7, bevelEnabled: false }); geo.translate(0, 0, -3.5);
+            gG.add(new T.LineSegments(new T.EdgesGeometry(geo, 12), mat));
+          });
+          gG.scale.setScalar(0.46); gS.add(gG); gBuilt = true;
+        } catch (e) { svg(); }
+      })(30);
+    }
+    function gridSpinLoop() {
+      if (!gSpin || !gSpin.classList.contains('is-on')) { gRaf = null; return; }
+      if (gR && gG) { gG.rotation.y += 0.02; gG.rotation.x = Math.sin(Date.now() / 2200) * 0.16; gR.render(gS, gC); }
+      gRaf = requestAnimationFrame(gridSpinLoop);
+    }
+    function hideGridSpin() { if (gSpin) gSpin.classList.remove('is-on'); }
+    function showGridSpin(card) {
+      if (RM || TOUCH) return;
+      if (card && card._cv && !card._playing) {
+        if (!gSpin) buildGridSpin();
+        card._cv.appendChild(gSpin); gSpin.classList.add('is-on');
+        if (!gRaf) gRaf = requestAnimationFrame(gridSpinLoop);
+      } else hideGridSpin();
+    }
+    window.addEventListener('message', function (e) {   /* a clip reports playing -> mark it, drop the mark if it's the hovered card */
+      if ((e.origin || '').indexOf('vimeo') === -1) return;
+      var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
+      if (!d || (d.event !== 'play' && d.event !== 'playing' && d.event !== 'bufferend')) return;
+      for (var i = 0; i < cards.length; i++) {
+        var cv = cards[i]._cv; if (!cv) continue;
+        var f = cv.querySelector('iframe');
+        if (f && f.contentWindow === e.source) { cards[i]._playing = true; if (cards[i] === active) hideGridSpin(); break; }
+      }
+    });
     /* single active card + debounced hover (intent-in, settle-out) so the moving edges can't ping-pong */
     var active = null, enterT, leaveT;
     function setActive(card) {
       if (active === card) return;
       if (active) { active.classList.remove('cedar-hover'); label(active, false); }   /* clip keeps looping muted underneath — hover-out is just a fade */
+      hideGridSpin();
       active = card;
       collapse();
-      if (card) { mountVideo(card); card.classList.add('cedar-hover'); label(card, true); playVid(card); expand(card); }
+      if (card) { mountVideo(card); card.classList.add('cedar-hover'); label(card, true); playVid(card); expand(card); showGridSpin(card); }
     }
     /* PRELOAD (client: kill the black gap between hover and playback): clips mount + start their muted
        loop as the card NEARS the viewport, so hover only fades in an already-playing stream. Streams are
