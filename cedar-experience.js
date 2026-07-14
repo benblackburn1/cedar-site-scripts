@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.46.0 · built by Origin · loaded site-wide (footer)
+ * v1.47.0 · built by Origin · loaded site-wide (footer)
+ * v1.47.0 (client): FIX the project-hero crop shoving the film into a corner (v1.46 regression). The hero embed nests the iframe in aspect-boxed wrappers that anchor it off-centre, so v1.46's "zoom in place" pivoted off-centre. Module 34 now collapses every wrapper between the iframe and the band (same technique the mobile hero uses), then sizes the iframe to cover the band × the crop factor, centred — so the zoom is symmetric and the film fills the band. Grid/gallery/mobile crop unchanged.
  * v1.46.0 (client): crop refinements. (1) the click-to-play LIGHTBOX is no longer cropped — it's the full-frame "watch it properly" view, and cropping zoomed the Vimeo player controls. (2) the project-page HERO crop is hardened for the nested embed (video-card-item → wrapper → container → iframe): it now zooms the film IN PLACE via a transform (no re-centering against the wrong container), the band clips the overflow, and the mobile hero picks up the same crop through module 25. Tag the hero's band or its embed with data-cedar-crop.
  * v1.45.0 (client): CMS-DRIVEN CROP — replaces v1.44's hardcoded data-cedar-fill with a per-item "Crop" dropdown (None/5/10/15/20%) that follows a film/still EVERYWHERE it renders. Add a Crop option field to Works (fixes its grid thumbnail + hero at once) and Gallery Items (fixes the gallery), bind data-cedar-crop to it on the item container, and dial each asset until its black bars vanish. The % is trimmed off each edge via a uniform zoom (no stretching); applied to the grid hover clips (module 3), gallery films (13), the project hero band (34), the lightbox (14), and stills (module 35, .img-cover). NO-OP until a Crop value is set — nothing changes on untagged items.
  * v1.44.0 (client): NEW module 34 — letterbox crop for cinemascope films. A film wider than 16:9 (e.g. the Breakneck hero) is letterboxed by Vimeo inside its 16:9 player, showing black bars top + bottom of the card. Tag the video's band with a data-cedar-fill custom attribute (value = the film's aspect ratio, e.g. 2.4; blank defaults to 2.4) and the script cover-fills the film to the band's height so the picture fills the frame and the bars overflow — the card keeps its own shape. Tune the number in Webflow until the bars vanish, no redeploy. NO-OP until a band is tagged.
@@ -3208,23 +3209,48 @@
     hosts.forEach(function (host) {
       if (host.closest('.work-grid') || host.closest('.gallery-card')) return;   /* grid + gallery films are cropped in modules 3 & 13 */
       var z = cropZoom(host); if (z === 1) return;
-      var band = host.closest('.hero-band, .photo-band') || (host.matches('.hero-band, .photo-band') ? host : null);
-      host.style.overflow = 'hidden'; if (band) band.style.overflow = 'hidden';   /* the band clips the zoomed film */
-      function apply() {
-        if (band && window.innerWidth < 768) return true;    /* mobile hero band is sized+cropped by module 25 (it owns the mobile geometry) */
-        var f = host.querySelector('iframe'); if (!f) return false;
-        var t = f.style.transform || '';
-        var tr = /translate\([^)]*\)/.test(t) ? t.match(/translate\([^)]*\)/)[0] + ' ' : '';   /* preserve any centering already on the iframe */
-        f.style.setProperty('transform-origin', 'center center', 'important');
-        f.style.setProperty('transform', tr + 'scale(' + z + ')', 'important');   /* zoom the film in place — the bars overflow and the band clips them */
+      var band = host.closest('.hero-band, .photo-band') || host;   /* size the film against its band */
+      var isBand = band.matches('.hero-band, .photo-band');
+      band.style.overflow = 'hidden';
+      if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
+      var filled = [];
+      function fit() {
+        if (isBand && window.innerWidth < 768) return true;   /* mobile hero band is sized + cropped by module 25 */
+        var f = band.querySelector('iframe'); if (!f) return false;
+        var r = band.getBoundingClientRect(); if (r.height < 2) return false;
+        /* collapse every ancestor between the iframe and the band (the embed's aspect-boxed .vimeo-wrapper /
+           .vimeo-container anchor the film off-centre) so the iframe positions against the BAND box — else the
+           zoom pivots off-centre and shoves the film into a corner (v1.46 bug) */
+        var p = f.parentElement;
+        while (p && p !== band && p !== document.body) {
+          p.style.setProperty('position', 'absolute', 'important');
+          p.style.setProperty('top', '0', 'important');
+          p.style.setProperty('left', '0', 'important');
+          p.style.setProperty('width', '100%', 'important');
+          p.style.setProperty('height', '100%', 'important');
+          p.style.setProperty('padding', '0', 'important');
+          if (filled.indexOf(p) === -1) filled.push(p);
+          p = p.parentElement;
+        }
+        var w = Math.ceil(Math.max(r.width, r.height * 16 / 9) * z) + 2;   /* cover the band, then zoom by the crop factor */
+        f.style.setProperty('position', 'absolute', 'important');
+        f.style.setProperty('top', '50%', 'important');
+        f.style.setProperty('left', '50%', 'important');
+        f.style.setProperty('transform', 'translate(-50%,-50%)', 'important');
+        f.style.setProperty('width', w + 'px', 'important');
+        f.style.setProperty('height', Math.ceil(w * 9 / 16) + 'px', 'important');
+        f.style.setProperty('min-width', '0', 'important');
+        f.style.setProperty('min-height', '0', 'important');
+        f.style.setProperty('max-width', 'none', 'important');
+        f.style.setProperty('max-height', 'none', 'important');
         return true;
       }
-      if (!apply()) {                                          /* the #vimeo-bg embed builds its iframe / sets src late (an image-only host just times out harmlessly) */
-        var mo = new MutationObserver(function () { apply(); });
-        mo.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+      if (!fit()) {                                            /* the #vimeo-bg embed builds its iframe / sets src late (an image-only host just times out harmlessly) */
+        var mo = new MutationObserver(function () { fit(); });
+        mo.observe(band, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
         setTimeout(function () { try { mo.disconnect(); } catch (_) {} }, 12000);
       }
-      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(apply, 200); });
+      var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(fit, 200); });
     });
   });
 
