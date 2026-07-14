@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.37.0 · built by Origin · loaded site-wide (footer)
+ * v1.38.0 · built by Origin · loaded site-wide (footer)
+ * v1.38.0 (client): the hero/gallery "Play/Watch with sound" pill's play icon was the U+25B6 glyph (&#9654;), which iOS/mobile rendered as the colour emoji ▶️ — swapped for an inline SVG triangle in currentColor (.cedar-play-ico), so it's a clean white play icon on every browser
  * v1.37.0 (client): NEW module 33 — the /about "Our Team" horizontal .bio-row gets the drag-to-scroll + "Click and drag" cursor pill (same treatment as the post-partners row, module 24); arms only when the team cards overflow the row, hides the scrollbar, suppresses the click at drag-release; touch keeps native swipe. Coexists with the module-32 hover reveal.
  * v1.36.0 (client): HOME work-grid filters from ALL works — module 3 gains a HOME cap: when the homepage Works Collection List is opened past 6 items (Ben sets Show=all, sorted by Homepage Feature Order; filter removed), the grid shows only the first 6 at rest and the first 6 MATCHING on filter (so "Brand Film" now returns 6 brand films, not just the 1 that was in the featured 6), with all filter chips built from the full set. Each shown card takes one of the 6 design SLOT widths by position so the 2-up rhythm holds whichever 6 show; cross-fade on filter. NO-OP while the list is still limited to 6 (safe to ship before Ben opens it).
  * v1.35.0 (client): footer CTA copy above the "Say hello" pill → "Let's make something that lasts." (was the Webflow tagline)
@@ -48,6 +49,8 @@
   var CHARCOAL = '#29221b';
   var GREY = '#dddad7';
   var YELLOW = '#ffd900';
+  /* play triangle as an SVG (currentColor) — the old &#9654; glyph rendered as the colour emoji ▶️ on iOS/mobile */
+  var PLAY_SVG = '<svg class="cedar-play-ico" viewBox="0 0 10 12" aria-hidden="true"><path fill="currentColor" d="M0 0L10 6L0 12Z"/></svg>';
 
   /* ---------- shared stylesheet ---------- */
   var css = [
@@ -160,6 +163,7 @@
     '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
     '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:none;}',   /* gallery video cards: affordance only — the card itself opens the lightbox */
+    '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
     /* post partners: the .post-card class carries aspect-ratio 3/4 (right for the small cards) — on the
        full-width container it fabricates ~2000px of height and space-between stretches the gap. Neutralize
        ONLY on the container that holds the partners row. */
@@ -1812,7 +1816,7 @@
       var f = document.createElement('iframe'); f.allow = 'autoplay; fullscreen; picture-in-picture'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
       f.src = vimeoEmbed(url);                                            /* shared builder: background/autoplay/muted/loop */
       wrap.appendChild(f); c.appendChild(wrap);                           /* sits above the CMS image → image is a natural fallback */
-      c.appendChild(el('div', 'cedar-hero-watch cedar-card-watch', '&#9654;&nbsp; Watch with sound'));   /* affordance; the card click opens the lightbox */
+      c.appendChild(el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound'));   /* affordance; the card click opens the lightbox */
       return true;
     }
     /* FALLBACK path — lazy-load the legacy .gallery-video embed's own iframe (it builds only when scrolled in). */
@@ -2035,7 +2039,7 @@
       if (!id) return false;
       done = true;
       if (getComputedStyle(band).position === 'static') band.style.position = 'relative';
-      var b = el('button', 'cedar-hero-watch', isWork ? '&#9654;&nbsp; Watch with sound' : '&#9654;&nbsp; Play with sound');
+      var b = el('button', 'cedar-hero-watch', isWork ? PLAY_SVG + 'Watch with sound' : PLAY_SVG + 'Play with sound');
       b.type = 'button';
       b.setAttribute('data-cedar-vimeo', id);
       var h = (f.src.match(/[?&]h=([0-9a-z]+)/i) || [])[1];
