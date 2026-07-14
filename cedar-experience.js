@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.41.0 · built by Origin · loaded site-wide (footer)
+ * v1.42.0 · built by Origin · loaded site-wide (footer)
+ * v1.42.0 (client): removed the bare "All Work" pill's hover fill — the transparent-at-rest pill no longer fills on hover (it stays at its rest state). The script now applies no hover effect at all to .btn-pill (the lift is Ben's own Webflow interaction).
  * v1.41.0 (client): two fixes. (1) /about "Our Team" cards were squishing to fit the viewport instead of holding their width and scrolling — the Webflow .bio-card is flex-basis:25% but its flex-shrink was left at the default 1, so 7 cards crammed into the 100vw row; pinned flex-shrink:0 (desktop) so they keep their width, the row overflows, and module 33's drag-to-scroll + "Click and drag" pill finally arms (it only engages when the row actually overflows). (2) The "Play with sound" pill + lightbox is now extensible: tag ANY video container with a data-cedar-watch custom attribute (e.g. the /post Cedar Suite film) and it gets the same glass pill and click-to-open player as the hero — value can be a Vimeo URL/id or left blank to read the container's own embed; add data-cedar-watch-click to make the whole film clickable.
  * v1.40.0 (client): STALL WATCHDOG on the work-grid hover clips — rarely a preloaded clip loads to a dead/black frame and never starts (a transient Vimeo load failure on one clip in the batch). Module 3 now watches each clip once it begins loading: if the Vimeo player never reports coming up within ~6.5s (no 'ready'/'play'), or Vimeo posts an 'error', the clip is reloaded cache-busted, up to twice. A clip that DID initialize but is only slow to buffer gets one extra window before any reload, and reloads are jittered, so good-but-slow connections aren't churned and a coincidental batch can't re-storm Vimeo. Silent and self-healing — no visual change when clips load fine.
  * v1.39.0 (client): the white wireframe LOADING MARK (lightbox) now also shows on the work-grid HOVER clips — module 3 gained one shared spinner (same chevron, WebGL + SVG fallback) that moves into the hovered card's black .cedar-cardvid and shows until that clip reports playing; since the grid PRELOADS most clips, it only appears when a card is genuinely still buffering. Card iframes subscribe to Vimeo 'play'; stopVid resets the flag so a re-buffered clip shows it again.
@@ -65,10 +66,9 @@
     '#cedar-loader canvas{display:block;width:100%;height:100%;}',
     /* buttons — hover LIFT is now Ben's native Webflow interaction (GSAP inline transforms); our CSS transition on
        transform fought it (down-up-down rubber-band), so we only transition background-color here. The bare
-       "All Work" pill (.btn-pill, no .white/.dark) still shows its fill only on hover. */
+       "All Work" pill (.btn-pill, no .white/.dark) is transparent at rest with NO hover fill (client 2026-07-14). */
     '.btn-pill{transition:background-color .35s ' + EASE + ';}',
     '.btn-pill:not(.white):not(.dark):not(.light-green){background-color:transparent;}',   /* .light-green pills (post "Book …") keep their own fill at rest */
-    '.btn-pill:not(.white):not(.dark):not(.light-green):hover{background-color:rgba(249,248,246,.2);}',
     /* work-grid hover */
     '.work-card{position:relative;overflow:hidden;}',
     '.cedar-card-video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;opacity:0;transition:opacity .6s ' + EASE + ';pointer-events:none;z-index:1;}',
