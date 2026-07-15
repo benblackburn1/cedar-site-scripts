@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.51.0 · built by Origin · loaded site-wide (footer)
+ * v1.52.0 · built by Origin · loaded site-wide (footer)
+ * v1.52.0 (client): refine the "View gallery" card to the approved look — the asset now sits on a white MAT (even white border/padding inside the card, rounded asset corners), with the title + description below. An item with no title/description is simply the matted asset (a clean white-bordered card), which is fine.
  * v1.51.0 (client): the "View gallery" coverflow (module 36) now shows each item as a WHITE CARD — the asset on top, with the CMS Title and Description below it. Cards are fixed width with the centred one large and the side cards smaller (unchanged feel); the media height follows each asset's natural aspect so nothing crops. The caption reads .gallery-title / .gallery-description, so bind those two CMS fields into the gallery card in the Designer (give them those classes) for the text to appear — no caption until then.
  * v1.50.0 (client): two mobile fixes. (1) removed the gap above the mobile nav — the navbar carried a 10px top margin on a fixed element, so a strip showed above it; it now sits flush to the top on phones. (2) the "View gallery" coverflow side assets recede more — the left/right cards were only scaled to ~0.82 (barely smaller than the centre); the falloff is now steeper so they read clearly smaller and the centred asset stands out.
  * v1.49.0 (client): MOBILE gallery grid no longer crops. On phones each gallery card was forced to full-width x 50vh with the media cover-cropped, so a wide still (e.g. the "Unless U got Talent" graphic) lost its sides. Now mobile cards keep full width but take AUTO height following the media's own aspect — films stay 16:9, stills use their natural ratio (re-laid-out once a slow image decodes) — so nothing is cropped. Desktop grid unchanged.
@@ -164,11 +165,11 @@
     '.cedar-gv{position:fixed;inset:0;z-index:99999;background:rgba(20,15,10,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .35s ' + EASE + ';}',
     '.cedar-gv.is-open{opacity:1;pointer-events:auto;}',
     '.cedar-gv-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
-    '.cedar-gv-card{position:absolute;left:50%;top:50%;border-radius:14px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.34);}',
-    '.cedar-gv-media{position:relative;width:100%;overflow:hidden;background:#f4f4f2;}',
+    '.cedar-gv-card{position:absolute;left:50%;top:50%;box-sizing:border-box;padding:14px;border-radius:16px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.34);}',   /* padding = the white mat around the asset; a captionless item is just the matted asset */
+    '.cedar-gv-media{position:relative;width:100%;overflow:hidden;border-radius:9px;background:#f4f4f2;}',
     '.cedar-gv-media img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',   /* media box == asset aspect, so cover crops nothing */
     '.cedar-gv-media.cedar-gv-contain img{object-fit:contain;}',   /* rare tall asset: show it whole, letterbox on the card, never crop */
-    '.cedar-gv-cap{padding:14px 16px 17px;background:#fff;color:' + CHARCOAL + ';}',   /* title + description below the asset (client-styled type; charcoal on white for legibility) */
+    '.cedar-gv-cap{padding:13px 2px 3px;color:' + CHARCOAL + ';}',   /* title + description below the asset (client-styled type; charcoal on white for legibility) */
     '.cedar-gv-title{font-size:15px;font-weight:600;line-height:1.3;}',
     '.cedar-gv-desc{margin-top:5px;font-size:13px;line-height:1.5;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',
     '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
@@ -3380,15 +3381,16 @@
        asset's natural aspect so nothing crops, capped so the card + caption still fit the viewport
        (a rare very-tall asset letterboxes on the card rather than cropping). */
     function sizeCard(card, as) {
+      var PAD = 14;                                                  /* matches the .cedar-gv-card mat padding */
       var W = Math.round(Math.min(window.innerWidth * (window.innerWidth < 768 ? 0.82 : 0.6), 680));
-      var maxMediaH = window.innerHeight * 0.55;
-      var mh = W / (as.ar || (16 / 9));
+      var contentW = W - PAD * 2;
+      var maxMediaH = window.innerHeight * 0.5;
+      var mh = contentW / (as.ar || (16 / 9));
       var contain = mh > maxMediaH;
       if (contain) mh = maxMediaH;
       card.style.width = W + 'px';
       var media = card._media;
-      if (media) {
-        media.style.width = W + 'px';
+      if (media) {                                                   /* width is 100% of the padded content box; only the height varies */
         media.style.height = Math.round(mh) + 'px';
         media.classList.toggle('cedar-gv-contain', contain);
       }
