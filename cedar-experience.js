@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.49.0 · built by Origin · loaded site-wide (footer)
+ * v1.50.0 · built by Origin · loaded site-wide (footer)
+ * v1.50.0 (client): two mobile fixes. (1) removed the gap above the mobile nav — the navbar carried a 10px top margin on a fixed element, so a strip showed above it; it now sits flush to the top on phones. (2) the "View gallery" coverflow side assets recede more — the left/right cards were only scaled to ~0.82 (barely smaller than the centre); the falloff is now steeper so they read clearly smaller and the centred asset stands out.
  * v1.49.0 (client): MOBILE gallery grid no longer crops. On phones each gallery card was forced to full-width x 50vh with the media cover-cropped, so a wide still (e.g. the "Unless U got Talent" graphic) lost its sides. Now mobile cards keep full width but take AUTO height following the media's own aspect — films stay 16:9, stills use their natural ratio (re-laid-out once a slow image decodes) — so nothing is cropped. Desktop grid unchanged.
  * v1.48.0 (client): NEW module 36 — a fixed "View gallery" button on project pages. It fades in whenever the project's gallery section is on screen (top-right on desktop, bottom-right on mobile) and opens the gallery assets in a drag-coverflow with the same feel as the BTS gallery. The assets show UNCROPPED — full frames, ignoring the CMS Crop: images are rebuilt from source and every card is sized to its media's own aspect, so nothing is cropped or letterboxed. Video cards show their poster with a play glyph; a tap on the centered video opens the full-controls lightbox (module 14) with sound. Complements the BTS "View the gallery" and the per-video "Watch with sound" — there was no gallery-section view before. No-op on any page without a .gallery-card.
  * v1.47.0 (client): FIX the project-hero crop shoving the film into a corner (v1.46 regression). The hero embed nests the iframe in aspect-boxed wrappers that anchor it off-centre, so v1.46's "zoom in place" pivoted off-centre. Module 34 now collapses every wrapper between the iframe and the band (same technique the mobile hero uses), then sizes the iframe to cover the band × the crop factor, centred — so the zoom is symmetric and the film fills the band. Grid/gallery/mobile crop unchanged.
@@ -172,7 +173,7 @@
     '.cedar-mmenu-btn{display:none;position:absolute;right:20px;top:50%;transform:translateY(-50%);background:none;border:0;padding:6px 2px;cursor:pointer;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:inherit;transition:color .45s ' + EASE + ';}',
     '.navbar.cedar-nav-dark .cedar-mmenu-btn{color:#f4f4f2;}',
     '.navbar.cedar-nav-light .cedar-mmenu-btn{color:' + CHARCOAL + ';}',
-    '@media (max-width:767px){.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',
+    '@media (max-width:767px){.navbar{margin-top:0!important;}.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',   /* client: mobile navbar had a 10px top margin on a fixed element → a strip of gap above it; sit it flush */
     /* mobile: no hover exists, so the work-card label is always visible — TITLE ONLY, pinned bottom-left (desktop keeps the full hover reveal from module 3) */
     '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;top:auto!important;bottom:16px!important;left:16px!important;right:auto!important;}.work-card .card-label p.caption:nth-of-type(2){display:none!important;}}',
     /* mobile work grid: the desktop width-pattern rules (first-child 35%, last-child aspect 1/1, nth-child basis 40%)
@@ -3377,9 +3378,9 @@
         var a = Math.abs(off), c = gvCards[i];
         if (a > 3.2) { c.style.display = 'none'; continue; }
         c.style.display = '';
-        var sc = a < 1 ? (1 + (0.8 - 1) * a) : Math.max(0.4, 1 - 0.18 * a);
+        var sc = Math.max(0.34, 1 - 0.38 * a);              /* steeper falloff — the side assets recede clearly (client) */
         c.style.transform = 'translate(calc(-50% + ' + (off * sp).toFixed(1) + 'px),-50%) scale(' + sc.toFixed(3) + ')';
-        c.style.opacity = Math.max(0, 1 - 0.32 * a).toFixed(3);
+        c.style.opacity = Math.max(0, 1 - 0.4 * a).toFixed(3);
         c.style.zIndex = String(200 - Math.round(a * 10));
       }
     }
