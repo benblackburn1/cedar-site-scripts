@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.54.0 · built by Origin · loaded site-wide (footer)
+ * v1.55.0 · built by Origin · loaded site-wide (footer)
+ * v1.55.0 (client): clicking a gallery item (photo or film) now opens the "View gallery" coverflow ON that item, so you see its card + title/description straight away. From there the play button opens the film with sound (the direct click no longer jumps straight to the video player). The hero "Watch with sound" pills are unchanged.
  * v1.54.0 (client): gallery card description tightened to 1.1 line-height with 10px of padding below it.
  * v1.53.0 (client): (1) the /post partner cards ("We partner with organizations that refuse to settle.") now swipe horizontally on a phone (native touch scroll, one card at a time with a peek of the next); scoped to that row so the other stacked mobile rows are untouched. (2) work-grid cards now play their muted clip on mobile when they scroll into view and stop when they scroll away (no hover on touch) — about one or two streams live at a time. (3) FIX the "View gallery" caption not showing — the Title/Description are now read from a class OR a custom attribute (gallery-title / gallery-description), whichever the Designer bound, and Webflow's default placeholder text is ignored.
  * v1.52.0 (client): refine the "View gallery" card to the approved look — the asset now sits on a white MAT (even white border/padding inside the card, rounded asset corners), with the title + description below. An item with no title/description is simply the matted asset (a clean white-bordered card), which is fine.
@@ -2193,7 +2194,7 @@
     }
     function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) hide(); }
     document.addEventListener('click', function (e) {
-      var card = e.target.closest && e.target.closest('.gallery-card[data-cedar-vimeo],.cedar-hero-watch[data-cedar-vimeo]');
+      var card = e.target.closest && e.target.closest('.cedar-hero-watch[data-cedar-vimeo]');   /* a direct gallery-card click now opens the coverflow (module 36); the lightbox opens from the coverflow's play button + the hero "watch" pills */
       if (!card) return;
       e.preventDefault();
       show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));   /* lightbox is NOT cropped — it's the full-frame "watch it properly" view (cropping would zoom the player controls) */
@@ -3371,8 +3372,14 @@
       var title = tEl ? (tEl.textContent || '').trim() : '';
       var desc = dEl ? (dEl.textContent || '').trim() : '';
       if (title === PLACE) title = ''; if (desc === PLACE) desc = '';
-      if (vid) assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar, title: title, desc: desc });
-      else if (src) assets.push({ type: 'image', src: src, ar: ar, title: title, desc: desc });
+      var gi = -1;
+      if (vid) { gi = assets.length; assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar, title: title, desc: desc }); }
+      else if (src) { gi = assets.length; assets.push({ type: 'image', src: src, ar: ar, title: title, desc: desc }); }
+      if (gi > -1) {                                             /* click a gallery item to open the coverflow ON that item (its card + info) */
+        c._gvIdx = gi;
+        c.style.cursor = 'pointer';
+        c.addEventListener('click', function (e) { if (e.target.closest('a,button')) return; e.preventDefault(); show(c._gvIdx); });
+      }
     });
     if (!assets.length) return;
 
@@ -3506,10 +3513,10 @@
         render();
       });
     }
-    function show() {
+    function show(startIdx) {
       if (!gv) build();
       if (!gvCards.length) return;
-      pos = 0; vel = 0; px = mx = window.innerWidth / 2; py = my = window.innerHeight / 2;
+      pos = (typeof startIdx === 'number' && startIdx >= 0) ? startIdx : 0; vel = 0; px = mx = window.innerWidth / 2; py = my = window.innerHeight / 2;
       render();
       document.documentElement.style.overflow = 'hidden';
       syncBtn();
@@ -3521,6 +3528,6 @@
       document.documentElement.style.overflow = '';
       syncBtn();
     }
-    btn.addEventListener('click', show);
+    btn.addEventListener('click', function () { show(0); });
   });
 })();
