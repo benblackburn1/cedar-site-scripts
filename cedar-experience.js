@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.52.0 · built by Origin · loaded site-wide (footer)
+ * v1.53.0 · built by Origin · loaded site-wide (footer)
+ * v1.53.0 (client): (1) the /post partner cards ("We partner with organizations that refuse to settle.") now swipe horizontally on a phone (native touch scroll, one card at a time with a peek of the next); scoped to that row so the other stacked mobile rows are untouched. (2) work-grid cards now play their muted clip on mobile when they scroll into view and stop when they scroll away (no hover on touch) — about one or two streams live at a time. (3) FIX the "View gallery" caption not showing — the Title/Description are now read from a class OR a custom attribute (gallery-title / gallery-description), whichever the Designer bound, and Webflow's default placeholder text is ignored.
  * v1.52.0 (client): refine the "View gallery" card to the approved look — the asset now sits on a white MAT (even white border/padding inside the card, rounded asset corners), with the title + description below. An item with no title/description is simply the matted asset (a clean white-bordered card), which is fine.
  * v1.51.0 (client): the "View gallery" coverflow (module 36) now shows each item as a WHITE CARD — the asset on top, with the CMS Title and Description below it. Cards are fixed width with the centred one large and the side cards smaller (unchanged feel); the media height follows each asset's natural aspect so nothing crops. The caption reads .gallery-title / .gallery-description, so bind those two CMS fields into the gallery card in the Designer (give them those classes) for the text to appear — no caption until then.
  * v1.50.0 (client): two mobile fixes. (1) removed the gap above the mobile nav — the navbar carried a 10px top margin on a fixed element, so a strip showed above it; it now sits flush to the top on phones. (2) the "View gallery" coverflow side assets recede more — the left/right cards were only scaled to ~0.82 (barely smaller than the centre); the falloff is now steeper so they read clearly smaller and the centred asset stands out.
@@ -93,6 +94,7 @@
     '.cedar-cardvid{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .55s ' + EASE + ';pointer-events:none;overflow:hidden;}',
     '.cedar-cardvid iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;background:#000;}',
     '.work-card.cedar-hover .cedar-cardvid{opacity:1;}',
+    '.work-card.cedar-playing .cedar-cardvid{opacity:1;}',   /* mobile: the clip plays when the card scrolls into view (module 3 touch path) */
     /* work-grid filter — yellow hover panel + chips (injected UI) */
     '.filter-pill{cursor:pointer;}',
     '.cedar-filter-panel{position:absolute;top:100%;left:0;margin-top:10px;background:' + YELLOW + ';border-radius:14px;padding:14px 16px 12px;min-width:236px;box-shadow:0 16px 40px rgba(41,34,27,.20);opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top left;pointer-events:none;transition:opacity .32s ' + EASE + ',transform .32s ' + EASE + ';z-index:50;}',
@@ -373,6 +375,8 @@
        DESKTOP-ONLY — on mobile these rules would force nowrap over the stacked layout, so they live behind
        a min-width query and phones keep the native Webflow layout. */
     '@media (min-width:768px){.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}.cedar-hscroll::-webkit-scrollbar{display:none;}.cedar-hscroll.cedar-nocursor{cursor:none;}.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}}',
+    /* mobile: the /post partner cards swipe horizontally (native touch scroll; scoped to this row only so the other stacked rows are untouched) */
+    '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
     /* "Reply within 24 hours" reads light green (client; module 30 tags the node) */
     '.cedar-reply-24{color:#9fb18f!important;}',
     /* photo slider (module 29) — filmstrip: photos at their natural aspect, one shared height, drag +
@@ -860,6 +864,18 @@
         });
       }, { rootMargin: '60% 0px 60% 0px' });
       cards.forEach(function (c) { vio.observe(c); });
+    });
+    /* MOBILE (client): no hover, so a card plays its muted clip while it's in view and stops when it
+       scrolls away — keeps ~1-2 streams live at a time (fires at the 50% crossing). Touch + motion only. */
+    if (TOUCH && !RM && 'IntersectionObserver' in window) afterLoader(function () {
+      var mio = new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) {
+          var c = en.target;
+          if (en.intersectionRatio >= 0.5) { mountVideo(c); playVid(c); c.classList.add('cedar-playing'); }
+          else { stopVid(c); c.classList.remove('cedar-playing'); }
+        });
+      }, { threshold: [0, 0.5, 1] });
+      cards.forEach(function (c) { mio.observe(c); });
     });
     if (DESK) cards.forEach(function (card) {
       card.addEventListener('mouseenter', function () { clearTimeout(leaveT); if (active === card) return; clearTimeout(enterT); enterT = setTimeout(function () { setActive(card); }, 80); });
@@ -3326,8 +3342,9 @@
    *   fixed card width, media height follows the asset's natural
    *   aspect, a rare tall asset letterboxes rather than crops)
    *   with the CMS Title + Description below it. The caption text
-   *   is read from .gallery-title / .gallery-description, which the
-   *   Designer must bind into the card (no caption until then).
+   *   is read from a class OR custom attribute (gallery-title /
+   *   gallery-description), which the Designer binds into the card
+   *   (no caption until then).
    *   Video cards show their poster with a play glyph; a tap (not
    *   a drag) on the centred video opens the module-14 lightbox
    *   with full controls + sound (reused via a hidden
@@ -3348,9 +3365,11 @@
       var img = c.querySelector('img');
       var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
       var ar = (img && img.naturalWidth) ? img.naturalWidth / img.naturalHeight : (vid ? 16 / 9 : 1);
-      var tEl = c.querySelector('.gallery-title'), dEl = c.querySelector('.gallery-description');
+      var tEl = c.querySelector('.gallery-title, [gallery-title]'), dEl = c.querySelector('.gallery-description, [gallery-description]');   /* accept a class OR a custom attribute */
+      var PLACE = 'This is some text inside of a div block.';       /* Webflow's default text on an unbound element — don't show it */
       var title = tEl ? (tEl.textContent || '').trim() : '';
       var desc = dEl ? (dEl.textContent || '').trim() : '';
+      if (title === PLACE) title = ''; if (desc === PLACE) desc = '';
       if (vid) assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar, title: title, desc: desc });
       else if (src) assets.push({ type: 'image', src: src, ar: ar, title: title, desc: desc });
     });
