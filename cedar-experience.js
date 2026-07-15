@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.55.0 · built by Origin · loaded site-wide (footer)
+ * v1.56.0 · built by Origin · loaded site-wide (footer)
+ * v1.56.0 (client): fix the gallery card description getting cut off — the 10px bottom space is now a margin, not padding (padding sat inside the 5-line clamp box and let a clipped sixth line peek through). The description clamps cleanly at five lines with an ellipsis.
  * v1.55.0 (client): clicking a gallery item (photo or film) now opens the "View gallery" coverflow ON that item, so you see its card + title/description straight away. From there the play button opens the film with sound (the direct click no longer jumps straight to the video player). The hero "Watch with sound" pills are unchanged.
  * v1.54.0 (client): gallery card description tightened to 1.1 line-height with 10px of padding below it.
  * v1.53.0 (client): (1) the /post partner cards ("We partner with organizations that refuse to settle.") now swipe horizontally on a phone (native touch scroll, one card at a time with a peek of the next); scoped to that row so the other stacked mobile rows are untouched. (2) work-grid cards now play their muted clip on mobile when they scroll into view and stop when they scroll away (no hover on touch) — about one or two streams live at a time. (3) FIX the "View gallery" caption not showing — the Title/Description are now read from a class OR a custom attribute (gallery-title / gallery-description), whichever the Designer bound, and Webflow's default placeholder text is ignored.
@@ -175,7 +176,7 @@
     '.cedar-gv-media.cedar-gv-contain img{object-fit:contain;}',   /* rare tall asset: show it whole, letterbox on the card, never crop */
     '.cedar-gv-cap{padding:13px 2px 3px;color:' + CHARCOAL + ';}',   /* title + description below the asset (client-styled type; charcoal on white for legibility) */
     '.cedar-gv-title{font-size:15px;font-weight:600;line-height:1.3;}',
-    '.cedar-gv-desc{margin-top:5px;padding-bottom:10px;font-size:13px;line-height:1.1;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',
+    '.cedar-gv-desc{margin-top:5px;margin-bottom:10px;font-size:13px;line-height:1.1;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',   /* bottom space is MARGIN not padding — padding inside the line-clamp box let a clipped 6th line peek through */
     '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
     '.cedar-gv-play .cedar-play-ico{width:20px;height:24px;margin-left:3px;}',
     '.cedar-gv .cedar-lb-close{z-index:100002;cursor:pointer;}',
