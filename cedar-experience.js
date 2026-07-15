@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.50.0 · built by Origin · loaded site-wide (footer)
+ * v1.51.0 · built by Origin · loaded site-wide (footer)
+ * v1.51.0 (client): the "View gallery" coverflow (module 36) now shows each item as a WHITE CARD — the asset on top, with the CMS Title and Description below it. Cards are fixed width with the centred one large and the side cards smaller (unchanged feel); the media height follows each asset's natural aspect so nothing crops. The caption reads .gallery-title / .gallery-description, so bind those two CMS fields into the gallery card in the Designer (give them those classes) for the text to appear — no caption until then.
  * v1.50.0 (client): two mobile fixes. (1) removed the gap above the mobile nav — the navbar carried a 10px top margin on a fixed element, so a strip showed above it; it now sits flush to the top on phones. (2) the "View gallery" coverflow side assets recede more — the left/right cards were only scaled to ~0.82 (barely smaller than the centre); the falloff is now steeper so they read clearly smaller and the centred asset stands out.
  * v1.49.0 (client): MOBILE gallery grid no longer crops. On phones each gallery card was forced to full-width x 50vh with the media cover-cropped, so a wide still (e.g. the "Unless U got Talent" graphic) lost its sides. Now mobile cards keep full width but take AUTO height following the media's own aspect — films stay 16:9, stills use their natural ratio (re-laid-out once a slow image decodes) — so nothing is cropped. Desktop grid unchanged.
  * v1.48.0 (client): NEW module 36 — a fixed "View gallery" button on project pages. It fades in whenever the project's gallery section is on screen (top-right on desktop, bottom-right on mobile) and opens the gallery assets in a drag-coverflow with the same feel as the BTS gallery. The assets show UNCROPPED — full frames, ignoring the CMS Crop: images are rebuilt from source and every card is sized to its media's own aspect, so nothing is cropped or letterboxed. Video cards show their poster with a play glyph; a tap on the centered video opens the full-controls lightbox (module 14) with sound. Complements the BTS "View the gallery" and the per-video "Watch with sound" — there was no gallery-section view before. No-op on any page without a .gallery-card.
@@ -163,8 +164,13 @@
     '.cedar-gv{position:fixed;inset:0;z-index:99999;background:rgba(20,15,10,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .35s ' + EASE + ';}',
     '.cedar-gv.is-open{opacity:1;pointer-events:auto;}',
     '.cedar-gv-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
-    '.cedar-gv-card{position:absolute;left:50%;top:50%;border-radius:12px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#000;}',
-    '.cedar-gv-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',   /* card box == media aspect, so cover crops nothing */
+    '.cedar-gv-card{position:absolute;left:50%;top:50%;border-radius:14px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.34);}',
+    '.cedar-gv-media{position:relative;width:100%;overflow:hidden;background:#f4f4f2;}',
+    '.cedar-gv-media img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',   /* media box == asset aspect, so cover crops nothing */
+    '.cedar-gv-media.cedar-gv-contain img{object-fit:contain;}',   /* rare tall asset: show it whole, letterbox on the card, never crop */
+    '.cedar-gv-cap{padding:14px 16px 17px;background:#fff;color:' + CHARCOAL + ';}',   /* title + description below the asset (client-styled type; charcoal on white for legibility) */
+    '.cedar-gv-title{font-size:15px;font-weight:600;line-height:1.3;}',
+    '.cedar-gv-desc{margin-top:5px;font-size:13px;line-height:1.5;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',
     '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
     '.cedar-gv-play .cedar-play-ico{width:20px;height:24px;margin-left:3px;}',
     '.cedar-gv .cedar-lb-close{z-index:100002;cursor:pointer;}',
@@ -3313,30 +3319,39 @@
    * 36. GALLERY VIEW (project pages) — a fixed "View gallery"
    *   button, top-right, that fades in whenever the gallery
    *   section is on screen and opens the gallery assets in a
-   *   drag-coverflow (same feel as the BTS gallery, module 4).
-   *   The assets are shown UNCROPPED — full frames, ignoring the
-   *   CMS Crop: images are rebuilt fresh from source (no crop
-   *   zoom) and each card is sized to its media's natural aspect,
-   *   so nothing is letterboxed OR cropped. Video cards show
-   *   their poster with a play glyph; a tap (not a drag) on the
-   *   centered video opens the module-14 lightbox with full
-   *   controls + sound (reused via a hidden .cedar-hero-watch
-   *   bridge). /work/* only; no-op with no .gallery-card.
+   *   drag-coverflow (same feel as the BTS gallery, module 4):
+   *   the centred card is large, the side cards recede.
+   *   Each item is a WHITE CARD — the asset on top (UNCROPPED:
+   *   fixed card width, media height follows the asset's natural
+   *   aspect, a rare tall asset letterboxes rather than crops)
+   *   with the CMS Title + Description below it. The caption text
+   *   is read from .gallery-title / .gallery-description, which the
+   *   Designer must bind into the card (no caption until then).
+   *   Video cards show their poster with a play glyph; a tap (not
+   *   a drag) on the centred video opens the module-14 lightbox
+   *   with full controls + sound (reused via a hidden
+   *   .cedar-hero-watch bridge). /work/* only; no-op with no
+   *   .gallery-card.
    * ======================================================= */
   onReady(function () {
     if ((location.pathname.replace(/\/$/, '') || '/').indexOf('/work/') !== 0) return;
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
 
-    /* collect assets in DOM order; natural aspect comes from the on-page (already loaded) image */
+    /* collect assets in DOM order; natural aspect comes from the on-page (already loaded) image.
+       Title + Description come from .gallery-title / .gallery-description if the Designer has bound
+       those CMS fields into the card (no-op caption until then). */
     var assets = [];
     cards.forEach(function (c) {
       var vid = c.getAttribute('data-cedar-vimeo');
       var img = c.querySelector('img');
       var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
       var ar = (img && img.naturalWidth) ? img.naturalWidth / img.naturalHeight : (vid ? 16 / 9 : 1);
-      if (vid) assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar });
-      else if (src) assets.push({ type: 'image', src: src, ar: ar });
+      var tEl = c.querySelector('.gallery-title'), dEl = c.querySelector('.gallery-description');
+      var title = tEl ? (tEl.textContent || '').trim() : '';
+      var desc = dEl ? (dEl.textContent || '').trim() : '';
+      if (vid) assets.push({ type: 'video', id: vid, hash: c.getAttribute('data-cedar-vimeo-h') || '', src: src, ar: ar, title: title, desc: desc });
+      else if (src) assets.push({ type: 'image', src: src, ar: ar, title: title, desc: desc });
     });
     if (!assets.length) return;
 
@@ -3361,13 +3376,22 @@
     var gvCards = [], pos = 0, vel = 0, sp = 380, raf = null, drag = false, moved = false;
     var pill, mx = 0, my = 0, px = -200, py = -200, downX = 0;
 
-    function sizeCard(card, ar) {
-      var H = Math.min(window.innerHeight * 0.66, 600);
-      var maxW = Math.min(window.innerWidth * 0.82, 1120);
-      var w = H * ar;
-      if (w > maxW) { w = maxW; H = w / ar; }
-      card.style.width = Math.round(w) + 'px';
-      card.style.height = Math.round(H) + 'px';
+    /* fixed card WIDTH (the falloff scales the side cards down); the media height follows the
+       asset's natural aspect so nothing crops, capped so the card + caption still fit the viewport
+       (a rare very-tall asset letterboxes on the card rather than cropping). */
+    function sizeCard(card, as) {
+      var W = Math.round(Math.min(window.innerWidth * (window.innerWidth < 768 ? 0.82 : 0.6), 680));
+      var maxMediaH = window.innerHeight * 0.55;
+      var mh = W / (as.ar || (16 / 9));
+      var contain = mh > maxMediaH;
+      if (contain) mh = maxMediaH;
+      card.style.width = W + 'px';
+      var media = card._media;
+      if (media) {
+        media.style.width = W + 'px';
+        media.style.height = Math.round(mh) + 'px';
+        media.classList.toggle('cedar-gv-contain', contain);
+      }
     }
     function render() {
       var m = gvCards.length;
@@ -3416,9 +3440,17 @@
       var stage = el('div', 'cedar-gv-stage', '');
       assets.forEach(function (as) {
         var card = el('div', 'cedar-gv-card', '');
-        sizeCard(card, as.ar || (16 / 9));
-        if (as.src) { var im = document.createElement('img'); im.src = as.src; im.alt = ''; im.draggable = false; card.appendChild(im); }
-        if (as.type === 'video') card.appendChild(el('div', 'cedar-gv-play', PLAY_SVG));
+        var media = el('div', 'cedar-gv-media', '');
+        if (as.src) { var im = document.createElement('img'); im.src = as.src; im.alt = ''; im.draggable = false; media.appendChild(im); }
+        if (as.type === 'video') media.appendChild(el('div', 'cedar-gv-play', PLAY_SVG));
+        card.appendChild(media); card._media = media;
+        if (as.title || as.desc) {                                  /* white caption below the asset */
+          var cap = el('div', 'cedar-gv-cap', '');
+          if (as.title) { var t = el('div', 'cedar-gv-title'); t.textContent = as.title; cap.appendChild(t); }
+          if (as.desc) { var d = el('div', 'cedar-gv-desc'); d.textContent = as.desc; cap.appendChild(d); }
+          card.appendChild(cap);
+        }
+        sizeCard(card, as);
         stage.appendChild(card); gvCards.push(card);
       });
       var close = el('button', 'cedar-lb-close', '&times;'); close.setAttribute('aria-label', 'Close gallery');
@@ -3448,7 +3480,7 @@
       document.addEventListener('keydown', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && gv.classList.contains('is-open')) hide(); });
       window.addEventListener('resize', function () {
         if (!gv.classList.contains('is-open')) return;
-        gvCards.forEach(function (c, i) { sizeCard(c, assets[i].ar || (16 / 9)); });
+        gvCards.forEach(function (c, i) { sizeCard(c, assets[i]); });
         render();
       });
     }
