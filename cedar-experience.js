@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.53.0 · built by Origin · loaded site-wide (footer)
+ * v1.54.0 · built by Origin · loaded site-wide (footer)
+ * v1.54.0 (client): gallery card description tightened to 1.1 line-height with 10px of padding below it.
  * v1.53.0 (client): (1) the /post partner cards ("We partner with organizations that refuse to settle.") now swipe horizontally on a phone (native touch scroll, one card at a time with a peek of the next); scoped to that row so the other stacked mobile rows are untouched. (2) work-grid cards now play their muted clip on mobile when they scroll into view and stop when they scroll away (no hover on touch) — about one or two streams live at a time. (3) FIX the "View gallery" caption not showing — the Title/Description are now read from a class OR a custom attribute (gallery-title / gallery-description), whichever the Designer bound, and Webflow's default placeholder text is ignored.
  * v1.52.0 (client): refine the "View gallery" card to the approved look — the asset now sits on a white MAT (even white border/padding inside the card, rounded asset corners), with the title + description below. An item with no title/description is simply the matted asset (a clean white-bordered card), which is fine.
  * v1.51.0 (client): the "View gallery" coverflow (module 36) now shows each item as a WHITE CARD — the asset on top, with the CMS Title and Description below it. Cards are fixed width with the centred one large and the side cards smaller (unchanged feel); the media height follows each asset's natural aspect so nothing crops. The caption reads .gallery-title / .gallery-description, so bind those two CMS fields into the gallery card in the Designer (give them those classes) for the text to appear — no caption until then.
@@ -173,7 +174,7 @@
     '.cedar-gv-media.cedar-gv-contain img{object-fit:contain;}',   /* rare tall asset: show it whole, letterbox on the card, never crop */
     '.cedar-gv-cap{padding:13px 2px 3px;color:' + CHARCOAL + ';}',   /* title + description below the asset (client-styled type; charcoal on white for legibility) */
     '.cedar-gv-title{font-size:15px;font-weight:600;line-height:1.3;}',
-    '.cedar-gv-desc{margin-top:5px;font-size:13px;line-height:1.5;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',
+    '.cedar-gv-desc{margin-top:5px;padding-bottom:10px;font-size:13px;line-height:1.1;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',
     '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
     '.cedar-gv-play .cedar-play-ico{width:20px;height:24px;margin-left:3px;}',
     '.cedar-gv .cedar-lb-close{z-index:100002;cursor:pointer;}',
