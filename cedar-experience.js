@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.56.0 · built by Origin · loaded site-wide (footer)
+ * v1.57.0 · built by Origin · loaded site-wide (footer)
+ * v1.57.0 (client): the "View gallery" coverflow gets left/right arrows (bottom centre, same buttons as the View Similar Projects slider) that step one card at a time; dragging still works and cancels the arrow glide.
  * v1.56.0 (client): fix the gallery card description getting cut off — the 10px bottom space is now a margin, not padding (padding sat inside the 5-line clamp box and let a clipped sixth line peek through). The description clamps cleanly at five lines with an ellipsis.
  * v1.55.0 (client): clicking a gallery item (photo or film) now opens the "View gallery" coverflow ON that item, so you see its card + title/description straight away. From there the play button opens the film with sound (the direct click no longer jumps straight to the video player). The hero "Watch with sound" pills are unchanged.
  * v1.54.0 (client): gallery card description tightened to 1.1 line-height with 10px of padding below it.
@@ -179,6 +180,7 @@
     '.cedar-gv-desc{margin-top:5px;margin-bottom:10px;font-size:13px;line-height:1.1;color:' + CHARCOAL + ';opacity:.72;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}',   /* bottom space is MARGIN not padding — padding inside the line-clamp box let a clipped 6th line peek through */
     '.cedar-gv-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:rgba(20,15,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;pointer-events:none;color:#f4f4f2;}',
     '.cedar-gv-play .cedar-play-ico{width:20px;height:24px;margin-left:3px;}',
+    '.cedar-gv-arrows{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:100002;display:inline-flex;gap:12px;}',   /* prev/next — same buttons as the View Similar Projects slider */
     '.cedar-gv .cedar-lb-close{z-index:100002;cursor:pointer;}',
     '@media (prefers-reduced-motion: reduce){.cedar-gv{transition:none!important;}}',
     /* mobile menu (≤767px): mark pinned left, "Menu" pinned right, warm-grey overlay fills top-down, pages 36px bottom-left */
@@ -3402,7 +3404,7 @@
     } else { visible = 1; syncBtn(); }
 
     /* ---- drag-coverflow (mirrors the BTS coverflow feel; cards sized to media aspect = uncropped) ---- */
-    var gvCards = [], pos = 0, vel = 0, sp = 380, raf = null, drag = false, moved = false;
+    var gvCards = [], pos = 0, vel = 0, goal = null, sp = 380, raf = null, drag = false, moved = false;
     var pill, mx = 0, my = 0, px = -200, py = -200, downX = 0;
 
     /* fixed card WIDTH (the falloff scales the side cards down); the media height follows the
@@ -3442,8 +3444,8 @@
       if (!gv || !gv.classList.contains('is-open')) { raf = null; return; }
       document.documentElement.style.overflow = 'hidden';   /* re-assert the lock (a nested lightbox close resets it) */
       if (!drag) {
-        if (!RM && Math.abs(vel) > 0.0012) { pos += vel; vel *= 0.92; }
-        else { var t = Math.round(pos); pos += (t - pos) * 0.14; }
+        if (!RM && Math.abs(vel) > 0.0012) { pos += vel; vel *= 0.92; goal = null; }
+        else { var t = (goal !== null) ? goal : Math.round(pos); pos += (t - pos) * 0.14; if (goal !== null && Math.abs(goal - pos) < 0.002) { pos = goal; goal = null; } }
       }
       render();
       px += (mx - px) * 0.22; py += (my - py) * 0.22;
@@ -3451,6 +3453,7 @@
       raf = requestAnimationFrame(loop);
     }
     function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+    function step(dir) { vel = 0; goal = Math.round(goal !== null ? goal : pos) + dir; kick(); }   /* prev/next arrows glide one card over */
 
     function playCentered() {   /* tap on the centered card: if it's a video, open the module-14 lightbox */
       var idx = ((Math.round(pos) % assets.length) + assets.length) % assets.length;
@@ -3485,12 +3488,15 @@
       });
       var close = el('button', 'cedar-lb-close', '&times;'); close.setAttribute('aria-label', 'Close gallery');
       pill = el('div', 'cedar-cf-pill', 'Drag to browse');
-      gv.appendChild(stage); gv.appendChild(close); gv.appendChild(pill);
+      var arrows = el('div', 'cedar-gv-arrows', '<button class="cedar-vo-arrow" aria-label="Previous">‹</button><button class="cedar-vo-arrow" aria-label="Next">›</button>');
+      gv.appendChild(stage); gv.appendChild(close); gv.appendChild(pill); gv.appendChild(arrows);
       document.body.appendChild(gv);
       close.addEventListener('click', hide);
+      arrows.children[0].addEventListener('click', function () { step(-1); });
+      arrows.children[1].addEventListener('click', function () { step(1); });
       var lastX = 0;
       stage.addEventListener('pointerdown', function (e) {
-        drag = true; moved = false; vel = 0; lastX = e.clientX; downX = e.clientX;
+        drag = true; moved = false; vel = 0; goal = null; lastX = e.clientX; downX = e.clientX;
         try { stage.setPointerCapture(e.pointerId); } catch (_) {}
         pill.classList.add('is-down');
       });
