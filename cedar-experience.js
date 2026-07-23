@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.62.0 · built by Origin · loaded site-wide (footer)
+ * v1.63.0 · built by Origin · loaded site-wide (footer)
+ * v1.63.0 (client): film-card description capped at 50% of the card width so it never runs under the "Watch with sound" pill bottom-right.
  * v1.62.0 (client): NEW module 12.5 — FILM SECTIONS on project pages, driven by the Gallery Items "Category" field (bind data-cedar-category on the gallery card, done 2026-07-23). Cards tagged Trailer / Film / Edit are pulled out of the stills grid into their own labeled sections above it (order: Trailer, Films, Edits, Poster, then the stills), laid out in the same gallery style; each film card shows its Title + Description on hover (always visible on touch). "Poster / Full Image" renders as a full-width uncropped image. Untagged or Still items are unchanged, and projects with no tagged items are untouched.
  * v1.61.0 (client): the /about value icons (Quality/Vision/Sustainability) now animate BACKWARDS first on hover — instead of the finished icon jumping to blank and re-drawing, it reverse-builds (un-draws) from the full icon, then rebuilds, and keeps looping while you hover. Smoother entry, no jarring jump to nothing.
  * v1.60.0 (client): NEW module 37 — the "Our Team" bios on /about sit in a horizontal scroller that runs off the right edge, so it wasn't obvious there were more people. Added prev/next arrows (same buttons as the View Similar Projects slider) above the row on the right; each click scrolls one card. They dim at each end and hide entirely if everyone already fits.
@@ -226,7 +227,7 @@
     '.gallery-card:hover .cedar-fs-cap{opacity:1;}',
     '@media (hover:none){.cedar-fs-cap{opacity:1;}}',   /* touch has no hover — captions stay visible */
     '.cedar-fs-title{font-size:15px;font-weight:600;}',
-    '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:560px;}',
+    '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:50%;}',   /* client (v1.63): stay clear of the "Watch with sound" pill bottom-right */
     '.cedar-fs-poster{display:block;width:100%;}',
     '.cedar-fs-poster img{width:100%;height:auto;display:block;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
