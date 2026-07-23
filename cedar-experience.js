@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.57.0 · built by Origin · loaded site-wide (footer)
+ * v1.58.0 · built by Origin · loaded site-wide (footer)
+ * v1.58.0 (client): three gallery/listing fixes. (1) the homepage projects gallery now shows 2-3 projects per row at "work page scale" (asymmetric 3-up on a wide window, 2-up on a narrow one), instead of the old rhythm that left most cards full-width one-per-row. (2) the filter "tag" icon square is shrunk to match the height of the text filter pill next to it (was a taller 32x33 square). (3) the individual project thumbnails no longer show the spinning wireframe loading mark while their clip buffers — that mark now lives only in the full-screen video player.
  * v1.57.0 (client): the "View gallery" coverflow gets left/right arrows (bottom centre, same buttons as the View Similar Projects slider) that step one card at a time; dragging still works and cancels the arrow glide.
  * v1.56.0 (client): fix the gallery card description getting cut off — the 10px bottom space is now a margin, not padding (padding sat inside the 5-line clamp box and let a clipped sixth line peek through). The description clamps cleanly at five lines with an ellipsis.
  * v1.55.0 (client): clicking a gallery item (photo or film) now opens the "View gallery" coverflow ON that item, so you see its card + title/description straight away. From there the play button opens the film with sound (the direct click no longer jumps straight to the video player). The hero "Watch with sound" pills are unchanged.
@@ -114,6 +115,8 @@
     '.filter-controls .filter-pill{column-gap:0;}',   /* drop the pill flex gap so the caption + collapsed x hug tight (scoped: not the /work .filter-pill) */
     '.filter-pill .cfp-x{display:none;align-items:center;justify-content:center;flex:0 0 auto;height:15px;margin-left:6px;border:0;background:none;padding:0;cursor:pointer;color:' + CHARCOAL + ';font-size:15px;line-height:1;opacity:.6;vertical-align:middle;}',   /* toggled via display in JS — no transition (a transition on this element sticks at 0 inside the pill); display:none = zero reserved space when inactive */
     '.filter-pill .cfp-x:hover{opacity:1;}',
+    '.filter-pill.icon{width:27px!important;height:27px!important;min-height:0!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;}',   /* client (v1.58): shrink the tag-icon square to match the text pill height (was 32x33) */
+    '.filter-pill.icon svg{width:14px!important;height:14px!important;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
     '#cedar-modal-root.is-open{display:flex;}',
@@ -640,6 +643,7 @@
        list in repeating asymmetric THREE-UP rows at a shorter height (client: faster to scan). Home keeps
        its own 2-up design untouched. */
     var PATTERNS3 = [[0.26, 0.44, 0.30], [0.333, 0.334, 0.333], [0.44, 0.30, 0.26]];
+    var PATTERNS2 = [[0.42, 0.58], [0.58, 0.42]];        /* home 2-up asymmetric rhythm (narrow desktop window) */
     var WORK_H = 420;                                  /* /work card height; tunable */
     function assignPattern() {
       if (path !== '/work') return;
@@ -682,13 +686,37 @@
        Homepage Feature Order), show only the first 6 at rest and 6 MATCHING on filter — so the filter pulls
        from ALL works but the grid stays 6-up. Each shown card is given one of the 6 design SLOT widths by
        position, so the 2-up asymmetric rhythm holds whichever 6 show. No-op while the list is still 6. */
-    var HOME = path === '/', HOME_CAP = 6;
-    var SLOTS = HOME ? cards.slice(0, HOME_CAP).map(function (c) { return c._nat; }) : null;
+    var HOME = path === '/', HOME_CAP = 6, HOME_H = 420;   /* client (v1.58): home projects lay out at "work page scale" — 2-3 per row, not the old full-width Designer rhythm */
+    /* the 6 home card widths as asymmetric multi-up rows: 3-up on a wide window, 2-up on a narrow desktop
+       (mobile <=767 keeps the Webflow full-width CSS). Mirrors the /work PATTERNS so home reads at that scale. */
+    function homeSlotWidths() {
+      var p = cards[0].parentElement, cs = getComputedStyle(p);
+      var gap = parseFloat(cs.columnGap || cs.gap) || 14;
+      var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      if (W <= 0 || window.innerWidth < 768) return null;
+      var cols = window.innerWidth < 1100 ? 2 : 3, out = [];
+      for (var i = 0; i < HOME_CAP; i += cols) {
+        if (cols === 3) {
+          var avail = W - gap * 2, pat = PATTERNS3[(i / 3) % PATTERNS3.length];
+          var a = Math.round(avail * pat[0]), b = Math.round(avail * pat[1]);
+          out.push(a, b, avail - a - b);
+        } else {
+          var av2 = W - gap, p2 = PATTERNS2[(i / 2) % PATTERNS2.length], a2 = Math.round(av2 * p2[0]);
+          out.push(a2, av2 - a2);
+        }
+      }
+      return out;
+    }
+    var SLOTS = HOME ? (homeSlotWidths() || cards.slice(0, HOME_CAP).map(function (c) { return c._nat; })) : null;
     var HOME_MODE = HOME && cards.length > HOME_CAP;
     function homeShow(list) {
       var show = list.slice(0, HOME_CAP);
       cards.forEach(function (c) { c.style.display = show.indexOf(c) > -1 ? '' : 'none'; });
-      show.forEach(function (c, i) { c._nat = SLOTS[i % SLOTS.length] || c._nat; });
+      show.forEach(function (c, i) {
+        c._nat = SLOTS[i % SLOTS.length] || c._nat;
+        if (window.innerWidth >= 768) c.style.setProperty('height', HOME_H + 'px', 'important');   /* mobile keeps the Webflow full-width CSS height */
+        else c.style.removeProperty('height');
+      });
     }
     if (HOME_MODE) homeShow(cards.slice(0, HOME_CAP));
     assignPattern();
@@ -820,14 +848,7 @@
       gRaf = requestAnimationFrame(gridSpinLoop);
     }
     function hideGridSpin() { if (gSpin) gSpin.classList.remove('is-on'); }
-    function showGridSpin(card) {
-      if (RM || TOUCH) return;
-      if (card && card._cv && !card._playing) {
-        if (!gSpin) buildGridSpin();
-        card._cv.appendChild(gSpin); gSpin.classList.add('is-on');
-        if (!gRaf) gRaf = requestAnimationFrame(gridSpinLoop);
-      } else hideGridSpin();
-    }
+    function showGridSpin(card) { hideGridSpin(); }   /* client (v1.58): grid thumbnails no longer show the loading wireframe — kept only in the module-14 lightbox. buildGridSpin/gridSpinLoop now dormant (restore the old body to bring it back). */
     window.addEventListener('message', function (e) {   /* a clip reports in -> mark it live, drop the loading mark, feed the stall watchdog */
       if ((e.origin || '').indexOf('vimeo') === -1) return;
       var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
@@ -886,7 +907,15 @@
       card.addEventListener('mouseenter', function () { clearTimeout(leaveT); if (active === card) return; clearTimeout(enterT); enterT = setTimeout(function () { setActive(card); }, 80); });
       card.addEventListener('mouseleave', function () { clearTimeout(enterT); clearTimeout(leaveT); leaveT = setTimeout(function () { setActive(null); }, 130); });
     });
-    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!active) { assignPattern(); if (DESK) relock(); } }, 160); });
+    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () {
+      if (active) return;
+      if (HOME_MODE) {                                   /* re-slot the shown home cards for the new width (3-up <-> 2-up) */
+        var ns = homeSlotWidths();
+        if (ns) { SLOTS = ns; visible().forEach(function (c, i) { c._nat = ns[i % ns.length] || c._nat; c.style.setProperty('height', HOME_H + 'px', 'important'); }); }
+        else visible().forEach(function (c) { c.style.removeProperty('height'); });
+      } else assignPattern();
+      if (DESK) relock();
+    }, 160); });
 
     /* ---------- FILTER: yellow hover panel, faceted (AND across groups, OR within), FLIP reflow ---------- */
     var controls = document.querySelector('.filter-controls'), pill = document.querySelector('.filter-pill');
