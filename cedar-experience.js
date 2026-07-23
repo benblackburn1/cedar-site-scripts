@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.61.0 · built by Origin · loaded site-wide (footer)
+ * v1.62.0 · built by Origin · loaded site-wide (footer)
+ * v1.62.0 (client): NEW module 12.5 — FILM SECTIONS on project pages, driven by the Gallery Items "Category" field (bind data-cedar-category on the gallery card, done 2026-07-23). Cards tagged Trailer / Film / Edit are pulled out of the stills grid into their own labeled sections above it (order: Trailer, Films, Edits, Poster, then the stills), laid out in the same gallery style; each film card shows its Title + Description on hover (always visible on touch). "Poster / Full Image" renders as a full-width uncropped image. Untagged or Still items are unchanged, and projects with no tagged items are untouched.
  * v1.61.0 (client): the /about value icons (Quality/Vision/Sustainability) now animate BACKWARDS first on hover — instead of the finished icon jumping to blank and re-drawing, it reverse-builds (un-draws) from the full icon, then rebuilds, and keeps looping while you hover. Smoother entry, no jarring jump to nothing.
  * v1.60.0 (client): NEW module 37 — the "Our Team" bios on /about sit in a horizontal scroller that runs off the right edge, so it wasn't obvious there were more people. Added prev/next arrows (same buttons as the View Similar Projects slider) above the row on the right; each click scrolls one card. They dim at each end and hide entirely if everyone already fits.
  * v1.59.0 (client): two fixes to the full-screen film player (lightbox). (1) you no longer hear the film before you can see it — the loading mark now stays up until the video is genuinely PLAYING (first frame rendered), so the picture and the sound arrive together instead of the audio starting 2-3 seconds before the frame appears. (2) the player opens LARGER by default (wider cap + taller, less letterbox margin around it) so films are watched as big as possible without needing fullscreen.
@@ -216,6 +217,18 @@
     '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
     '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:none;}',   /* gallery video cards: affordance only — the card itself opens the lightbox */
+    /* film sections (module 12.5) — labeled category rows above the stills grid */
+    '.cedar-fs{margin:44px 0 8px;}',
+    '.cedar-fs-head{display:flex;align-items:center;gap:16px;margin:0 0 16px;}',
+    '.cedar-fs-label{font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.55;}',
+    '.cedar-fs-line{flex:1 1 auto;height:1px;background:currentColor;opacity:.16;}',
+    '.cedar-fs-cap{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:44px 18px 16px;background:linear-gradient(0deg,rgba(0,0,0,.55),rgba(0,0,0,0));color:#f4f4f2;opacity:0;transition:opacity .45s ' + EASE + ';pointer-events:none;}',
+    '.gallery-card:hover .cedar-fs-cap{opacity:1;}',
+    '@media (hover:none){.cedar-fs-cap{opacity:1;}}',   /* touch has no hover — captions stay visible */
+    '.cedar-fs-title{font-size:15px;font-weight:600;}',
+    '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:560px;}',
+    '.cedar-fs-poster{display:block;width:100%;}',
+    '.cedar-fs-poster img{width:100%;height:auto;display:block;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
     /* hover-clip loading mark (module 3) — white wireframe chevron over the black card clip while it buffers */
     '.cedar-grid-spin{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .3s ' + EASE + ';}',
@@ -1974,6 +1987,90 @@
         paintText(card, CHARCOAL);
         paintIcon(card, CHARCOAL);
       }
+    });
+  });
+
+  /* =========================================================
+   * 12.5 FILM SECTIONS (project pages) — CMS-driven gallery
+   *   partition. Each Gallery Item carries a Category option, exposed
+   *   on the card as data-cedar-category (bound in the Designer like
+   *   data-cedar-crop). Still (default/unset) stays in the module-13
+   *   grid; Trailer / Film / Edit cards are pulled up into their own
+   *   labeled sections ABOVE the stills (order: Trailer → Films →
+   *   Edits → Poster → Stills, per Ben); module 13 then lays each
+   *   section's row in the same gallery language (video mounts, watch
+   *   pill, lone card spans the row) because the rows reuse the
+   *   original row's classes and the cards keep .gallery-card — so
+   *   they also stay in the module-36 coverflow and its click-to-open
+   *   flow. Film cards get a hover caption (Title/Description,
+   *   offwhite over a bottom scrim, homepage-card spirit; always
+   *   visible on touch). "Poster / Full Image" leaves the grid
+   *   entirely and renders as a full-width UNCROPPED natural-aspect
+   *   image block. Registered BEFORE module 13 (onReady runs in file
+   *   order) so the partition happens before any layout. NO-OP unless
+   *   a card carries a non-Still category — untagged projects are
+   *   byte-for-byte unchanged.
+   * ======================================================= */
+  onReady(function () {
+    if (location.pathname.indexOf('/work/') !== 0) return;
+    var all = [].slice.call(document.querySelectorAll('.gallery-card'));
+    if (!all.length) return;
+    var SECTIONS = [
+      { key: 'Trailer', label: 'Trailer' },
+      { key: 'Film', label: 'Films' },
+      { key: 'Edit', label: 'Edits' },
+      { key: 'Poster / Full Image', label: 'Poster', poster: true }
+    ];
+    var buckets = {}, found = false;
+    all.forEach(function (c) {
+      var cat = (c.getAttribute('data-cedar-category') || '').trim();
+      for (var i = 0; i < SECTIONS.length; i++) {
+        if (SECTIONS[i].key === cat) { (buckets[cat] = buckets[cat] || []).push(c); found = true; return; }
+      }
+    });
+    if (!found) return;
+    var origRow = all[0].parentElement;
+    var wrapper = origRow.closest('.w-dyn-list') || origRow;
+    var host = wrapper.parentElement;
+    var rcs = getComputedStyle(origRow);
+    var PLACEHOLDER = 'This is some text inside of a div block.';
+    function textOf(card, sel) {
+      var n = card.querySelector(sel);
+      var t = n ? (n.textContent || '').trim() : '';
+      return t === PLACEHOLDER ? '' : t;
+    }
+    SECTIONS.forEach(function (s) {
+      var list = buckets[s.key];
+      if (!list || !list.length) return;
+      var sec = el('div', 'cedar-fs', '');
+      var head = el('div', 'cedar-fs-head', '<span class="cedar-fs-label"></span><span class="cedar-fs-line"></span>');
+      head.querySelector('.cedar-fs-label').textContent = s.label;
+      head.style.paddingLeft = rcs.paddingLeft; head.style.paddingRight = rcs.paddingRight;   /* align the label with the row's own side padding */
+      sec.appendChild(head);
+      var row = el('div', '', '');
+      row.className = origRow.className + ' cedar-fs-row';   /* reuse the gallery row's classes so flex/gap/padding match exactly */
+      list.forEach(function (c) {
+        if (s.poster) {
+          c.classList.remove('gallery-card');          /* out of the grid AND the coverflow — shown whole instead */
+          c.classList.add('cedar-fs-poster');
+          var v = c.querySelector('.gallery-video, .cedar-galvid'); if (v) v.remove();
+          [].slice.call(c.querySelectorAll('.gallery-title, [gallery-title], .gallery-description, [gallery-description]')).forEach(function (n) { n.style.display = 'none'; });   /* whatever hid these inside .gallery-card may not apply anymore */
+        } else {
+          var title = textOf(c, '.gallery-title, [gallery-title]');
+          var desc = textOf(c, '.gallery-description, [gallery-description]');
+          if (title || desc) {
+            var cap = el('div', 'cedar-fs-cap', '<div class="cedar-fs-title"></div><div class="cedar-fs-desc"></div>');
+            cap.querySelector('.cedar-fs-title').textContent = title;
+            cap.querySelector('.cedar-fs-desc').textContent = desc;
+            if (!title) cap.querySelector('.cedar-fs-title').remove();
+            if (!desc) cap.querySelector('.cedar-fs-desc').remove();
+            c.appendChild(cap);
+          }
+        }
+        row.appendChild(c);
+      });
+      sec.appendChild(row);
+      host.insertBefore(sec, wrapper);                 /* sections stack above the stills grid, in SECTIONS order */
     });
   });
 
