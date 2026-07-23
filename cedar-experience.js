@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.65.0 · built by Origin · loaded site-wide (footer)
+ * v1.66.0 · built by Origin · loaded site-wide (footer)
+ * v1.66.0 (client): NEW module 12.6 — HERO FEATURE LABEL. The autoplaying hero film on a project page now shows a small glass tag bottom-left naming what it is (e.g. "Trailer"), read from the Works "Feature Label" CMS field. Needs a one-time Designer bind: custom attribute data-cedar-feature-label on the hero band, bound to Feature Label (same as data-cedar-crop). Blank field = no tag.
  * v1.65.0 (client): FUTURE-PROOF CATEGORIES — Cedar can now add new options to the Gallery Items "Category" dropdown in the CMS and they just work: any category the script doesn't already know gets its own labeled section automatically (named exactly like the option), placed after Trailer/Films/Edits/Poster and above Stills. "Still" always means the grid; "Poster / Full Image" keeps its full-width uncropped treatment.
  * v1.64.0 (client): the stills grid now gets its own "Stills" section header when labeled film sections sit above it (a headerless grid under labeled sections read as unfinished). Pages with no categorized items are unchanged — no header appears.
  * v1.63.0 (client): film-card description capped at 50% of the card width so it never runs under the "Watch with sound" pill bottom-right.
@@ -232,6 +233,8 @@
     '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:50%;}',   /* client (v1.63): stay clear of the "Watch with sound" pill bottom-right */
     '.cedar-fs-poster{display:block;width:100%;}',
     '.cedar-fs-poster img{width:100%;height:auto;display:block;}',
+    /* hero feature label (module 12.6) — small glass tag naming what the autoplaying hero is (e.g. "Trailer") */
+    '.cedar-hero-tag{position:absolute;left:18px;bottom:18px;z-index:3;padding:9px 14px;border-radius:999px;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f4f4f2;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
     /* hover-clip loading mark (module 3) — white wireframe chevron over the black card clip while it buffers */
     '.cedar-grid-spin{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .3s ' + EASE + ';}',
@@ -2088,6 +2091,30 @@
       sh.appendChild(shHead);
       host.insertBefore(sh, wrapper);
     }
+  });
+
+  /* =========================================================
+   * 12.6 HERO FEATURE LABEL (project pages) — the autoplaying hero
+   *   film isn't denoted as what it is (e.g. Breakneck's hero is
+   *   really the trailer). The Works CMS carries a "Feature Label"
+   *   text field; bind it in the Designer as a custom attribute
+   *   data-cedar-feature-label on the hero band (same pattern as
+   *   data-cedar-crop / data-cedar-category) and this renders a small
+   *   glass tag bottom-left of the band (opposite the "Watch with
+   *   sound" pill). Empty/unbound = no tag, page unchanged.
+   * ======================================================= */
+  onReady(function () {
+    if (location.pathname.indexOf('/work/') !== 0) return;
+    [].slice.call(document.querySelectorAll('[data-cedar-feature-label]')).forEach(function (hostEl) {
+      if (hostEl._cedarTag) return;
+      var val = (hostEl.getAttribute('data-cedar-feature-label') || '').trim();
+      if (!val) return;
+      hostEl._cedarTag = true;
+      if (getComputedStyle(hostEl).position === 'static') hostEl.style.position = 'relative';
+      var tag = el('div', 'cedar-hero-tag', '');
+      tag.textContent = val;
+      hostEl.appendChild(tag);
+    });
   });
 
   /* =========================================================
