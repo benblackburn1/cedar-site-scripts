@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.63.0 · built by Origin · loaded site-wide (footer)
+ * v1.64.0 · built by Origin · loaded site-wide (footer)
+ * v1.64.0 (client): the stills grid now gets its own "Stills" section header when labeled film sections sit above it (a headerless grid under labeled sections read as unfinished). Pages with no categorized items are unchanged — no header appears.
  * v1.63.0 (client): film-card description capped at 50% of the card width so it never runs under the "Watch with sound" pill bottom-right.
  * v1.62.0 (client): NEW module 12.5 — FILM SECTIONS on project pages, driven by the Gallery Items "Category" field (bind data-cedar-category on the gallery card, done 2026-07-23). Cards tagged Trailer / Film / Edit are pulled out of the stills grid into their own labeled sections above it (order: Trailer, Films, Edits, Poster, then the stills), laid out in the same gallery style; each film card shows its Title + Description on hover (always visible on touch). "Poster / Full Image" renders as a full-width uncropped image. Untagged or Still items are unchanged, and projects with no tagged items are untouched.
  * v1.61.0 (client): the /about value icons (Quality/Vision/Sustainability) now animate BACKWARDS first on hover — instead of the finished icon jumping to blank and re-drawing, it reverse-builds (un-draws) from the full icon, then rebuilds, and keeps looping while you hover. Smoother entry, no jarring jump to nothing.
@@ -2073,6 +2074,14 @@
       sec.appendChild(row);
       host.insertBefore(sec, wrapper);                 /* sections stack above the stills grid, in SECTIONS order */
     });
+    if (origRow.querySelector('.gallery-card')) {      /* v1.64: stills remain below the labeled sections — label them too */
+      var sh = el('div', 'cedar-fs cedar-fs-stills', '');
+      var shHead = el('div', 'cedar-fs-head', '<span class="cedar-fs-label"></span><span class="cedar-fs-line"></span>');
+      shHead.querySelector('.cedar-fs-label').textContent = 'Stills';
+      shHead.style.paddingLeft = rcs.paddingLeft; shHead.style.paddingRight = rcs.paddingRight;
+      sh.appendChild(shHead);
+      host.insertBefore(sh, wrapper);
+    }
   });
 
   /* =========================================================
