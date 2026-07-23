@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.64.0 · built by Origin · loaded site-wide (footer)
+ * v1.65.0 · built by Origin · loaded site-wide (footer)
+ * v1.65.0 (client): FUTURE-PROOF CATEGORIES — Cedar can now add new options to the Gallery Items "Category" dropdown in the CMS and they just work: any category the script doesn't already know gets its own labeled section automatically (named exactly like the option), placed after Trailer/Films/Edits/Poster and above Stills. "Still" always means the grid; "Poster / Full Image" keeps its full-width uncropped treatment.
  * v1.64.0 (client): the stills grid now gets its own "Stills" section header when labeled film sections sit above it (a headerless grid under labeled sections read as unfinished). Pages with no categorized items are unchanged — no header appears.
  * v1.63.0 (client): film-card description capped at 50% of the card width so it never runs under the "Watch with sound" pill bottom-right.
  * v1.62.0 (client): NEW module 12.5 — FILM SECTIONS on project pages, driven by the Gallery Items "Category" field (bind data-cedar-category on the gallery card, done 2026-07-23). Cards tagged Trailer / Film / Edit are pulled out of the stills grid into their own labeled sections above it (order: Trailer, Films, Edits, Poster, then the stills), laid out in the same gallery style; each film card shows its Title + Description on hover (always visible on touch). "Poster / Full Image" renders as a full-width uncropped image. Untagged or Still items are unchanged, and projects with no tagged items are untouched.
@@ -2023,12 +2024,17 @@
       { key: 'Edit', label: 'Edits' },
       { key: 'Poster / Full Image', label: 'Poster', poster: true }
     ];
-    var buckets = {}, found = false;
+    var buckets = {}, found = false, extras = [];
     all.forEach(function (c) {
       var cat = (c.getAttribute('data-cedar-category') || '').trim();
-      for (var i = 0; i < SECTIONS.length; i++) {
-        if (SECTIONS[i].key === cat) { (buckets[cat] = buckets[cat] || []).push(c); found = true; return; }
+      if (!cat || cat === 'Still') return;             /* Still / unset -> stays in the grid */
+      if (!buckets[cat]) {
+        buckets[cat] = [];
+        var known = false;
+        for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].key === cat) known = true;
+        if (!known) extras.push({ key: cat, label: cat });   /* v1.65: a category Cedar adds to the CMS dropdown later gets its own section automatically, labeled by its option name, ordered after the known ones */
       }
+      buckets[cat].push(c); found = true;
     });
     if (!found) return;
     var origRow = all[0].parentElement;
@@ -2041,7 +2047,7 @@
       var t = n ? (n.textContent || '').trim() : '';
       return t === PLACEHOLDER ? '' : t;
     }
-    SECTIONS.forEach(function (s) {
+    SECTIONS.concat(extras).forEach(function (s) {
       var list = buckets[s.key];
       if (!list || !list.length) return;
       var sec = el('div', 'cedar-fs', '');
