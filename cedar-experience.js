@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.59.0 · built by Origin · loaded site-wide (footer)
+ * v1.60.0 · built by Origin · loaded site-wide (footer)
+ * v1.60.0 (client): NEW module 37 — the "Our Team" bios on /about sit in a horizontal scroller that runs off the right edge, so it wasn't obvious there were more people. Added prev/next arrows (same buttons as the View Similar Projects slider) above the row on the right; each click scrolls one card. They dim at each end and hide entirely if everyone already fits.
  * v1.59.0 (client): two fixes to the full-screen film player (lightbox). (1) you no longer hear the film before you can see it — the loading mark now stays up until the video is genuinely PLAYING (first frame rendered), so the picture and the sound arrive together instead of the audio starting 2-3 seconds before the frame appears. (2) the player opens LARGER by default (wider cap + taller, less letterbox margin around it) so films are watched as big as possible without needing fullscreen.
  * v1.58.0 (client): three gallery/listing fixes. (1) the homepage projects gallery now shows 2-3 projects per row at "work page scale" (asymmetric 3-up on a wide window, 2-up on a narrow one), instead of the old rhythm that left most cards full-width one-per-row. (2) the filter "tag" icon square is shrunk to match the height of the text filter pill next to it (was a taller 32x33 square). (3) the individual project thumbnails no longer show the spinning wireframe loading mark while their clip buffers — that mark now lives only in the full-screen video player.
  * v1.57.0 (client): the "View gallery" coverflow gets left/right arrows (bottom centre, same buttons as the View Similar Projects slider) that step one card at a time; dragging still works and cancels the arrow glide.
@@ -288,6 +289,8 @@
     '.cedar-vo-arrows{display:inline-flex;gap:10px;margin-top:14px;align-items:center;}',
     '.cedar-vo-arrow{width:34px;height:34px;border:0;border-radius:10px;background:rgba(218,211,205,.5);cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(218,211,205,.8);}',
+    '.cedar-team-arrows{display:flex;justify-content:flex-end;gap:10px;padding:0 20px 16px;}',   /* module 37: prev/next above the /about team scroller, right-aligned */
+    '.cedar-vo-arrow.is-dim{opacity:.32;pointer-events:none;}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
     '.cedar-vo-track .project-preview *{max-width:100%;min-width:0;}',   /* cap fixed-width inner card so it fits one-up */
@@ -3569,5 +3572,39 @@
       syncBtn();
     }
     btn.addEventListener('click', function () { show(0); });
+  });
+
+  /* =========================================================
+   * 37. /about TEAM SCROLLER ARROWS — the "Our Team" bios sit in a
+   *   horizontal drag-scroller (.bio-row, native overflow-x) that runs
+   *   off the right edge, so it wasn't obvious there were more people.
+   *   Adds prev/next arrows (same buttons as View Similar Projects)
+   *   above the row, right-aligned; each click scrolls one card. Arrows
+   *   dim at each end and the bar hides if everyone already fits. All
+   *   devices — touch users can't hover/drag-hint, so they need this.
+   * ======================================================= */
+  onReady(function () {
+    if ((location.pathname.replace(/\/$/, '') || '/') !== '/about') return;
+    var row = document.querySelector('.bio-row');
+    if (!row || row._cedarArrows) return;
+    row._cedarArrows = true;
+    var host = row.closest('.collection-list-wrapper-horizontal') || row;
+    var bar = el('div', 'cedar-team-arrows', '<button class="cedar-vo-arrow cedar-ta-prev" type="button" aria-label="Previous team members">‹</button><button class="cedar-vo-arrow cedar-ta-next" type="button" aria-label="More team members">›</button>');
+    host.insertBefore(bar, host.firstChild);           /* above the row, inside the (block) list wrapper — no flex-row risk */
+    var prev = bar.querySelector('.cedar-ta-prev'), next = bar.querySelector('.cedar-ta-next');
+    function step() { var c = row.querySelector('.bio-card'); return c ? Math.round(c.getBoundingClientRect().width + 14) : Math.round(row.clientWidth * 0.6); }
+    function fits() { return row.scrollWidth <= row.clientWidth + 5; }
+    function upd() {
+      if (fits()) { bar.style.display = 'none'; return; }
+      bar.style.display = '';
+      var max = row.scrollWidth - row.clientWidth - 2;
+      prev.classList.toggle('is-dim', row.scrollLeft <= 2);
+      next.classList.toggle('is-dim', row.scrollLeft >= max);
+    }
+    prev.addEventListener('click', function () { row.scrollBy({ left: -step(), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { row.scrollBy({ left: step(), behavior: 'smooth' }); });
+    row.addEventListener('scroll', upd, { passive: true });
+    window.addEventListener('resize', upd);
+    upd();
   });
 })();
