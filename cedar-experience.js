@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.60.0 · built by Origin · loaded site-wide (footer)
+ * v1.61.0 · built by Origin · loaded site-wide (footer)
+ * v1.61.0 (client): the /about value icons (Quality/Vision/Sustainability) now animate BACKWARDS first on hover — instead of the finished icon jumping to blank and re-drawing, it reverse-builds (un-draws) from the full icon, then rebuilds, and keeps looping while you hover. Smoother entry, no jarring jump to nothing.
  * v1.60.0 (client): NEW module 37 — the "Our Team" bios on /about sit in a horizontal scroller that runs off the right edge, so it wasn't obvious there were more people. Added prev/next arrows (same buttons as the View Similar Projects slider) above the row on the right; each click scrolls one card. They dim at each end and hide entirely if everyone already fits.
  * v1.59.0 (client): two fixes to the full-screen film player (lightbox). (1) you no longer hear the film before you can see it — the loading mark now stays up until the video is genuinely PLAYING (first frame rendered), so the picture and the sound arrive together instead of the audio starting 2-3 seconds before the frame appears. (2) the player opens LARGER by default (wider cap + taller, less letterbox margin around it) so films are watched as big as possible without needing fullscreen.
  * v1.58.0 (client): three gallery/listing fixes. (1) the homepage projects gallery now shows 2-3 projects per row at "work page scale" (asymmetric 3-up on a wide window, 2-up on a narrow one), instead of the old rhythm that left most cards full-width one-per-row. (2) the filter "tag" icon square is shrunk to match the height of the text filter pill next to it (was a taller 32x33 square). (3) the individual project thumbnails no longer show the spinning wireframe loading mark while their clip buffers — that mark now lives only in the full-screen video player.
@@ -2539,7 +2540,7 @@
         var hoverEl = card || host;
         hoverEl.addEventListener('mouseenter', function () {
           hovering = true; clearTimeout(holdT);
-          if (phase === 'rest' || phase === 'hold') drawIn(); /* start the trace immediately — no blank lead-in */
+          if (phase === 'rest' || phase === 'hold') undraw();  /* client v1.61: start BACKWARDS — reverse-build from the finished icon instead of jumping full->blank->draw; the complete handler then rebuilds and keeps looping while hovered */
           /* mid-draw/mid-undraw: let the running segment finish; the complete handler continues the loop */
         });
         hoverEl.addEventListener('mouseleave', function () {
