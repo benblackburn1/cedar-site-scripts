@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.67.0 · built by Origin · loaded site-wide (footer)
+ * v1.68.0 · built by Origin · loaded site-wide (footer)
+ * v1.68.0 (client): two /about team touches. (1) the blooper/outtake rollover is now live — on hover a person's card cross-fades from their headshot to their outtake photo (the img.bio-outtake you bound); touch keeps the headshot. (2) the team scroller arrows use a light charcoal background instead of the warm grey that read green over the section.
  * v1.67.0 (client): clicking "Watch with sound" on a gallery film card now opens the film DIRECTLY in the sound player — no stop at the gallery view first. Clicking anywhere else on the card still opens the gallery view at that item, and the gallery view's own play flow is unchanged.
  * v1.66.0 (client): NEW module 12.6 — HERO FEATURE LABEL. The autoplaying hero film on a project page now shows a small glass tag bottom-left naming what it is (e.g. "Trailer"), read from the Works "Feature Label" CMS field. Needs a one-time Designer bind: custom attribute data-cedar-feature-label on the hero band, bound to Feature Label (same as data-cedar-crop). Blank field = no tag.
  * v1.65.0 (client): FUTURE-PROOF CATEGORIES — Cedar can now add new options to the Gallery Items "Category" dropdown in the CMS and they just work: any category the script doesn't already know gets its own labeled section automatically (named exactly like the option), placed after Trailer/Films/Edits/Poster and above Stills. "Still" always means the grid; "Poster / Full Image" keeps its full-width uncropped treatment.
@@ -311,6 +312,8 @@
     '.cedar-vo-arrow{width:34px;height:34px;border:0;border-radius:10px;background:rgba(218,211,205,.5);cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(218,211,205,.8);}',
     '.cedar-team-arrows{display:flex;justify-content:flex-end;gap:10px;padding:0 20px 16px;}',   /* module 37: prev/next above the /about team scroller, right-aligned */
+    '.cedar-team-arrows .cedar-vo-arrow{background:rgba(41,34,27,.10);}',   /* client (v1.68): light charcoal, not the warm grey that read green over the section */
+    '.cedar-team-arrows .cedar-vo-arrow:hover{background:rgba(41,34,27,.18);}',
     '.cedar-vo-arrow.is-dim{opacity:.32;pointer-events:none;}',
     '.cedar-vo-track{display:flex;gap:16px;transition:transform .5s ' + EASE + ';will-change:transform;}',
     '.cedar-vo-track > .project-preview{flex:0 0 100%;min-width:0;box-sizing:border-box;}',
@@ -437,6 +440,10 @@
     '.cedar-bio:hover .bio-card-info,.cedar-bio:focus-within .bio-card-info{opacity:1;}',
     '.cedar-bio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,0));z-index:2;opacity:0;transition:opacity .45s ' + EASE + ';pointer-events:none;}',
     '.cedar-bio:hover::after,.cedar-bio:focus-within::after{opacity:1;}',
+    /* outtake/blooper rollover (v1.68): the img.bio-outtake covers the card, hidden at rest, fades in on hover over the headshot */
+    '.bio-card .bio-outtake{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover;opacity:0;z-index:1;transition:opacity .5s ' + EASE + ';pointer-events:none;-webkit-user-drag:none;}',
+    '.bio-card .bio-image{z-index:0;}',
+    '.cedar-bio:hover .bio-outtake,.cedar-bio:focus-within .bio-outtake{opacity:1;}',
     /* team bio cards were squishing to fit 100vw instead of holding their 25% basis + overflowing: the Webflow
        .bio-card is flex-grow:0/flex-basis:25% but flex-shrink defaults to 1, so 7 cards crammed into the row.
        Pin shrink:0 (desktop) so the cards keep their width and the row overflows — which also lets module 33's
