@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.66.0 · built by Origin · loaded site-wide (footer)
+ * v1.67.0 · built by Origin · loaded site-wide (footer)
+ * v1.67.0 (client): clicking "Watch with sound" on a gallery film card now opens the film DIRECTLY in the sound player — no stop at the gallery view first. Clicking anywhere else on the card still opens the gallery view at that item, and the gallery view's own play flow is unchanged.
  * v1.66.0 (client): NEW module 12.6 — HERO FEATURE LABEL. The autoplaying hero film on a project page now shows a small glass tag bottom-left naming what it is (e.g. "Trailer"), read from the Works "Feature Label" CMS field. Needs a one-time Designer bind: custom attribute data-cedar-feature-label on the hero band, bound to Feature Label (same as data-cedar-crop). Blank field = no tag.
  * v1.65.0 (client): FUTURE-PROOF CATEGORIES — Cedar can now add new options to the Gallery Items "Category" dropdown in the CMS and they just work: any category the script doesn't already know gets its own labeled section automatically (named exactly like the option), placed after Trailer/Films/Edits/Poster and above Stills. "Still" always means the grid; "Poster / Full Image" keeps its full-width uncropped treatment.
  * v1.64.0 (client): the stills grid now gets its own "Stills" section header when labeled film sections sit above it (a headerless grid under labeled sections read as unfinished). Pages with no categorized items are unchanged — no header appears.
@@ -220,7 +221,7 @@
     /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
     '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
-    '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:none;}',   /* gallery video cards: affordance only — the card itself opens the lightbox */
+    '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:auto;cursor:pointer;}',   /* v1.67: the pill is a DIRECT door to the sound player (module 14 delegate); the rest of the card still opens the coverflow */
     /* film sections (module 12.5) — labeled category rows above the stills grid */
     '.cedar-fs{margin:44px 0 8px;}',
     '.cedar-fs-head{display:flex;align-items:center;gap:16px;margin:0 0 16px;}',
@@ -2163,7 +2164,10 @@
       var f = document.createElement('iframe'); f.allow = 'autoplay; fullscreen; picture-in-picture'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
       f.src = vimeoEmbed(url);                                            /* shared builder: background/autoplay/muted/loop */
       wrap.appendChild(f); c.appendChild(wrap);                           /* sits above the CMS image → image is a natural fallback */
-      c.appendChild(el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound'));   /* affordance; the card click opens the lightbox */
+      var wp = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound');   /* v1.67: pill carries the film id so module 14's delegate opens the player DIRECTLY on click (no coverflow stop) */
+      wp.setAttribute('data-cedar-vimeo', parts.id);
+      if (parts.hash) wp.setAttribute('data-cedar-vimeo-h', parts.hash);
+      c.appendChild(wp);
       return true;
     }
     /* FALLBACK path — lazy-load the legacy .gallery-video embed's own iframe (it builds only when scrolled in). */
@@ -3558,7 +3562,7 @@
       if (gi > -1) {                                             /* click a gallery item to open the coverflow ON that item (its card + info) */
         c._gvIdx = gi;
         c.style.cursor = 'pointer';
-        c.addEventListener('click', function (e) { if (e.target.closest('a,button')) return; e.preventDefault(); show(c._gvIdx); });
+        c.addEventListener('click', function (e) { if (e.target.closest('a,button,.cedar-card-watch')) return; e.preventDefault(); show(c._gvIdx); });   /* v1.67: the watch pill opens the sound player directly (module 14) — don't ALSO open the coverflow */
       }
     });
     if (!assets.length) return;
