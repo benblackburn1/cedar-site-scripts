@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.58.0 · built by Origin · loaded site-wide (footer)
+ * v1.59.0 · built by Origin · loaded site-wide (footer)
+ * v1.59.0 (client): two fixes to the full-screen film player (lightbox). (1) you no longer hear the film before you can see it — the loading mark now stays up until the video is genuinely PLAYING (first frame rendered), so the picture and the sound arrive together instead of the audio starting 2-3 seconds before the frame appears. (2) the player opens LARGER by default (wider cap + taller, less letterbox margin around it) so films are watched as big as possible without needing fullscreen.
  * v1.58.0 (client): three gallery/listing fixes. (1) the homepage projects gallery now shows 2-3 projects per row at "work page scale" (asymmetric 3-up on a wide window, 2-up on a narrow one), instead of the old rhythm that left most cards full-width one-per-row. (2) the filter "tag" icon square is shrunk to match the height of the text filter pill next to it (was a taller 32x33 square). (3) the individual project thumbnails no longer show the spinning wireframe loading mark while their clip buffers — that mark now lives only in the full-screen video player.
  * v1.57.0 (client): the "View gallery" coverflow gets left/right arrows (bottom centre, same buttons as the View Similar Projects slider) that step one card at a time; dragging still works and cancels the arrow glide.
  * v1.56.0 (client): fix the gallery card description getting cut off — the 10px bottom space is now a margin, not padding (padding sat inside the 5-line clamp box and let a clipped sixth line peek through). The description clamps cleanly at five lines with an ellipsis.
@@ -348,9 +349,9 @@
     '.gallery-card.cedar-gal .cedar-galvid iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:none;border:0;background:#000;}',
     '.gallery-card.cedar-gal[data-cedar-vimeo]{cursor:pointer;}',
     /* video lightbox (module 14) */
-    '.cedar-lb{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:5vh 5vw;background:rgba(20,15,10,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:opacity .3s ' + EASE + ';}',
+    '.cedar-lb{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:3vh 3vw;background:rgba(20,15,10,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);opacity:0;pointer-events:none;transition:opacity .3s ' + EASE + ';}',   /* client (v1.59): tighter margin so the player can be bigger */
     '.cedar-lb.is-open{opacity:1;pointer-events:auto;}',
-    '.cedar-lb-stage{position:relative;width:min(1100px,92vw);aspect-ratio:16/9;max-height:90vh;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5);transform:translateY(12px);transition:transform .4s ' + EASE + ';}',
+    '.cedar-lb-stage{position:relative;width:min(1600px,94vw);aspect-ratio:16/9;max-height:92vh;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5);transform:translateY(12px);transition:transform .4s ' + EASE + ';}',   /* client (v1.59): larger default player (was min(1100px,92vw)/90vh) */
     '.cedar-lb.is-open .cedar-lb-stage{transform:none;}',
     '.cedar-lb-frame{position:absolute;inset:0;width:100%;height:100%;border:0;}',
     '.cedar-lb-close{position:absolute;top:22px;right:26px;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:26px;line-height:1;color:#f4f4f2;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background-color .25s ' + EASE + ';display:flex;align-items:center;justify-content:center;}',
@@ -2198,11 +2199,14 @@
       document.body.appendChild(overlay);
       close.addEventListener('click', hide);
       overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
-      frame.addEventListener('load', function () { try { frame.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*'); } catch (_) {} });
-      window.addEventListener('message', function (e) {        /* Vimeo reports play/bufferend → drop the loading mark */
+      frame.addEventListener('load', function () {            /* subscribe to the events that mean "frames are actually rendering", not just "playback was requested" */
+        try { ['playing', 'timeupdate', 'bufferend', 'play'].forEach(function (ev) { frame.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: ev }), '*'); }); } catch (_) {}
+      });
+      window.addEventListener('message', function (e) {        /* keep the loading mark up until the film is genuinely PLAYING (frame visible) so the picture and the sound arrive together — 'play' alone fires while the frame is still black + buffering, which is why the audio led the video by 2-3s (client fix v1.59) */
         if (!spin || (e.origin || '').indexOf('vimeo') === -1) return;
         var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
-        if (d && (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend')) spin.classList.add('is-off');
+        if (!d) return;
+        if (d.event === 'bufferend' || d.event === 'playing' || (d.event === 'timeupdate' && d.data && d.data.seconds > 0)) spin.classList.add('is-off');
       });
     }
     function show(id, hash) {
