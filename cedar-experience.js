@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.71.0 · built by Origin · loaded site-wide (footer)
+ * v1.72.0 · built by Origin · loaded site-wide (footer)
+ * v1.72.0 (client): poster fit card fixes — the poster image now loads eagerly and fits (contain) reliably (it was still cover-cropping), and the card defaults to a portrait shape until the image's real proportions are known, so it never briefly appears as a wide landscape card.
  * v1.71.0 (client): the "Poster / Full Image" category now shows the poster INSIDE the stills grid as a portrait card — scaled to fit the fixed row height with 10px padding, uncropped, on a transparent background — instead of a full-width block. Its row-mate fills the rest of the row. Great for a portrait poster (e.g. Breakneck) that shouldn't be cropped. (Works whether the category is named "Poster / Full Image" or shortened to "Poster".)
  * v1.70.0 (client): the /about team scroller arrows no longer clip at the top when they lift on hover (added top room), and clicking one no longer leaves a blue focus ring (keyboard focus still shows one for accessibility).
  * v1.69.0 (client): the outtake rollover now respects the scale you set on the bio-outtake image in the Designer (e.g. 120%/130% to crop out the circular crop in the source photo) — the code no longer forces it to 100%. It's centered and the card crops the overflow.
@@ -238,7 +239,7 @@
     '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:50%;}',   /* client (v1.63): stay clear of the "Watch with sound" pill bottom-right */
     /* poster fit card (v1.71) — a poster/graphic stays in the stills grid but flips to a portrait card, image contained with 10px padding, transparent behind, uncropped */
     '.cedar-gal-fit{background:transparent!important;}',
-    '.cedar-gal-fit img,.cedar-gal-fit .img-cover{object-fit:contain!important;padding:10px!important;box-sizing:border-box!important;background:transparent!important;}',
+    '.cedar-gal-fit img,.cedar-gal-fit .img-cover{width:100%!important;height:100%!important;object-fit:contain!important;padding:10px!important;box-sizing:border-box!important;background:transparent!important;}',
     /* hero feature label (module 12.6) — small glass tag naming what the autoplaying hero is (e.g. "Trailer") */
     '.cedar-hero-tag{position:absolute;left:18px;bottom:18px;z-index:3;padding:9px 14px;border-radius:999px;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f4f4f2;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
@@ -2042,7 +2043,12 @@
     var buckets = {}, found = false, extras = [];
     all.forEach(function (c) {
       var cat = (c.getAttribute('data-cedar-category') || '').trim();
-      if (/poster/i.test(cat)) { c.classList.add('cedar-gal-fit'); return; }   /* v1.71: poster stays IN the stills grid; module 13 renders it fit-to-portrait (contain + 10px pad, uncropped) at the fixed row height. Matches "Poster / Full Image" or a shortened "Poster". */
+      if (/poster/i.test(cat)) {                          /* v1.71: poster stays IN the stills grid; module 13 renders it fit-to-portrait (contain + 10px pad, uncropped) at the fixed row height. Matches "Poster / Full Image" or a shortened "Poster". */
+        c.classList.add('cedar-gal-fit');
+        var pim = c.querySelector('img');
+        if (pim) { pim.setAttribute('loading', 'eager'); pim.style.setProperty('object-fit', 'contain', 'important'); }   /* v1.72: eager so its aspect is known for the fit-width calc; inline object-fit beats the .img-cover cover rule */
+        return;
+      }
       if (!cat || cat === 'Still') return;             /* Still / unset -> stays in the grid */
       if (!buckets[cat]) {
         buckets[cat] = [];
@@ -2269,7 +2275,8 @@
         var avail = W - gap;                                      /* two cards + one gap span the row */
         var row = 0;
         function isFit(c) { return c.classList.contains('cedar-gal-fit'); }
-        function fitW(c) { return Math.min(Math.round(rowH() * mediaAR(c)), Math.round(avail * 0.62)); }   /* portrait poster width at the fixed row height, capped so it never dominates the row */
+        function fitAR(c) { var im = c.querySelector('img'); return (im && im.naturalWidth) ? im.naturalWidth / im.naturalHeight : 0.667; }   /* v1.72: portrait default (2:3) until the poster image loads — mediaAR would guess 16/9 landscape */
+        function fitW(c) { return Math.min(Math.round(rowH() * fitAR(c)), Math.round(avail * 0.62)); }   /* portrait poster width at the fixed row height, capped so it never dominates the row */
         for (var i = 0; i < items.length; i += 2) {
           var a = items[i], b = items[i + 1];
           if (b) {
