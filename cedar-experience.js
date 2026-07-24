@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.73.0 · built by Origin · loaded site-wide (footer)
+ * v1.74.0 · built by Origin · loaded site-wide (footer)
+ * v1.74.0 (client): (1) FILM PLAYER LOADER FIXED PROPERLY — the film now opens MUTED under the loader (so you never hear it before you see it); the moment frames are actually rendering it rewinds to the start, turns the sound on, and drops the loader together. You see and hear the film from second zero. (2) LARGE-MONITOR CONSISTENCY SWEEP — the Webflow headings grow at the 1920 breakpoint but the paired text was stranded small: at 1920+ the work-card hover title/description, the project description, gallery section labels, film-card captions, coverflow captions, watch pills, hero tag, and slider arrows all scale up ~1.2x to keep the laptop proportions; grid rows get proportionally taller (work/home cards 480, gallery rows 700), coverflow cards larger (860 cap), and the film player wider (1900 cap). Filter pills untouched — they already match at every width (the mismatch seen on the monitor was a stale cache; hard-refresh there).
  * v1.73.0 (client): three touches. (1) the /about team slider now shows 4.5 people by default (a half card peeks to signal there are more). (2) the poster card in the stills grid drops its 10px padding — the poster fills the portrait card edge-to-edge, still uncropped. (3) in the "View gallery" coverflow, a portrait poster's card now hugs the poster's shape instead of sitting in a wide white card with empty space on the sides.
  * v1.72.0 (client): poster fit card fixes — the poster image now loads eagerly and fits (contain) reliably (it was still cover-cropping), and the card defaults to a portrait shape until the image's real proportions are known, so it never briefly appears as a wide landscape card.
  * v1.71.0 (client): the "Poster / Full Image" category now shows the poster INSIDE the stills grid as a portrait card — scaled to fit the fixed row height with 10px padding, uncropped, on a transparent background — instead of a full-width block. Its row-mate fills the rest of the row. Great for a portrait poster (e.g. Breakneck) that shouldn't be cropped. (Works whether the category is named "Poster / Full Image" or shortened to "Poster".)
@@ -241,6 +242,22 @@
     /* poster fit card (v1.71) — a poster/graphic stays in the stills grid but flips to a portrait card, image contained with 10px padding, transparent behind, uncropped */
     '.cedar-gal-fit{background:transparent!important;}',
     '.cedar-gal-fit img,.cedar-gal-fit .img-cover{width:100%!important;height:100%!important;object-fit:contain!important;padding:0!important;box-sizing:border-box!important;background:transparent!important;}',   /* v1.73: no padding — the card is sized to the poster aspect so it fills edge-to-edge, uncropped */
+    /* LARGE-SCREEN SWEEP (v1.74): the Webflow headings scale up at the 1920 breakpoint (project h1 36->50, /work heading vw-scales to ~115) but every paired/injected text is fixed px and gets stranded small. Scale the stranded text ~1.2x at >=1920 so big monitors keep the laptop proportions. Filter pills deliberately untouched (they match at every width). */
+    '@media (min-width:1920px){',
+    '.work-card .card-label p:first-child{font-size:21px;}',            /* work-card hover title (17 at laptop) */
+    '.work-card .card-label p:nth-child(2){font-size:15px;}',           /* work-card hover description (12) */
+    '.work-situation,.work-situation p{font-size:18px;}',               /* project description under the 50px title (was stranded at 14) */
+    '.cedar-fs-label{font-size:14px;}',
+    '.cedar-fs-title{font-size:18px;}',
+    '.cedar-fs-desc{font-size:15px;}',
+    '.cedar-gv-title{font-size:18px;}',
+    '.cedar-gv-desc{font-size:15px;}',
+    '.cedar-hero-watch{font-size:13px;}',
+    '.cedar-card-watch{font-size:11px;}',
+    '.cedar-hero-tag{font-size:11px;}',
+    '.cedar-vo-arrow{width:38px;height:38px;font-size:16px;}',
+    '.cedar-lb-stage{width:min(1900px,94vw);}',
+    '}',
     /* hero feature label (module 12.6) — small glass tag naming what the autoplaying hero is (e.g. "Trailer") */
     '.cedar-hero-tag{position:absolute;left:18px;bottom:18px;z-index:3;padding:9px 14px;border-radius:999px;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f4f4f2;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
@@ -683,7 +700,7 @@
        its own 2-up design untouched. */
     var PATTERNS3 = [[0.26, 0.44, 0.30], [0.333, 0.334, 0.333], [0.44, 0.30, 0.26]];
     var PATTERNS2 = [[0.42, 0.58], [0.58, 0.42]];        /* home 2-up asymmetric rhythm (narrow desktop window) */
-    var WORK_H = 420;                                  /* /work card height; tunable */
+    function workH() { return window.innerWidth >= 1920 ? 480 : 420; }   /* /work card height; taller on big monitors (v1.74 large-screen sweep) */
     function assignPattern() {
       if (path !== '/work') return;
       if (window.innerWidth < 768) {                   /* mobile: our ≤767 CSS owns the layout — strip stale inline sizing */
@@ -711,7 +728,7 @@
         if (!c._nat) return;
         c.style.transition = 'none';
         c.style.flex = '0 1 ' + c._nat + 'px';
-        c.style.setProperty('height', WORK_H + 'px', 'important');
+        c.style.setProperty('height', workH() + 'px', 'important');
       });
     }
     cards.forEach(function (c) {
@@ -725,7 +742,8 @@
        Homepage Feature Order), show only the first 6 at rest and 6 MATCHING on filter — so the filter pulls
        from ALL works but the grid stays 6-up. Each shown card is given one of the 6 design SLOT widths by
        position, so the 2-up asymmetric rhythm holds whichever 6 show. No-op while the list is still 6. */
-    var HOME = path === '/', HOME_CAP = 6, HOME_H = 420;   /* client (v1.58): home projects lay out at "work page scale" — 2-3 per row, not the old full-width Designer rhythm */
+    var HOME = path === '/', HOME_CAP = 6;
+    function HOME_H() { return window.innerWidth >= 1920 ? 480 : 420; }   /* home card height; taller on big monitors (v1.74 large-screen sweep) */   /* client (v1.58): home projects lay out at "work page scale" — 2-3 per row, not the old full-width Designer rhythm */
     /* the 6 home card widths as asymmetric multi-up rows: 3-up on a wide window, 2-up on a narrow desktop
        (mobile <=767 keeps the Webflow full-width CSS). Mirrors the /work PATTERNS so home reads at that scale. */
     function homeSlotWidths() {
@@ -753,7 +771,7 @@
       cards.forEach(function (c) { c.style.display = show.indexOf(c) > -1 ? '' : 'none'; });
       show.forEach(function (c, i) {
         c._nat = SLOTS[i % SLOTS.length] || c._nat;
-        if (window.innerWidth >= 768) c.style.setProperty('height', HOME_H + 'px', 'important');   /* mobile keeps the Webflow full-width CSS height */
+        if (window.innerWidth >= 768) c.style.setProperty('height', HOME_H() + 'px', 'important');   /* mobile keeps the Webflow full-width CSS height */
         else c.style.removeProperty('height');
       });
     }
@@ -950,7 +968,7 @@
       if (active) return;
       if (HOME_MODE) {                                   /* re-slot the shown home cards for the new width (3-up <-> 2-up) */
         var ns = homeSlotWidths();
-        if (ns) { SLOTS = ns; visible().forEach(function (c, i) { c._nat = ns[i % ns.length] || c._nat; c.style.setProperty('height', HOME_H + 'px', 'important'); }); }
+        if (ns) { SLOTS = ns; visible().forEach(function (c, i) { c._nat = ns[i % ns.length] || c._nat; c.style.setProperty('height', HOME_H() + 'px', 'important'); }); }
         else visible().forEach(function (c) { c.style.removeProperty('height'); });
       } else assignPattern();
       if (DESK) relock();
@@ -2155,7 +2173,7 @@
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
     var ROW_H = 600;                                              /* desktop: match the home work grid; tunable */
-    function rowH() { return window.innerWidth < 768 ? Math.round(window.innerHeight * 0.5) : ROW_H; }   /* mobile: 50vh full-width cards */
+    function rowH() { return window.innerWidth < 768 ? Math.round(window.innerHeight * 0.5) : (window.innerWidth >= 1920 ? 700 : ROW_H); }   /* taller gallery rows on big monitors (v1.74) */   /* mobile: 50vh full-width cards */
     var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];  /* home grid's 3 repeating rows */
 
     /* PRIMARY path — build an always-on background iframe from a data-vimeo-url (shared home-grid parser + builder). */
@@ -2366,19 +2384,31 @@
       frame.addEventListener('load', function () {            /* subscribe to the events that mean "frames are actually rendering", not just "playback was requested" */
         try { ['playing', 'timeupdate', 'bufferend', 'play'].forEach(function (ev) { frame.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: ev }), '*'); }); } catch (_) {}
       });
-      window.addEventListener('message', function (e) {        /* keep the loading mark up until the film is genuinely PLAYING (frame visible) so the picture and the sound arrive together — 'play' alone fires while the frame is still black + buffering, which is why the audio led the video by 2-3s (client fix v1.59) */
+      window.addEventListener('message', function (e) {        /* v1.74: the film opens MUTED (silent under the loader — no audio-before-video); once frames genuinely render we seek back to 0, unmute, and drop the loader together, so the film is seen AND heard from the very top */
         if (!spin || (e.origin || '').indexOf('vimeo') === -1) return;
         var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
         if (!d) return;
-        if (d.event === 'bufferend' || d.event === 'playing' || (d.event === 'timeupdate' && d.data && d.data.seconds > 0)) spin.classList.add('is-off');
+        if (d.event === 'bufferend' || d.event === 'playing' || (d.event === 'timeupdate' && d.data && d.data.seconds > 0)) reveal();
       });
     }
+    function reveal() {                                        /* rewind to 0 + sound on + loader off, exactly once per open */
+      if (revealed || !frame) return;
+      revealed = true;
+      try {
+        frame.contentWindow.postMessage(JSON.stringify({ method: 'setCurrentTime', value: 0 }), '*');
+        frame.contentWindow.postMessage(JSON.stringify({ method: 'setVolume', value: 1 }), '*');
+        frame.contentWindow.postMessage(JSON.stringify({ method: 'setMuted', value: false }), '*');
+      } catch (_) {}
+      if (spin) spin.classList.add('is-off');
+    }
+    var revealed = false;
     function show(id, hash) {
       if (!id) return;
       if (!overlay) build();
+      revealed = false;
       if (spin) spin.classList.remove('is-off');               /* fresh loading state each open */
-      clearTimeout(spinFallback); spinFallback = setTimeout(function () { if (spin) spin.classList.add('is-off'); }, 5000);   /* never strand the mark if Vimeo never reports */
-      frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
+      clearTimeout(spinFallback); spinFallback = setTimeout(reveal, 5000);   /* never strand the mark (or the mute) if Vimeo never reports */
+      frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&muted=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
       document.documentElement.style.overflow = 'hidden';
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
       if (!spinRaf) spinRaf = requestAnimationFrame(spinLoop);
@@ -3610,7 +3640,7 @@
     function sizeCard(card, as) {
       var PAD = 14;                                                  /* matches the .cedar-gv-card mat padding */
       var ar = as.ar || (16 / 9);
-      var maxW = Math.round(Math.min(window.innerWidth * (window.innerWidth < 768 ? 0.82 : 0.6), 680));
+      var maxW = Math.round(Math.min(window.innerWidth * (window.innerWidth < 768 ? 0.82 : 0.6), window.innerWidth >= 1920 ? 860 : 680));   /* bigger coverflow cards on big monitors (v1.74) */
       var maxMediaH = window.innerHeight * 0.5;
       var contentW = maxW - PAD * 2;
       var mh = contentW / ar;
