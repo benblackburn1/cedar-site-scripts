@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.74.0 · built by Origin · loaded site-wide (footer)
+ * v1.75.0 · built by Origin · loaded site-wide (footer)
+ * v1.75.0 (client): the filter tag-icon square now sizes itself to the text pill's MEASURED height on every machine, instead of a hardcoded 27px. Mac and Windows render the pill's text height differently (Ben's Thunderbolt display showed a ~34px pill next to the 27px icon), so the icon now always matches exactly — any platform, any monitor. The funnel glyph scales with it.
  * v1.74.0 (client): (1) FILM PLAYER LOADER FIXED PROPERLY — the film now opens MUTED under the loader (so you never hear it before you see it); the moment frames are actually rendering it rewinds to the start, turns the sound on, and drops the loader together. You see and hear the film from second zero. (2) LARGE-MONITOR CONSISTENCY SWEEP — the Webflow headings grow at the 1920 breakpoint but the paired text was stranded small: at 1920+ the work-card hover title/description, the project description, gallery section labels, film-card captions, coverflow captions, watch pills, hero tag, and slider arrows all scale up ~1.2x to keep the laptop proportions; grid rows get proportionally taller (work/home cards 480, gallery rows 700), coverflow cards larger (860 cap), and the film player wider (1900 cap). Filter pills untouched — they already match at every width (the mismatch seen on the monitor was a stale cache; hard-refresh there).
  * v1.73.0 (client): three touches. (1) the /about team slider now shows 4.5 people by default (a half card peeks to signal there are more). (2) the poster card in the stills grid drops its 10px padding — the poster fills the portrait card edge-to-edge, still uncropped. (3) in the "View gallery" coverflow, a portrait poster's card now hugs the poster's shape instead of sitting in a wide white card with empty space on the sides.
  * v1.72.0 (client): poster fit card fixes — the poster image now loads eagerly and fits (contain) reliably (it was still cover-cropping), and the card defaults to a portrait shape until the image's real proportions are known, so it never briefly appears as a wide landscape card.
@@ -1003,6 +1004,23 @@
       var pillEl = caption && caption.parentElement;   /* the .filter-pill that holds the caption */
       var xbtn = null;
       if (pillEl) { xbtn = el('button', 'cfp-x', '×'); xbtn.type = 'button'; xbtn.setAttribute('aria-label', 'Clear filters'); xbtn.addEventListener('click', function (e) { e.stopPropagation(); clearAll(); }); pillEl.appendChild(xbtn); }
+      /* v1.75: size the tag-icon square to the MEASURED text-pill height (mac and windows compute the
+         pill's line-height differently, so any hardcoded px matches one platform and not the other —
+         Ben's Thunderbolt screenshot showed a ~34px pill against the 27px icon) */
+      function syncIcon() {
+        if (!pillEl) return;
+        var ico = document.querySelector('.filter-pill.icon');
+        if (!ico) return;
+        var h = Math.round(pillEl.getBoundingClientRect().height);
+        if (h < 14) return;
+        ico.style.setProperty('width', h + 'px', 'important');
+        ico.style.setProperty('height', h + 'px', 'important');
+        var s = ico.querySelector('svg');
+        if (s) { var g = Math.round(h * 0.52); s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
+      }
+      syncIcon();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setTimeout(syncIcon, 60); });   /* re-measure once the webfont (and its real metrics) is in */
+      window.addEventListener('resize', function () { setTimeout(syncIcon, 120); });
       var closeT;
       if (!TOUCH) {
         controls.addEventListener('mouseenter', function () { clearTimeout(closeT); controls.classList.add('cfp-open'); });
