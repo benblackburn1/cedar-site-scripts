@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.75.0 · built by Origin · loaded site-wide (footer)
+ * v1.76.0 · built by Origin · loaded site-wide (footer)
+ * v1.76.0 (client): the "What defines us" value cards no longer balloon on big monitors — the card (3:4 aspect) grew to ~834px tall on a 2560 screen around a fixed 200px icon. At 1920+ the card is capped at 680px and the icon scales up to 300px, so the proportions match the laptop feel.
  * v1.75.0 (client): the filter tag-icon square now sizes itself to the text pill's MEASURED height on every machine, instead of a hardcoded 27px. Mac and Windows render the pill's text height differently (Ben's Thunderbolt display showed a ~34px pill next to the 27px icon), so the icon now always matches exactly — any platform, any monitor. The funnel glyph scales with it.
  * v1.74.0 (client): (1) FILM PLAYER LOADER FIXED PROPERLY — the film now opens MUTED under the loader (so you never hear it before you see it); the moment frames are actually rendering it rewinds to the start, turns the sound on, and drops the loader together. You see and hear the film from second zero. (2) LARGE-MONITOR CONSISTENCY SWEEP — the Webflow headings grow at the 1920 breakpoint but the paired text was stranded small: at 1920+ the work-card hover title/description, the project description, gallery section labels, film-card captions, coverflow captions, watch pills, hero tag, and slider arrows all scale up ~1.2x to keep the laptop proportions; grid rows get proportionally taller (work/home cards 480, gallery rows 700), coverflow cards larger (860 cap), and the film player wider (1900 cap). Filter pills untouched — they already match at every width (the mismatch seen on the monitor was a stale cache; hard-refresh there).
  * v1.73.0 (client): three touches. (1) the /about team slider now shows 4.5 people by default (a half card peeks to signal there are more). (2) the poster card in the stills grid drops its 10px padding — the poster fills the portrait card edge-to-edge, still uncropped. (3) in the "View gallery" coverflow, a portrait poster's card now hugs the poster's shape instead of sitting in a wide white card with empty space on the sides.
@@ -258,6 +259,8 @@
     '.cedar-hero-tag{font-size:11px;}',
     '.cedar-vo-arrow{width:38px;height:38px;font-size:16px;}',
     '.cedar-lb-stage{width:min(1900px,94vw);}',
+    '.about-card{max-height:680px;}',                                   /* v1.76: the card is aspect-ratio 3/4, so on a 2560 screen it balloons to ~834px around a fixed 200px icon — cap it */
+    '.cedar-value-icon{width:300px!important;height:300px!important;}', /* and scale the value icon up to fill the card (beats the inline 200px baseline) */
     '}',
     /* hero feature label (module 12.6) — small glass tag naming what the autoplaying hero is (e.g. "Trailer") */
     '.cedar-hero-tag{position:absolute;left:18px;bottom:18px;z-index:3;padding:9px 14px;border-radius:999px;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f4f4f2;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;}',
