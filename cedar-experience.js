@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.68.0 · built by Origin · loaded site-wide (footer)
+ * v1.69.0 · built by Origin · loaded site-wide (footer)
+ * v1.69.0 (client): the outtake rollover now respects the scale you set on the bio-outtake image in the Designer (e.g. 120%/130% to crop out the circular crop in the source photo) — the code no longer forces it to 100%. It's centered and the card crops the overflow.
  * v1.68.0 (client): two /about team touches. (1) the blooper/outtake rollover is now live — on hover a person's card cross-fades from their headshot to their outtake photo (the img.bio-outtake you bound); touch keeps the headshot. (2) the team scroller arrows use a light charcoal background instead of the warm grey that read green over the section.
  * v1.67.0 (client): clicking "Watch with sound" on a gallery film card now opens the film DIRECTLY in the sound player — no stop at the gallery view first. Clicking anywhere else on the card still opens the gallery view at that item, and the gallery view's own play flow is unchanged.
  * v1.66.0 (client): NEW module 12.6 — HERO FEATURE LABEL. The autoplaying hero film on a project page now shows a small glass tag bottom-left naming what it is (e.g. "Trailer"), read from the Works "Feature Label" CMS field. Needs a one-time Designer bind: custom attribute data-cedar-feature-label on the hero band, bound to Feature Label (same as data-cedar-crop). Blank field = no tag.
@@ -441,7 +442,7 @@
     '.cedar-bio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,0));z-index:2;opacity:0;transition:opacity .45s ' + EASE + ';pointer-events:none;}',
     '.cedar-bio:hover::after,.cedar-bio:focus-within::after{opacity:1;}',
     /* outtake/blooper rollover (v1.68): the img.bio-outtake covers the card, hidden at rest, fades in on hover over the headshot */
-    '.bio-card .bio-outtake{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover;opacity:0;z-index:1;transition:opacity .5s ' + EASE + ';pointer-events:none;-webkit-user-drag:none;}',
+    '.bio-card .bio-outtake{position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;object-fit:cover;opacity:0;z-index:1;transition:opacity .5s ' + EASE + ';pointer-events:none;-webkit-user-drag:none;}',   /* v1.69: honor the Designer scale (120%/130%, set on the class to crop the circle) — centered so .cedar-bio overflow:hidden crops it; do NOT force 100% */
     '.bio-card .bio-image{z-index:0;}',
     '.cedar-bio:hover .bio-outtake,.cedar-bio:focus-within .bio-outtake{opacity:1;}',
     /* team bio cards were squishing to fit 100vw instead of holding their 25% basis + overflowing: the Webflow
