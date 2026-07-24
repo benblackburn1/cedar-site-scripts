@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.69.0 · built by Origin · loaded site-wide (footer)
+ * v1.70.0 · built by Origin · loaded site-wide (footer)
+ * v1.70.0 (client): the /about team scroller arrows no longer clip at the top when they lift on hover (added top room), and clicking one no longer leaves a blue focus ring (keyboard focus still shows one for accessibility).
  * v1.69.0 (client): the outtake rollover now respects the scale you set on the bio-outtake image in the Designer (e.g. 120%/130% to crop out the circular crop in the source photo) — the code no longer forces it to 100%. It's centered and the card crops the overflow.
  * v1.68.0 (client): two /about team touches. (1) the blooper/outtake rollover is now live — on hover a person's card cross-fades from their headshot to their outtake photo (the img.bio-outtake you bound); touch keeps the headshot. (2) the team scroller arrows use a light charcoal background instead of the warm grey that read green over the section.
  * v1.67.0 (client): clicking "Watch with sound" on a gallery film card now opens the film DIRECTLY in the sound player — no stop at the gallery view first. Clicking anywhere else on the card still opens the gallery view at that item, and the gallery view's own play flow is unchanged.
@@ -312,7 +313,8 @@
     '.cedar-vo-arrows{display:inline-flex;gap:10px;margin-top:14px;align-items:center;}',
     '.cedar-vo-arrow{width:34px;height:34px;border:0;border-radius:10px;background:rgba(218,211,205,.5);cursor:pointer;color:' + CHARCOAL + ';font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .3s ' + EASE + ',background-color .3s ' + EASE + ';}',
     '.cedar-vo-arrow:hover{transform:translateY(-3px);background-color:rgba(218,211,205,.8);}',
-    '.cedar-team-arrows{display:flex;justify-content:flex-end;gap:10px;padding:0 20px 16px;}',   /* module 37: prev/next above the /about team scroller, right-aligned */
+    '.cedar-team-arrows{display:flex;justify-content:flex-end;gap:10px;padding:10px 20px 16px;}',   /* module 37: prev/next above the /about team scroller, right-aligned (v1.70: top padding so the hover-lift + focus ring aren\'t clipped) */
+    '.cedar-team-arrows .cedar-vo-arrow:focus:not(:focus-visible){outline:none;}',   /* v1.70: no lingering blue ring after a mouse click (keyboard focus still shows a ring) */
     '.cedar-team-arrows .cedar-vo-arrow{background:rgba(41,34,27,.10);}',   /* client (v1.68): light charcoal, not the warm grey that read green over the section */
     '.cedar-team-arrows .cedar-vo-arrow:hover{background:rgba(41,34,27,.18);}',
     '.cedar-vo-arrow.is-dim{opacity:.32;pointer-events:none;}',
