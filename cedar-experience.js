@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.70.0 · built by Origin · loaded site-wide (footer)
+ * v1.71.0 · built by Origin · loaded site-wide (footer)
+ * v1.71.0 (client): the "Poster / Full Image" category now shows the poster INSIDE the stills grid as a portrait card — scaled to fit the fixed row height with 10px padding, uncropped, on a transparent background — instead of a full-width block. Its row-mate fills the rest of the row. Great for a portrait poster (e.g. Breakneck) that shouldn't be cropped. (Works whether the category is named "Poster / Full Image" or shortened to "Poster".)
  * v1.70.0 (client): the /about team scroller arrows no longer clip at the top when they lift on hover (added top room), and clicking one no longer leaves a blue focus ring (keyboard focus still shows one for accessibility).
  * v1.69.0 (client): the outtake rollover now respects the scale you set on the bio-outtake image in the Designer (e.g. 120%/130% to crop out the circular crop in the source photo) — the code no longer forces it to 100%. It's centered and the card crops the overflow.
  * v1.68.0 (client): two /about team touches. (1) the blooper/outtake rollover is now live — on hover a person's card cross-fades from their headshot to their outtake photo (the img.bio-outtake you bound); touch keeps the headshot. (2) the team scroller arrows use a light charcoal background instead of the warm grey that read green over the section.
@@ -235,8 +236,9 @@
     '@media (hover:none){.cedar-fs-cap{opacity:1;}}',   /* touch has no hover — captions stay visible */
     '.cedar-fs-title{font-size:15px;font-weight:600;}',
     '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:50%;}',   /* client (v1.63): stay clear of the "Watch with sound" pill bottom-right */
-    '.cedar-fs-poster{display:block;width:100%;}',
-    '.cedar-fs-poster img{width:100%;height:auto;display:block;}',
+    /* poster fit card (v1.71) — a poster/graphic stays in the stills grid but flips to a portrait card, image contained with 10px padding, transparent behind, uncropped */
+    '.cedar-gal-fit{background:transparent!important;}',
+    '.cedar-gal-fit img,.cedar-gal-fit .img-cover{object-fit:contain!important;padding:10px!important;box-sizing:border-box!important;background:transparent!important;}',
     /* hero feature label (module 12.6) — small glass tag naming what the autoplaying hero is (e.g. "Trailer") */
     '.cedar-hero-tag{position:absolute;left:18px;bottom:18px;z-index:3;padding:9px 14px;border-radius:999px;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f4f4f2;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;}',
     '.cedar-play-ico{width:10px;height:12px;flex:0 0 auto;display:block;}',   /* clean white play triangle (replaces the ▶️ emoji glyph) */
@@ -2035,12 +2037,12 @@
     var SECTIONS = [
       { key: 'Trailer', label: 'Trailer' },
       { key: 'Film', label: 'Films' },
-      { key: 'Edit', label: 'Edits' },
-      { key: 'Poster / Full Image', label: 'Poster', poster: true }
+      { key: 'Edit', label: 'Edits' }
     ];
     var buckets = {}, found = false, extras = [];
     all.forEach(function (c) {
       var cat = (c.getAttribute('data-cedar-category') || '').trim();
+      if (/poster/i.test(cat)) { c.classList.add('cedar-gal-fit'); return; }   /* v1.71: poster stays IN the stills grid; module 13 renders it fit-to-portrait (contain + 10px pad, uncropped) at the fixed row height. Matches "Poster / Full Image" or a shortened "Poster". */
       if (!cat || cat === 'Still') return;             /* Still / unset -> stays in the grid */
       if (!buckets[cat]) {
         buckets[cat] = [];
@@ -2072,22 +2074,15 @@
       var row = el('div', '', '');
       row.className = origRow.className + ' cedar-fs-row';   /* reuse the gallery row's classes so flex/gap/padding match exactly */
       list.forEach(function (c) {
-        if (s.poster) {
-          c.classList.remove('gallery-card');          /* out of the grid AND the coverflow — shown whole instead */
-          c.classList.add('cedar-fs-poster');
-          var v = c.querySelector('.gallery-video, .cedar-galvid'); if (v) v.remove();
-          [].slice.call(c.querySelectorAll('.gallery-title, [gallery-title], .gallery-description, [gallery-description]')).forEach(function (n) { n.style.display = 'none'; });   /* whatever hid these inside .gallery-card may not apply anymore */
-        } else {
-          var title = textOf(c, '.gallery-title, [gallery-title]');
-          var desc = textOf(c, '.gallery-description, [gallery-description]');
-          if (title || desc) {
-            var cap = el('div', 'cedar-fs-cap', '<div class="cedar-fs-title"></div><div class="cedar-fs-desc"></div>');
-            cap.querySelector('.cedar-fs-title').textContent = title;
-            cap.querySelector('.cedar-fs-desc').textContent = desc;
-            if (!title) cap.querySelector('.cedar-fs-title').remove();
-            if (!desc) cap.querySelector('.cedar-fs-desc').remove();
-            c.appendChild(cap);
-          }
+        var title = textOf(c, '.gallery-title, [gallery-title]');
+        var desc = textOf(c, '.gallery-description, [gallery-description]');
+        if (title || desc) {
+          var cap = el('div', 'cedar-fs-cap', '<div class="cedar-fs-title"></div><div class="cedar-fs-desc"></div>');
+          cap.querySelector('.cedar-fs-title').textContent = title;
+          cap.querySelector('.cedar-fs-desc').textContent = desc;
+          if (!title) cap.querySelector('.cedar-fs-title').remove();
+          if (!desc) cap.querySelector('.cedar-fs-desc').remove();
+          c.appendChild(cap);
         }
         row.appendChild(c);
       });
@@ -2273,15 +2268,18 @@
         }
         var avail = W - gap;                                      /* two cards + one gap span the row */
         var row = 0;
+        function isFit(c) { return c.classList.contains('cedar-gal-fit'); }
+        function fitW(c) { return Math.min(Math.round(rowH() * mediaAR(c)), Math.round(avail * 0.62)); }   /* portrait poster width at the fixed row height, capped so it never dominates the row */
         for (var i = 0; i < items.length; i += 2) {
-          var pat = PATTERNS[row % PATTERNS.length]; row++;
           var a = items[i], b = items[i + 1];
           if (b) {
-            var wa = Math.round(avail * pat[0]);
-            set(a, wa);
-            set(b, avail - wa);                                   /* exact remainder so the pair fills the row */
+            var af = isFit(a), bf = isFit(b);
+            if (af && bf) { set(a, fitW(a)); set(b, fitW(b)); }              /* two posters side by side (rare) */
+            else if (af) { var wf = fitW(a); set(a, wf); set(b, avail - wf); }
+            else if (bf) { var wg = fitW(b); set(b, wg); set(a, avail - wg); }
+            else { var pat = PATTERNS[row % PATTERNS.length]; row++; var wa = Math.round(avail * pat[0]); set(a, wa); set(b, avail - wa); }   /* only plain still pairs advance the asymmetric pattern */
           } else {
-            set(a, W);                                            /* lone trailing card spans the full row */
+            set(a, isFit(a) ? fitW(a) : W);                                  /* lone poster = portrait width; lone still = full row */
           }
         }
       });
