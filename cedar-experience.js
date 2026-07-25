@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.79.0 · built by Origin · loaded site-wide (footer)
+ * v1.80.0 · built by Origin · loaded site-wide (footer)
+ * v1.80.0 (client): (1) the /contact outline mark now aligns the bottom of the DRAWN chevrons (not the artwork's invisible padding) to the bottom of the vertical lines beside it. (2) on windows wider than 2200px, the work cards, home cards, and gallery rows are 50vh tall — they scale with the screen instead of fixed heights.
  * v1.79.0 (client): FIX the gallery view showing square, weirdly-cropped cards. The card shapes were read from the page's images at load time, but those are lazy-loaded and often reported no size yet — stills fell back to a SQUARE, and films took the shape of their poster image instead of the video. Now: film cards are always 16:9 (the video's real shape), and still cards re-measure from the actual file as soon as it loads, so every card matches its asset exactly — nothing crops.
  * v1.78.0 (client): (1) the /contact outline mark now keeps its FULL size — 20px from the line on either side — and is bottom-aligned to the lines: shifted vertically so its bottom edge sits exactly on the section's bottom, on any screen (replaces v1.77's shrink-to-fit). (2) the work-card loading wireframe is BACK (removed earlier by request, wanted again) — and smarter: it only disappears once the clip's frames are genuinely rendering, so it never sits over a playing video; the grid clips are muted loops, so nothing is ever missed.
  * v1.77.0 (client): the /contact outline mark sized to fit above the section bottom (superseded by v1.78's bottom-align).
@@ -707,7 +708,7 @@
        its own 2-up design untouched. */
     var PATTERNS3 = [[0.26, 0.44, 0.30], [0.333, 0.334, 0.333], [0.44, 0.30, 0.26]];
     var PATTERNS2 = [[0.42, 0.58], [0.58, 0.42]];        /* home 2-up asymmetric rhythm (narrow desktop window) */
-    function workH() { return window.innerWidth >= 1920 ? 480 : 420; }   /* /work card height; taller on big monitors (v1.74 large-screen sweep) */
+    function workH() { return window.innerWidth > 2200 ? Math.round(window.innerHeight * 0.5) : (window.innerWidth >= 1920 ? 480 : 420); }   /* /work card height; 50vh on ultra-wide (v1.80), taller on big monitors (v1.74) */
     function assignPattern() {
       if (path !== '/work') return;
       if (window.innerWidth < 768) {                   /* mobile: our ≤767 CSS owns the layout — strip stale inline sizing */
@@ -750,7 +751,7 @@
        from ALL works but the grid stays 6-up. Each shown card is given one of the 6 design SLOT widths by
        position, so the 2-up asymmetric rhythm holds whichever 6 show. No-op while the list is still 6. */
     var HOME = path === '/', HOME_CAP = 6;
-    function HOME_H() { return window.innerWidth >= 1920 ? 480 : 420; }   /* home card height; taller on big monitors (v1.74 large-screen sweep) */   /* client (v1.58): home projects lay out at "work page scale" — 2-3 per row, not the old full-width Designer rhythm */
+    function HOME_H() { return window.innerWidth > 2200 ? Math.round(window.innerHeight * 0.5) : (window.innerWidth >= 1920 ? 480 : 420); }   /* home card height; 50vh on ultra-wide (v1.80), taller on big monitors (v1.74) */   /* client (v1.58): home projects lay out at "work page scale" — 2-3 per row, not the old full-width Designer rhythm */
     /* the 6 home card widths as asymmetric multi-up rows: 3-up on a wide window, 2-up on a narrow desktop
        (mobile <=767 keeps the Webflow full-width CSS). Mirrors the /work PATTERNS so home reads at that scale. */
     function homeSlotWidths() {
@@ -2205,7 +2206,7 @@
     var cards = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!cards.length) return;
     var ROW_H = 600;                                              /* desktop: match the home work grid; tunable */
-    function rowH() { return window.innerWidth < 768 ? Math.round(window.innerHeight * 0.5) : (window.innerWidth >= 1920 ? 700 : ROW_H); }   /* taller gallery rows on big monitors (v1.74) */   /* mobile: 50vh full-width cards */
+    function rowH() { if (window.innerWidth < 768 || window.innerWidth > 2200) return Math.round(window.innerHeight * 0.5); return window.innerWidth >= 1920 ? 700 : ROW_H; }   /* 50vh on mobile AND ultra-wide (v1.80); taller on big monitors (v1.74) */   /* mobile: 50vh full-width cards */
     var PATTERNS = [[0.353, 0.647], [0.5, 0.5], [0.626, 0.374]];  /* home grid's 3 repeating rows */
 
     /* PRIMARY path — build an always-on background iframe from a data-vimeo-url (shared home-grid parser + builder). */
@@ -2667,13 +2668,33 @@
     var box = el('div', 'cedar-lottie-mark');
     box.style.cssText = 'width:100%;aspect-ratio:1/1;margin:0 auto;';   /* full container width (host padding = the 20px gutters) */
     host.appendChild(box);
-    /* v1.78 (client): the mark keeps its FULL width (= 20px from the side rules via the host's own
-       padding) and is shifted vertically so its bottom edge sits exactly on the bottom of the lines
-       (the section's bottom). Pure translate — the flow, the column, and the lines are untouched. */
+    /* v1.80 (client): full width (= 20px from the side rules via the host's own padding), and the
+       DRAWN CHEVRONS' bottom edge — not the artboard's, which carries blank padding — aligns to the
+       bottom of the flanking VERTICAL LINES. Pure translate; flow, column, and lines untouched. */
+    function markBottom() {
+      var svg = box.querySelector('svg');
+      if (svg) {
+        var mx = 0, ps = svg.querySelectorAll('path');
+        for (var i = 0; i < ps.length; i++) { var r = ps[i].getBoundingClientRect(); if (r.height > 2 && r.bottom > mx) mx = r.bottom; }
+        if (mx > 0) return mx;                          /* visual bottom of the drawn mark */
+      }
+      return box.getBoundingClientRect().bottom;        /* pre-lottie fallback: the artboard box */
+    }
     function fitMark() {
-      var sec = host.closest('section') || host.parentElement;
       box.style.transform = '';
-      var d = Math.round(sec.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom);
+      var b = box.getBoundingClientRect(), cx = (b.left + b.right) / 2, target = null;
+      var lines = [].slice.call(document.querySelectorAll('.vertical-line'))
+        .map(function (e) { return e.getBoundingClientRect(); })
+        .filter(function (r) { return r.height > 100; });   /* the tall side rules, not stray hairlines */
+      if (lines.length) {
+        lines.sort(function (a, c) {                    /* the rule nearest the mark's column */
+          function dst(r) { return Math.min(Math.abs(r.left - cx), Math.abs(r.right - cx)); }
+          return dst(a) - dst(c);
+        });
+        target = lines[0].bottom;
+      }
+      if (target === null) { var sec = host.closest('section') || host.parentElement; target = sec.getBoundingClientRect().bottom; }
+      var d = Math.round(target - markBottom());
       if (Math.abs(d) > 1) box.style.transform = 'translateY(' + d + 'px)';
     }
     fitMark();
@@ -2691,9 +2712,9 @@
         var io = new IntersectionObserver(function (ents) {
           ents.forEach(function (en) { if (en.isIntersecting) { play(); io.disconnect(); } });
         }, { threshold: 0.25 });
-        anim.addEventListener('DOMLoaded', function () { io.observe(box); });
+        anim.addEventListener('DOMLoaded', function () { io.observe(box); fitMark(); });   /* v1.80: re-align once the svg paths exist (chevron bounds now measurable) */
       } else {
-        anim.addEventListener('DOMLoaded', play);
+        anim.addEventListener('DOMLoaded', function () { play(); fitMark(); });
       }
     });
   });
