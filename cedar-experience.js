@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.78.0 · built by Origin · loaded site-wide (footer)
+ * v1.79.0 · built by Origin · loaded site-wide (footer)
+ * v1.79.0 (client): FIX the gallery view showing square, weirdly-cropped cards. The card shapes were read from the page's images at load time, but those are lazy-loaded and often reported no size yet — stills fell back to a SQUARE, and films took the shape of their poster image instead of the video. Now: film cards are always 16:9 (the video's real shape), and still cards re-measure from the actual file as soon as it loads, so every card matches its asset exactly — nothing crops.
  * v1.78.0 (client): (1) the /contact outline mark now keeps its FULL size — 20px from the line on either side — and is bottom-aligned to the lines: shifted vertically so its bottom edge sits exactly on the section's bottom, on any screen (replaces v1.77's shrink-to-fit). (2) the work-card loading wireframe is BACK (removed earlier by request, wanted again) — and smarter: it only disappears once the clip's frames are genuinely rendering, so it never sits over a playing video; the grid clips are muted loops, so nothing is ever missed.
  * v1.77.0 (client): the /contact outline mark sized to fit above the section bottom (superseded by v1.78's bottom-align).
  * v1.76.0 (client): the "What defines us" value cards no longer balloon on big monitors — the card (3:4 aspect) grew to ~834px tall on a 2560 screen around a fixed 200px icon. At 1920+ the card is capped at 680px and the icon scales up to 300px, so the proportions match the laptop feel.
@@ -3639,7 +3640,10 @@
       var vid = c.getAttribute('data-cedar-vimeo');
       var img = c.querySelector('img');
       var src = img ? (img.currentSrc || img.getAttribute('src') || '') : '';
-      var ar = (img && img.naturalWidth) ? img.naturalWidth / img.naturalHeight : (vid ? 16 / 9 : 1);
+      /* v1.79: videos are ALWAYS 16:9 (the embed's shape — the poster image may be any crop and must not
+         drive the card); images: the on-page img is lazy and often unloaded here (naturalWidth 0 -> the old
+         ar=1 fallback made SQUARE cards) — leave 0 and re-measure from the coverflow's own img on load. */
+      var ar = vid ? (16 / 9) : ((img && img.naturalWidth) ? img.naturalWidth / img.naturalHeight : 0);
       var tEl = c.querySelector('.gallery-title, [gallery-title]'), dEl = c.querySelector('.gallery-description, [gallery-description]');   /* accept a class OR a custom attribute */
       var PLACE = 'This is some text inside of a div block.';       /* Webflow's default text on an unbound element — don't show it */
       var title = tEl ? (tEl.textContent || '').trim() : '';
@@ -3747,7 +3751,17 @@
       assets.forEach(function (as) {
         var card = el('div', 'cedar-gv-card', '');
         var media = el('div', 'cedar-gv-media', '');
-        if (as.src) { var im = document.createElement('img'); im.src = as.src; im.alt = ''; im.draggable = false; media.appendChild(im); }
+        if (as.src) {
+          var im = document.createElement('img'); im.src = as.src; im.alt = ''; im.draggable = false; media.appendChild(im);
+          if (as.type === 'image') {                                /* v1.79: true aspect once the coverflow's own (eager) img decodes — the on-page one was lazy/unloaded at collect time */
+            var sync = function () {
+              if (!im.naturalWidth) return;
+              var n = im.naturalWidth / im.naturalHeight;
+              if (Math.abs(n - (as.ar || 0)) > 0.01) { as.ar = n; sizeCard(card, as); if (gv && gv.classList.contains('is-open')) render(); }
+            };
+            if (im.complete) sync(); else im.addEventListener('load', sync, { once: true });
+          }
+        }
         if (as.type === 'video') media.appendChild(el('div', 'cedar-gv-play', PLAY_SVG));
         card.appendChild(media); card._media = media;
         if (as.title || as.desc) {                                  /* white caption below the asset */
