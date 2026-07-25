@@ -1,6 +1,7 @@
 /* Cedar Creative — experience layer
- * v1.77.0 · built by Origin · loaded site-wide (footer)
- * v1.77.0 (client): the /contact outline mark no longer overlaps the bottom of its section — it sizes to the ideal width (20px from the side rules) but caps itself to the room left above the section's bottom edge, keeping a 20px clearance. Recomputes on resize.
+ * v1.78.0 · built by Origin · loaded site-wide (footer)
+ * v1.78.0 (client): (1) the /contact outline mark now keeps its FULL size — 20px from the line on either side — and is bottom-aligned to the lines: shifted vertically so its bottom edge sits exactly on the section's bottom, on any screen (replaces v1.77's shrink-to-fit). (2) the work-card loading wireframe is BACK (removed earlier by request, wanted again) — and smarter: it only disappears once the clip's frames are genuinely rendering, so it never sits over a playing video; the grid clips are muted loops, so nothing is ever missed.
+ * v1.77.0 (client): the /contact outline mark sized to fit above the section bottom (superseded by v1.78's bottom-align).
  * v1.76.0 (client): the "What defines us" value cards no longer balloon on big monitors — the card (3:4 aspect) grew to ~834px tall on a 2560 screen around a fixed 200px icon. At 1920+ the card is capped at 680px and the icon scales up to 300px, so the proportions match the laptop feel.
  * v1.75.0 (client): the filter tag-icon square now sizes itself to the text pill's MEASURED height on every machine, instead of a hardcoded 27px. Mac and Windows render the pill's text height differently (Ben's Thunderbolt display showed a ~34px pill next to the 27px icon), so the icon now always matches exactly — any platform, any monitor. The funnel glyph scales with it.
  * v1.74.0 (client): (1) FILM PLAYER LOADER FIXED PROPERLY — the film now opens MUTED under the loader (so you never hear it before you see it); the moment frames are actually rendering it rewinds to the start, turns the sound on, and drops the loader together. You see and hear the film from second zero. (2) LARGE-MONITOR CONSISTENCY SWEEP — the Webflow headings grow at the 1920 breakpoint but the paired text was stranded small: at 1920+ the work-card hover title/description, the project description, gallery section labels, film-card captions, coverflow captions, watch pills, hero tag, and slider arrows all scale up ~1.2x to keep the laptop proportions; grid rows get proportionally taller (work/home cards 480, gallery rows 700), coverflow cards larger (860 cap), and the film player wider (1900 cap). Filter pills untouched — they already match at every width (the mismatch seen on the monitor was a stale cache; hard-refresh there).
@@ -830,7 +831,7 @@
       card._src = src;
       var wrap = document.createElement('div'); wrap.className = 'cedar-cardvid';
       var f = document.createElement('iframe'); f.allow = 'autoplay'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
-      f.addEventListener('load', function () { try { f.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*'); } catch (_) {} });   /* subscribe so we know when the clip actually plays (drops the loading mark) */
+      f.addEventListener('load', function () { try { ['play', 'playing', 'bufferend', 'timeupdate'].forEach(function (ev) { f.contentWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: ev }), '*'); }); } catch (_) {} });   /* v1.78: subscribe to the frames-rendering events too, so the loading mark drops only when the clip is genuinely visible */
       wrap.appendChild(f);
       var anchor = card.querySelector('.card-label') || card.querySelector('.overlay');
       if (anchor) card.insertBefore(wrap, anchor); else card.appendChild(wrap);
@@ -910,7 +911,14 @@
       gRaf = requestAnimationFrame(gridSpinLoop);
     }
     function hideGridSpin() { if (gSpin) gSpin.classList.remove('is-on'); }
-    function showGridSpin(card) { hideGridSpin(); }   /* client (v1.58): grid thumbnails no longer show the loading wireframe — kept only in the module-14 lightbox. buildGridSpin/gridSpinLoop now dormant (restore the old body to bring it back). */
+    function showGridSpin(card) {                      /* client (v1.78): RESTORED (removed v1.58, wanted back) — shows while a hover clip buffers, dropped only once frames genuinely render */
+      if (RM || TOUCH) return;
+      if (card && card._cv && !card._playing) {
+        if (!gSpin) buildGridSpin();
+        card._cv.appendChild(gSpin); gSpin.classList.add('is-on');
+        if (!gRaf) gRaf = requestAnimationFrame(gridSpinLoop);
+      } else hideGridSpin();
+    }
     window.addEventListener('message', function (e) {   /* a clip reports in -> mark it live, drop the loading mark, feed the stall watchdog */
       if ((e.origin || '').indexOf('vimeo') === -1) return;
       var d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
@@ -924,8 +932,9 @@
       if (!c) return;
       c._alive = true;                                   /* ANY message means the Vimeo player initialized (not a dead load) */
       if (d.event === 'error') { clearWatch(c); if ((c._reloads || 0) < MAX_RELOAD) { reloadVid(c); armWatch(c); } return; }
-      if (d.event === 'play' || d.event === 'playing' || d.event === 'bufferend') {
-        c._playing = true; clearWatch(c);               /* genuinely playing -> stop watching */
+      if (d.event === 'play') clearWatch(c);            /* playback requested = healthy load, stop the watchdog — but frames may not be up yet, so the mark stays */
+      if (d.event === 'playing' || d.event === 'bufferend' || (d.event === 'timeupdate' && d.data && d.data.seconds > 0)) {
+        c._playing = true; clearWatch(c);               /* frames genuinely rendering -> drop the mark (v1.78: 'play' alone fires while still black) */
         if (c === active) hideGridSpin();
       }
     });
@@ -2657,17 +2666,17 @@
     var box = el('div', 'cedar-lottie-mark');
     box.style.cssText = 'width:100%;aspect-ratio:1/1;margin:0 auto;';   /* full container width (host padding = the 20px gutters) */
     host.appendChild(box);
-    /* v1.77 (client): the square mark can outgrow the column on wide screens and its bottom chevron
-       crashed into the footer line. Ideal size = full width (20px from the side rules via the host
-       padding), CAPPED by the room left above the section's bottom edge minus a 20px clearance. */
+    /* v1.78 (client): the mark keeps its FULL width (= 20px from the side rules via the host's own
+       padding) and is shifted vertically so its bottom edge sits exactly on the bottom of the lines
+       (the section's bottom). Pure translate — the flow, the column, and the lines are untouched. */
     function fitMark() {
       var sec = host.closest('section') || host.parentElement;
-      box.style.width = '100%';                       /* reset so the ideal width is measurable */
-      var ideal = Math.round(box.getBoundingClientRect().width);
-      var avail = Math.floor(sec.getBoundingClientRect().bottom - box.getBoundingClientRect().top - 20);
-      if (avail > 40 && avail < ideal) box.style.width = avail + 'px';
+      box.style.transform = '';
+      var d = Math.round(sec.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom);
+      if (Math.abs(d) > 1) box.style.transform = 'translateY(' + d + 'px)';
     }
     fitMark();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setTimeout(fitMark, 60); });   /* the heading above reflows once the webfont lands */
     var fmT; window.addEventListener('resize', function () { clearTimeout(fmT); fmT = setTimeout(fitMark, 150); });
     ensureLottie(function (lottie) {
       var anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: false, autoplay: false, path: lottieJSON('OutlineMark_Trace.json') });
