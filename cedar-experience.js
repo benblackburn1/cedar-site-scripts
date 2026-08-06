@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.80.0 · built by Origin · loaded site-wide (footer)
+ * v1.81.0 · built by Origin · loaded site-wide (footer)
+ * v1.81.0 (client): TWO NAV FIXES, both in the detector that decides whether the logo and menu links should be dark or light. (1) SCROLL FEEL — scrolling could intermittently "catch" or feel sticky on any page, because that detector was re-checking the page on every single scroll frame and the check is expensive. It now checks at most ~8x per second (and instantly after a big jump), which is invisible to the eye — the colour fade is slower than that anyway — but frees up the scroll. Site-wide smoothness improvement, most noticeable on media-heavy pages. (2) PROJECT PAGE LOAD — on a project page the "Cedar Creative" logo and menu started DARK over the dark hero film and only flipped to white after a small scroll. The detector reads what is painted behind the nav, but the hero film loads a moment after the page does, so the first check happened while that area was still empty. It now re-checks the moment the film appears, so the nav is white from the start.
  * v1.80.0 (client): (1) the /contact outline mark now aligns the bottom of the DRAWN chevrons (not the artwork's invisible padding) to the bottom of the vertical lines beside it. (2) on windows wider than 2200px, the work cards, home cards, and gallery rows are 50vh tall — they scale with the screen instead of fixed heights.
  * v1.79.0 (client): FIX the gallery view showing square, weirdly-cropped cards. The card shapes were read from the page's images at load time, but those are lazy-loaded and often reported no size yet — stills fell back to a SQUARE, and films took the shape of their poster image instead of the video. Now: film cards are always 16:9 (the video's real shape), and still cards re-measure from the actual file as soon as it loads, so every card matches its asset exactly — nothing crops.
  * v1.78.0 (client): (1) the /contact outline mark now keeps its FULL size — 20px from the line on either side — and is bottom-aligned to the lines: shifted vertically so its bottom edge sits exactly on the section's bottom, on any screen (replaces v1.77's shrink-to-fit). (2) the work-card loading wireframe is BACK (removed earlier by request, wanted again) — and smarter: it only disappears once the clip's frames are genuinely rendering, so it never sits over a playing video; the grid clips are muted loops, so nothing is ever missed.
@@ -1784,6 +1785,17 @@
       nav.classList.toggle('cedar-nav-dark', dark);
       nav.classList.toggle('cedar-nav-light', !dark);
     }
+    /* v1.81: the probe (elementsFromPoint + a getComputedStyle loop) ran on EVERY scroll frame and was
+       the main scroll-jank cost site-wide — clients felt it as scrolling that "catches". Throttle it:
+       re-probe at most every 120ms, or immediately after a half-viewport jump. The nav ink transition
+       is .35s anyway, so a ≤120ms-late flip is invisible. Init / loader-lift / resize paths still call
+       updInk() directly. */
+    var inkAt = 0, inkY = -1;
+    function updInkLazy(y) {
+      var now = Date.now();
+      if (now - inkAt < 120 && Math.abs(y - inkY) < window.innerHeight * 0.5) return;
+      inkAt = now; inkY = y; updInk();
+    }
 
     var lastY = window.pageYOffset || 0, hidden = false, ticking = false;
     /* the sticky filter row (and anything else that wants to sit under the nav) reads this state:
@@ -1795,7 +1807,7 @@
       var y = window.pageYOffset || 0;
       if (window.__cedarMenuOpen) { nav.classList.remove('cedar-nav-hidden'); hidden = false; setShown(true); lastY = y; return; }   /* mobile menu open → nav stays put */
       if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); hidden = true; setShown(false); lastY = y; return; }   /* about intro (reveal phase) holds the nav hidden */
-      updInk();
+      updInkLazy(y);
       var floored = window.__cedarNavFloor != null;
       if (floored && y < window.__cedarNavFloor) {         /* about: nav stays hidden while the header owns the viewport */
         nav.classList.add('cedar-nav-hidden'); hidden = true; setShown(false); lastY = y; return;
@@ -1825,6 +1837,33 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', function () { setNavH(); onScroll(); });
     afterLoader(function () { updInk(); setNavH(); });     /* re-probe once the loader overlay lifts */
+    /* v1.81: PROJECT-PAGE NAV INK ON LOAD. isDarkBehind() treats an IFRAME/VIDEO behind the nav as a dark
+       backdrop, but the hero film's iframe is built ASYNCHRONOUSLY — both probes above (pre-paint and
+       loader-lift) run while that band is still empty, so the probe falls through to the light page
+       background and paints DARK ink over a dark hero. The first scroll re-probed, found the iframe and
+       flipped to white — which read as the nav "correcting itself". Re-probe when a film actually mounts.
+       These call updInk() directly, so they bypass the scroll throttle (they never touch inkAt/inkY). */
+    if ('MutationObserver' in window && document.body) {
+      var inkHits = 0;
+      var inkMO = new MutationObserver(function (recs) {
+        for (var i = 0; i < recs.length; i++) {
+          var added = recs[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j];
+            if (n.nodeType !== 1) continue;
+            if (n.tagName === 'IFRAME' || n.tagName === 'VIDEO' || (n.querySelector && n.querySelector('iframe,video'))) {
+              updInk();
+              if (++inkHits >= 12) { inkMO.disconnect(); return; }   /* gallery pages mount many films; a dozen re-probes is plenty */
+              return;
+            }
+          }
+        }
+      });
+      inkMO.observe(document.body, { childList: true, subtree: true });
+      setTimeout(function () { inkMO.disconnect(); }, 8000);         /* the hero is long settled by then */
+    }
+    /* backstop for a hero inserted before the observer attached, or swapped in without a node insertion */
+    [400, 1200, 2500].forEach(function (t) { setTimeout(updInk, t); });
   });
 
   /* =========================================================
