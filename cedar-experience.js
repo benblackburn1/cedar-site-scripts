@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.81.0 · built by Origin · loaded site-wide (footer)
+ * v1.82.0 · built by Origin · loaded site-wide (footer)
+ * v1.82.0 (client): PROJECT PAGE NAV IS WHITE THE INSTANT THE PAGE LOADS. v1.81 improved this but still worked by CHECKING what was painted behind the nav and reacting to it, so the wordmark and links could still flash dark for a moment while the hero film loaded — and if that check ever fell through (an empty video URL, a slow embed) they stayed dark. Now the page simply knows: whenever the nav sits over a project's hero band, the "Cedar Creative" wordmark, the menu links and the mark are WHITE. Decided before anything renders, so there is no flash and no dependence on how fast the film loads.
  * v1.81.0 (client): TWO NAV FIXES, both in the detector that decides whether the logo and menu links should be dark or light. (1) SCROLL FEEL — scrolling could intermittently "catch" or feel sticky on any page, because that detector was re-checking the page on every single scroll frame and the check is expensive. It now checks at most ~8x per second (and instantly after a big jump), which is invisible to the eye — the colour fade is slower than that anyway — but frees up the scroll. Site-wide smoothness improvement, most noticeable on media-heavy pages. (2) PROJECT PAGE LOAD — on a project page the "Cedar Creative" logo and menu started DARK over the dark hero film and only flipped to white after a small scroll. The detector reads what is painted behind the nav, but the hero film loads a moment after the page does, so the first check happened while that area was still empty. It now re-checks the moment the film appears, so the nav is white from the start.
  * v1.80.0 (client): (1) the /contact outline mark now aligns the bottom of the DRAWN chevrons (not the artwork's invisible padding) to the bottom of the vertical lines beside it. (2) on windows wider than 2200px, the work cards, home cards, and gallery rows are 50vh tall — they scale with the screen instead of fixed heights.
  * v1.79.0 (client): FIX the gallery view showing square, weirdly-cropped cards. The card shapes were read from the page's images at load time, but those are lazy-loaded and often reported no size yet — stills fell back to a SQUARE, and films took the shape of their poster image instead of the video. Now: film cards are always 16:9 (the video's real shape), and still cards re-measure from the actual file as soon as it loads, so every card matches its asset exactly — nothing crops.
@@ -1780,8 +1781,22 @@
       }
       return false;                                        /* nothing painted → assume light */
     }
+    /* v1.82: PROJECT-PAGE HERO = ALWAYS WHITE INK, no probing. The hero band is a film on a black
+       backdrop, so the answer is known before the page even renders — v1.81's re-probe still let the
+       nav paint dark for a frame or two while the Vimeo iframe mounted, and if the probe ever fell
+       through (empty video URL, slow embed) it stayed wrong. Structural rule instead: while the nav
+       band overlaps the hero band, ink is WHITE, full stop — correct from the very first paint. Any
+       other position still falls through to the probe below. */
+    var heroBand = null, heroLooked = false;
+    function overHero() {
+      if (!heroLooked) { heroLooked = true; heroBand = document.querySelector('.photo-band.hero-band, .hero-band'); }
+      if (!heroBand) return false;
+      var y = Math.round(nav.getBoundingClientRect().height / 2) || 37;
+      var r = heroBand.getBoundingClientRect();
+      return r.top <= y && r.bottom > y;
+    }
     function updInk() {
-      var dark = isDarkBehind();
+      var dark = overHero() || isDarkBehind();
       nav.classList.toggle('cedar-nav-dark', dark);
       nav.classList.toggle('cedar-nav-light', !dark);
     }
