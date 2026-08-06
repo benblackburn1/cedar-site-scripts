@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.83.0 · built by Origin · loaded site-wide (footer)
+ * v1.84.0 · built by Origin · loaded site-wide (footer)
+ * v1.84.0 (client edit batch): FOUR CHANGES. (1) STANDARD SCROLL — the smooth "glide" is switched off site-wide; the site now scrolls natively, exactly as the browser does out of the box. (Easily reversible if you change your minds later.) (2) ABOUT NAV — on /about the white toolbar now stays visible for the entire page instead of hiding as you scroll down, so nobody loses their way; it comes in as soon as the opening animation finishes and never leaves. (3) FASTER FILM GRIDS — the preview clips on the home page and the /work grid now stream at a capped 540p, plenty for a card-sized loop, so scrolling those pages costs far less bandwidth and the lag should ease; project pages and the full-screen player keep the full-quality files. (4) PROJECT HEADINGS — the situation/results headings keep their rise-in animation, but their size and alignment now come from the Designer instead of the script (the script no longer centers them, and no longer sets the description size on very large monitors — set those in Webflow).
  * v1.83.0 (client): BOTH DRAG-GALLERIES — "Behind the scenes" and "View gallery" — the outer photos no longer look like they sit ON TOP of the ones nearer the middle. They were never actually layered wrong; the problem was that the side photos faded out to become SEE-THROUGH as they moved away from centre, so the photo further out showed THROUGH the one in front of it, which read as the wrong thing being on top. The side photos now stay solid and recede by getting gradually darker instead, and the behind-the-scenes cards picked up the same soft drop shadow the gallery cards already had. Nothing overlaps see-through any more, so both stacks read front-to-back the way they should. Photos still fade out, but only right at the edge as they leave the view.
  * v1.82.0 (client): PROJECT PAGE NAV IS WHITE THE INSTANT THE PAGE LOADS. v1.81 improved this but still worked by CHECKING what was painted behind the nav and reacting to it, so the wordmark and links could still flash dark for a moment while the hero film loaded — and if that check ever fell through (an empty video URL, a slow embed) they stayed dark. Now the page simply knows: whenever the nav sits over a project's hero band, the "Cedar Creative" wordmark, the menu links and the mark are WHITE. Decided before anything renders, so there is no flash and no dependence on how fast the film loads.
  * v1.81.0 (client): TWO NAV FIXES, both in the detector that decides whether the logo and menu links should be dark or light. (1) SCROLL FEEL — scrolling could intermittently "catch" or feel sticky on any page, because that detector was re-checking the page on every single scroll frame and the check is expensive. It now checks at most ~8x per second (and instantly after a big jump), which is invisible to the eye — the colour fade is slower than that anyway — but frees up the scroll. Site-wide smoothness improvement, most noticeable on media-heavy pages. (2) PROJECT PAGE LOAD — on a project page the "Cedar Creative" logo and menu started DARK over the dark hero film and only flipped to white after a small scroll. The detector reads what is painted behind the nav, but the hero film loads a moment after the page does, so the first check happened while that area was still empty. It now re-checks the moment the film appears, so the nav is white from the start.
@@ -234,8 +235,7 @@
     '@media (max-width:479px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:40vh!important;aspect-ratio:auto!important;}}',
     /* project mobile: Ben set the top photo/video band to 50vh — cover-size the vimeo iframe to that box */
     '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
-    /* situation heads (project pages): opening line centered — the H1 is flex, so text-align alone doesn\'t cut it */
-    '.contact-head.cedar-center{justify-content:center!important;text-align:center!important;}',
+    /* v1.84: .cedar-center rule DROPPED — the situation/results heads take their alignment from the Designer now (the reveal animation is separate and unaffected) */
     /* about icons: the artwork draws right to (and its stroke halfway PAST) the artboard edge. Two clips
        are in play and scale(.92) beats neither — it shrinks the svg AND its clip together. Kill both:
        the svg viewport (overflow) and lottie\'s own baked artboard clip-path on the root group. */
@@ -264,7 +264,7 @@
     '@media (min-width:1920px){',
     '.work-card .card-label p:first-child{font-size:21px;}',            /* work-card hover title (17 at laptop) */
     '.work-card .card-label p:nth-child(2){font-size:15px;}',           /* work-card hover description (12) */
-    '.work-situation,.work-situation p{font-size:18px;}',               /* project description under the 50px title (was stranded at 14) */
+    /* v1.84: .work-situation 1920px size DROPPED — situation text size/alignment is the Designer's now (set the >=1920 size in Webflow or it falls back to the breakpoint default) */
     '.cedar-fs-label{font-size:14px;}',
     '.cedar-fs-title{font-size:18px;}',
     '.cedar-fs-desc{font-size:15px;}',
@@ -670,9 +670,13 @@
 
   /* =========================================================
    * 2. LENIS SMOOTH SCROLL — desktop, motion-friendly only
+   *    v1.84: OFF — client landed on standard scroll for now.
+   *    Flip SMOOTH_SCROLL to true to bring the glide back
+   *    (the stations, module 27, are separately off since v1.34).
    * ======================================================= */
+  var SMOOTH_SCROLL = false;
   onReady(function () {
-    if (RM || TOUCH || !window.Lenis) return;
+    if (!SMOOTH_SCROLL || RM || TOUCH || !window.Lenis) return;
     try {
       /* the train ride (client, v1.31): heavier, slower glide — a gesture travels a touch less
          (wheelMultiplier) and decays over a long expo tail (duration + easing), so the motion has
@@ -699,14 +703,15 @@
    *    animates. Desktop + motion only; touch / reduced-motion keep the
    *    static thumbnail. No text styling here — typography is yours in Webflow.
    * ======================================================= */
-  function vimeoEmbed(url) {
+  function vimeoEmbed(url, quality) {
     if (!url) return null;
     var id = (url.match(/vimeo\.com\/(?:video\/)?(\d+)/i) || [])[1];
     if (!id) return null;
     var h = (url.match(/[?&]h=([0-9a-z]+)/i) || [])[1] ||
             (url.match(/vimeo\.com\/(?:video\/)?\d+\/([0-9a-z]+)/i) || [])[1] || '';
     return 'https://player.vimeo.com/video/' + id + '?' + (h ? 'h=' + h + '&' : '') +
-           'background=1&autoplay=1&muted=1&loop=1&autopause=0';
+           'background=1&autoplay=1&muted=1&loop=1&autopause=0' +
+           (quality ? '&quality=' + quality : '');       /* v1.84: optional stream cap — the grids pass 540p, everything else stays adaptive full quality */
   }
   onReady(function () {
     var path = location.pathname.replace(/\/$/, '') || '/';
@@ -840,7 +845,7 @@
     }
     function mountVideo(card) {
       if ('_cv' in card) return;
-      var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim());
+      var src = vimeoEmbed((card.getAttribute('data-vimeo-url') || '').trim(), '540p');   /* v1.84: card-sized loops don't need the full-res stream (client: grid scroll lag); project pages + lightbox keep full quality */
       if (!src) { card._cv = null; return; }
       card._src = src;
       var wrap = document.createElement('div'); wrap.className = 'cedar-cardvid';
@@ -1748,6 +1753,10 @@
   onReady(function () {
     var nav = document.querySelector('.navbar');
     if (!nav) return;
+    /* v1.84: /about keeps the nav on screen, solid white, for the whole page — client: less
+       tech-savvy visitors got lost when it hid. The intro (module 11) still holds it back
+       during the logo reveal; the moment that releases, the nav is in and never leaves. */
+    var PIN_ABOUT = ((location.pathname.replace(/\/$/, '') || '/') === '/about');
 
     /* the new brand mark, inlined as a data-URI mask (alpha = the chevrons; fill is irrelevant) */
     var MARK_URL = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 374 283"><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z" fill="#fff"/><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z" fill="#fff"/></svg>');
@@ -1836,6 +1845,11 @@
       var y = window.pageYOffset || 0;
       if (window.__cedarMenuOpen) { nav.classList.remove('cedar-nav-hidden'); hidden = false; setShown(true); lastY = y; return; }   /* mobile menu open → nav stays put */
       if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); hidden = true; setShown(false); lastY = y; return; }   /* about intro (reveal phase) holds the nav hidden */
+      if (PIN_ABOUT) {                                   /* v1.84: shown + solid white at every scroll position; .cedar-nav-solid forces charcoal ink in CSS, so the luminance probe is skipped (it was the jank cost) */
+        if (hidden) { nav.classList.remove('cedar-nav-hidden'); hidden = false; }
+        setShown(true); nav.classList.add('cedar-nav-solid');
+        lastY = y; return;
+      }
       updInkLazy(y);
       var floored = window.__cedarNavFloor != null;
       if (floored && y < window.__cedarNavFloor) {         /* about: nav stays hidden while the header owns the viewport */
@@ -1866,6 +1880,9 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', function () { setNavH(); onScroll(); });
     afterLoader(function () { updInk(); setNavH(); });     /* re-probe once the loader overlay lifts */
+    if (PIN_ABOUT) {                                       /* v1.84: onFrame only runs on scroll — poll the intro flag so the nav comes in the moment the reveal releases it, before any scroll happens */
+      var pinPoll = setInterval(function () { if (!window.__cedarAboutIntro) { clearInterval(pinPoll); onScroll(); } }, 200);
+    }
     /* v1.81: PROJECT-PAGE NAV INK ON LOAD. isDarkBehind() treats an IFRAME/VIDEO behind the nav as a dark
        backdrop, but the hero film's iframe is built ASYNCHRONOUSLY — both probes above (pre-paint and
        loader-lift) run while that band is still empty, so the probe falls through to the light page
@@ -2937,8 +2954,8 @@
    *   Project pages on DESKTOP animate LINE BY LINE (words are
    *   grouped by their rendered line; each line rises as one);
    *   mobile — and the contact page — keep the character cascade.
-   *   The OPENING situation head on a project page is centered
-   *   (the H1 is flex, so justify-content does the centering).
+   *   Size + alignment come from the Designer (v1.84 — the
+   *   script used to center the project-page heads; no more).
    *   Triggered per-element on scroll-in, after the loader.
    *   Reduced motion: headings just stay put.
    * ======================================================= */
@@ -2963,7 +2980,7 @@
         h.appendChild(w); wordEls.push(w);
         if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
       });
-      if (isWork) h.classList.add('cedar-center');   /* project-page type heads (situation + results) are centered */
+      /* v1.84: no more cedar-center — alignment (and size) come from the Designer; the split + rise-in below is all this module does to the head now */
       var lineMode = isWork && window.innerWidth >= 768;
       var fired = false;
       function fire() {
