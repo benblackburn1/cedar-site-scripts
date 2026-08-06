@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.82.0 · built by Origin · loaded site-wide (footer)
+ * v1.83.0 · built by Origin · loaded site-wide (footer)
+ * v1.83.0 (client): BOTH DRAG-GALLERIES — "Behind the scenes" and "View gallery" — the outer photos no longer look like they sit ON TOP of the ones nearer the middle. They were never actually layered wrong; the problem was that the side photos faded out to become SEE-THROUGH as they moved away from centre, so the photo further out showed THROUGH the one in front of it, which read as the wrong thing being on top. The side photos now stay solid and recede by getting gradually darker instead, and the behind-the-scenes cards picked up the same soft drop shadow the gallery cards already had. Nothing overlaps see-through any more, so both stacks read front-to-back the way they should. Photos still fade out, but only right at the edge as they leave the view.
  * v1.82.0 (client): PROJECT PAGE NAV IS WHITE THE INSTANT THE PAGE LOADS. v1.81 improved this but still worked by CHECKING what was painted behind the nav and reacting to it, so the wordmark and links could still flash dark for a moment while the hero film loaded — and if that check ever fell through (an empty video URL, a slow embed) they stayed dark. Now the page simply knows: whenever the nav sits over a project's hero band, the "Cedar Creative" wordmark, the menu links and the mark are WHITE. Decided before anything renders, so there is no flash and no dependence on how fast the film loads.
  * v1.81.0 (client): TWO NAV FIXES, both in the detector that decides whether the logo and menu links should be dark or light. (1) SCROLL FEEL — scrolling could intermittently "catch" or feel sticky on any page, because that detector was re-checking the page on every single scroll frame and the check is expensive. It now checks at most ~8x per second (and instantly after a big jump), which is invisible to the eye — the colour fade is slower than that anyway — but frees up the scroll. Site-wide smoothness improvement, most noticeable on media-heavy pages. (2) PROJECT PAGE LOAD — on a project page the "Cedar Creative" logo and menu started DARK over the dark hero film and only flipped to white after a small scroll. The detector reads what is painted behind the nav, but the hero film loads a moment after the page does, so the first check happened while that area was still empty. It now re-checks the moment the film appears, so the nav is white from the start.
  * v1.80.0 (client): (1) the /contact outline mark now aligns the bottom of the DRAWN chevrons (not the artwork's invisible padding) to the bottom of the vertical lines beside it. (2) on windows wider than 2200px, the work cards, home cards, and gallery rows are 50vh tall — they scale with the screen instead of fixed heights.
@@ -182,8 +183,13 @@
     '.cedar-cf{position:fixed;inset:0;z-index:100000;background:rgba(20,15,10,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .35s ' + EASE + ';}',
     '.cedar-cf.is-open{opacity:1;pointer-events:auto;}',
     '.cedar-cf-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
-    '.cedar-cf-card{position:absolute;left:50%;top:50%;width:min(46vw,720px);aspect-ratio:105/100;border-radius:12px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#000;}',
+    '.cedar-cf-card{position:absolute;left:50%;top:50%;width:min(46vw,720px);aspect-ratio:105/100;border-radius:12px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#000;box-shadow:0 24px 60px rgba(0,0,0,.45);}',
     '.cedar-cf-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',
+    /* v1.83: depth scrim. The side cards used to recede by going TRANSPARENT, which let the card
+       further out show through the one in front of it — reading as though the outermost images sat
+       on top. They now stay opaque and recede by being DIMMED instead; --cf-dim is set per card in
+       cfRender() from its distance off centre. */
+    '.cedar-cf-card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:#0d0a07;opacity:var(--cf-dim,0);pointer-events:none;}',
     '.cedar-cf .cedar-lb-close{z-index:100002;cursor:pointer;}',
     '.cedar-cf-pill{position:fixed;z-index:100001;left:-200px;top:-200px;pointer-events:none;background:#f4f4f2;color:' + CHARCOAL + ';border-radius:999px;padding:12px 18px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%) scale(.35);opacity:0;transition:opacity .25s ' + EASE + ',transform .3s ' + EASE + ';}',
     '.cedar-cf-pill.is-on{opacity:1;transform:translate(-50%,-50%) scale(1);}',
@@ -199,6 +205,10 @@
     '.cedar-gv.is-open{opacity:1;pointer-events:auto;}',
     '.cedar-gv-stage{position:absolute;inset:0;overflow:hidden;cursor:none;touch-action:pan-y;}',
     '.cedar-gv-card{position:absolute;left:50%;top:50%;box-sizing:border-box;padding:14px;border-radius:16px;overflow:hidden;will-change:transform,opacity;user-select:none;-webkit-user-select:none;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.34);}',   /* padding = the white mat around the asset; a captionless item is just the matted asset */
+    /* v1.83: depth scrim, same treatment as the BTS coverflow — the side cards recede by being
+       DIMMED rather than going transparent, so the card further out can never show through the one
+       in front of it. --gv-dim is set per card in render() from its distance off centre. */
+    '.cedar-gv-card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:#0d0a07;opacity:var(--gv-dim,0);pointer-events:none;}',
     '.cedar-gv-media{position:relative;width:100%;overflow:hidden;border-radius:9px;background:#f4f4f2;}',
     '.cedar-gv-media img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}',   /* media box == asset aspect, so cover crops nothing */
     '.cedar-gv-media.cedar-gv-contain img{object-fit:contain;}',   /* rare tall asset: show it whole, letterbox on the card, never crop */
@@ -1335,7 +1345,11 @@
           var CS = window.innerWidth < 768 ? 1.5 : 1;
           var sc = a < 1 ? (CS + (0.82 - CS) * a) : Math.max(0.4, 1 - 0.18 * a);
           c.style.transform = 'translate(calc(-50% + ' + (off * cfSp).toFixed(1) + 'px),-50%) scale(' + sc.toFixed(3) + ')';
-          c.style.opacity = Math.max(0, 1 - 0.32 * a).toFixed(3);
+          /* v1.83: stay fully opaque out to a=2.2, then fade to nothing by the a=3.2 cull line, so a
+             card only turns transparent as it leaves the stage entirely — never while another card is
+             still behind it. Depth is carried by scale + the ::after scrim instead. */
+          c.style.opacity = (a <= 2.2 ? 1 : Math.max(0, 1 - (a - 2.2))).toFixed(3);
+          c.style.setProperty('--cf-dim', Math.min(0.55, 0.26 * a).toFixed(3));
           c.style.zIndex = String(200 - Math.round(a * 10));
         }
       }
@@ -3788,7 +3802,12 @@
         c.style.display = '';
         var sc = Math.max(0.34, 1 - 0.38 * a);              /* steeper falloff — the side assets recede clearly (client) */
         c.style.transform = 'translate(calc(-50% + ' + (off * sp).toFixed(1) + 'px),-50%) scale(' + sc.toFixed(3) + ')';
-        c.style.opacity = Math.max(0, 1 - 0.4 * a).toFixed(3);
+        /* v1.83: opaque out to a=2.2, then fade to nothing by the a=3.2 cull line — a card only turns
+           transparent as it leaves the stage, never while another is still behind it. The white mat
+           made the old 1-0.4a falloff especially obvious: at a=1 it sat at 0.6 and the card behind
+           read straight through the mat. */
+        c.style.opacity = (a <= 2.2 ? 1 : Math.max(0, 1 - (a - 2.2))).toFixed(3);
+        c.style.setProperty('--gv-dim', Math.min(0.55, 0.26 * a).toFixed(3));
         c.style.zIndex = String(200 - Math.round(a * 10));
       }
     }
