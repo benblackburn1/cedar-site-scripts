@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.84.0 · built by Origin · loaded site-wide (footer)
+ * v1.85.0 · built by Origin · loaded site-wide (footer)
+ * v1.85.0 (client): TWO /ABOUT FIXES. (1) THE TOOLBAR NOW ACTUALLY APPEARS. v1.84 was meant to keep the white toolbar on screen for the whole About page, but it never came in — the script was asking "is the toolbar currently hidden?" using its own internal note rather than looking at the page, and that note was out of date, so it never lifted the toolbar back down. It now simply shows the toolbar outright, no question asked. It arrives as the opening animation ends and stays put all the way down the page. (2) THE TEAM CARDS ARE THE RIGHT SIZE AGAIN. The team photos had collapsed into thin slivers. The script was still sizing them for the old side-scrolling row — forcing a width on every card — while the row itself had been rebuilt in the Designer as a proper wrapping grid, so the two were fighting and the forced width won. The script now checks how the row is actually laid out: if it's the grid you built, it keeps its hands off entirely and your layout decides the size; only a genuine side-scrolling row gets the old sizing. The team now reads as a clean grid of full-size cards, and the drag-to-scroll and the little prev/next arrows switch themselves off automatically because there's nothing to scroll.
  * v1.84.0 (client edit batch): FOUR CHANGES. (1) STANDARD SCROLL — the smooth "glide" is switched off site-wide; the site now scrolls natively, exactly as the browser does out of the box. (Easily reversible if you change your minds later.) (2) ABOUT NAV — on /about the white toolbar now stays visible for the entire page instead of hiding as you scroll down, so nobody loses their way; it comes in as soon as the opening animation finishes and never leaves. (3) FASTER FILM GRIDS — the preview clips on the home page and the /work grid now stream at a capped 540p, plenty for a card-sized loop, so scrolling those pages costs far less bandwidth and the lag should ease; project pages and the full-screen player keep the full-quality files. (4) PROJECT HEADINGS — the situation/results headings keep their rise-in animation, but their size and alignment now come from the Designer instead of the script (the script no longer centers them, and no longer sets the description size on very large monitors — set those in Webflow).
  * v1.83.0 (client): BOTH DRAG-GALLERIES — "Behind the scenes" and "View gallery" — the outer photos no longer look like they sit ON TOP of the ones nearer the middle. They were never actually layered wrong; the problem was that the side photos faded out to become SEE-THROUGH as they moved away from centre, so the photo further out showed THROUGH the one in front of it, which read as the wrong thing being on top. The side photos now stay solid and recede by getting gradually darker instead, and the behind-the-scenes cards picked up the same soft drop shadow the gallery cards already had. Nothing overlaps see-through any more, so both stacks read front-to-back the way they should. Photos still fade out, but only right at the edge as they leave the view.
  * v1.82.0 (client): PROJECT PAGE NAV IS WHITE THE INSTANT THE PAGE LOADS. v1.81 improved this but still worked by CHECKING what was painted behind the nav and reacting to it, so the wordmark and links could still flash dark for a moment while the hero film loaded — and if that check ever fell through (an empty video URL, a slow embed) they stayed dark. Now the page simply knows: whenever the nav sits over a project's hero band, the "Cedar Creative" wordmark, the menu links and the mark are WHITE. Decided before anything renders, so there is no flash and no dependence on how fast the film loads.
@@ -491,8 +492,12 @@
     /* team bio cards were squishing to fit 100vw instead of holding their 25% basis + overflowing: the Webflow
        .bio-card is flex-grow:0/flex-basis:25% but flex-shrink defaults to 1, so 7 cards crammed into the row.
        Pin shrink:0 (desktop) so the cards keep their width and the row overflows — which also lets module 33's
-       overflow check finally arm the drag-scroll + "Click and drag" pill (chicken-and-egg: no overflow, no arm). */
-    '@media (min-width:768px){.bio-row .bio-card{flex:0 0 calc((100% - 56px) / 4.5)!important;width:calc((100% - 56px) / 4.5)!important;}}',   /* v1.73: size cards so 4.5 show by default (a half card peeks to signal more) */
+       overflow check finally arm the drag-scroll + "Click and drag" pill (chicken-and-egg: no overflow, no arm).
+       v1.85: SCOPED to .cedar-bio-scroller. Ben rebuilt .bio-row as CSS GRID in the Designer; this rule was
+       unconditional, so `width:…!important` fought the grid track and squeezed every card to ~86px inside a
+       446px column. Module 33's classifier now adds .cedar-bio-scroller ONLY when the row is genuinely a
+       non-wrapping flex scroller, so a grid/wrap row keeps whatever the Designer set. */
+    '@media (min-width:768px){.bio-row.cedar-bio-scroller .bio-card{flex:0 0 calc((100% - 56px) / 4.5)!important;width:calc((100% - 56px) / 4.5)!important;}}',   /* v1.73: size cards so 4.5 show by default (a half card peeks to signal more) */
     /* dragging a card to scroll must NOT grab the image as a native HTML5 drag ghost (client: it tried to
        drag the photo off the page). Non-draggable + non-selectable across the drag-scroll rows. */
     '.cedar-hscroll img,.bio-row img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none;}',
@@ -1846,7 +1851,12 @@
       if (window.__cedarMenuOpen) { nav.classList.remove('cedar-nav-hidden'); hidden = false; setShown(true); lastY = y; return; }   /* mobile menu open → nav stays put */
       if (window.__cedarAboutIntro) { nav.classList.add('cedar-nav-hidden'); hidden = true; setShown(false); lastY = y; return; }   /* about intro (reveal phase) holds the nav hidden */
       if (PIN_ABOUT) {                                   /* v1.84: shown + solid white at every scroll position; .cedar-nav-solid forces charcoal ink in CSS, so the luminance probe is skipped (it was the jank cost) */
-        if (hidden) { nav.classList.remove('cedar-nav-hidden'); hidden = false; }
+        /* v1.85 FIX: clear the class UNCONDITIONALLY — do not gate on the `hidden` mirror. Module 11 adds
+           .cedar-nav-hidden to the element DIRECTLY (the about nav floor, ~line 1994) without telling this
+           closure, so on a page the visitor never scrolls, `hidden` was still false when the pin poll fired
+           the first onFrame → the guard skipped the remove and the nav stayed parked at translateY(-74px)
+           while body.cedar-nav-in claimed it was shown. Verified live on staging before/after. */
+        nav.classList.remove('cedar-nav-hidden'); hidden = false;
         setShown(true); nav.classList.add('cedar-nav-solid');
         lastY = y; return;
       }
@@ -3577,12 +3587,41 @@
   });
 
   /* =========================================================
+   * 33a. TEAM ROW LAYOUT MODE (v1.85) — decide, at runtime, whether
+   *   .bio-row is the horizontal SCROLLER this script sizes cards for
+   *   or a layout the Designer owns (CSS grid / wrapping flex). Only a
+   *   non-wrapping flex row gets .cedar-bio-scroller, which is what the
+   *   4.5-cards-wide sizing rule is scoped to. Ben rebuilt the row as
+   *   grid; the old unconditional rule's width:!important fought the
+   *   grid track and squeezed every card to ~86px. Re-checked on resize
+   *   and load, since the Designer can switch layout per breakpoint.
+   * ======================================================= */
+  onReady(function () {
+    var rows = [].slice.call(document.querySelectorAll('.bio-row'));
+    if (!rows.length) return;
+    function classify() {
+      rows.forEach(function (r) {
+        var cs = getComputedStyle(r);
+        /* flex + nowrap = the scroller. grid, inline-grid, block, or any wrap value = Designer's layout, hands off.
+           (.cedar-hscroll pins flex-wrap:nowrap, but module 33 only adds it once the row already overflows, which
+           only the scroller sizing produces — so this stays stable rather than latching itself on.) */
+        r.classList.toggle('cedar-bio-scroller', cs.display.indexOf('flex') > -1 && cs.flexWrap === 'nowrap');
+      });
+    }
+    classify();
+    var lt; window.addEventListener('resize', function () { clearTimeout(lt); lt = setTimeout(classify, 160); });
+    window.addEventListener('load', classify);
+  });
+
+  /* =========================================================
    * 33. TEAM ROW DRAG-SCROLL (/about "Our Team") — the horizontal
    *   .bio-row Ben set to scroll gets the same drag-to-scroll +
    *   "Click and drag" cursor pill as the post-partners row (module
    *   24). Arms only when the cards overflow the row; scrollbar
    *   hidden; a drag suppresses the click at release so cards don't
    *   fire mid-drag. Touch keeps native swipe; rechecks on resize.
+   *   Self-disarms on a grid/wrap row (nothing overflows) — as does
+   *   the arrow bar in module 37. No change needed there.
    * ======================================================= */
   onReady(function () {
     var P = location.pathname.replace(/\/$/, '') || '/';
