@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.11 · built by Origin · loaded site-wide (footer)
+ * v1.87.12 · built by Origin · loaded site-wide (footer)
+ * v1.87.12 (client): the hero "Play with sound" pill now matches the "About Cedar" button's BACKGROUND as well as its size — same translucent off-white, same hover shade — so the two pills in the hero read as a true pair. (The small "Watch with sound" pills on gallery cards keep their darker glass; they sit on film stills where the light fill would wash out.)
  * v1.87.11 (client): INDUSTRY TAGS ARE NOW EDITABLE IN THE CMS — industries moved from a fixed dropdown on each project to their own "Industry Tags" collection, so the Cedar team can rename an industry or add a new one right in the CMS and the Work-page filters pick it up automatically. The script now reads a project's industry from either the existing data-industry attribute OR a text element with class "ind-tag" inside the card (whichever the Designer binding provides), everywhere industry is used: the filter chips, the search, and the "View Other projects" same-industry preference on project pages.
  * v1.87.10 (client): search and filter now compose in EITHER order — with a search term live you can still hover the funnel and add filter chips (an over-broad guard was suppressing the filter panel whenever the search bar was open, so filter-after-search was unreachable; the panel now only stays away while the pointer is over the search bar itself). Search terms and filter chips have always ANDed together; now both doors to that are open.
  * v1.87.9 (fixup): clicking the clear × momentarily blurs the input, and the empty-bar auto-collapse fired 150ms later — the bar closed right after clearing. The collapse now checks focus actually LEFT the input before closing.
@@ -273,6 +274,11 @@
     /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
     '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:6px 12px;font-size:12px;letter-spacing:.7px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',   /* v1.86: padding + letter-spacing matched to the Webflow .btn-pill.white ("About Cedar") so the hero "Play with sound" pill is the same height (32px). Gallery-card pills keep their own size via .cedar-card-watch below. */
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
+    /* v1.87.12: the STANDALONE hero pill matches the Webflow .btn-pill background exactly ("About Cedar":
+       #f9f8f633, hover #f9f8f621, no blur) so the two hero pills read as a true pair. Scoped with
+       :not(.cedar-card-watch) — the small gallery-card pills keep the dark glass, they sit on stills. */
+    '.cedar-hero-watch:not(.cedar-card-watch){background:#f9f8f633;backdrop-filter:none;-webkit-backdrop-filter:none;}',
+    '.cedar-hero-watch:not(.cedar-card-watch):hover{background:#f9f8f621;}',
     '.cedar-card-watch{padding:9px 14px;font-size:10px;bottom:14px;right:14px;z-index:3;pointer-events:auto;cursor:pointer;}',   /* v1.67: the pill is a DIRECT door to the sound player (module 14 delegate); the rest of the card still opens the coverflow */
     /* film sections (module 12.5) — labeled category rows above the stills grid */
     '.cedar-fs{margin:44px 0 8px;}',
