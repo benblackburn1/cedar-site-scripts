@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.86.0 · built by Origin · loaded site-wide (footer)
+ * v1.87.0 · built by Origin · loaded site-wide (footer)
+ * v1.87.0 (client edit batch, 2026-08): SIX CHANGES. (1) SMOOTH SCROLL RETURNS, GENTLY — scrolling gets a soft ease in and out again (the premium feel on the typography intros) but the "stick" — the brief stop-and-hold partway down a page — stays gone for good; those were always two separate systems. (2) WORKS SEARCH — a search button sits just left of the filter icon on the home + /work grids, the same size as the filter button; click it and it opens into a search bar (the buttons beside it slide over), and the grid filters live as you type — by project name, project type, or industry, and it composes with the tag filters. A search with no matches shows an empty grid (that's honest feedback), and Esc or clearing the field closes it. (3) /ABOUT NAV — behaves like every other page now: hides as you scroll down, returns the moment you scroll up. (4) /ABOUT ULTRAWIDE — on very wide / curved monitors the big Cedar mark in the opening header no longer clips at the bottom; the lockup now caps its size against the screen's height and centers itself (normal monitors unchanged). (5) FILM ROWS CAN SCROLL SIDEWAYS — the Penske / Unless U ask: set the CMS field bound to data-cedar-layout to the word "scroll" on any gallery item of a project, and that project's film rows (Trailer / Films / Edits, 3+ films) become a horizontal drag-to-scroll row with the "Click and drag" pill — same feel as the team row. The tag existed on Penske but nothing read it yet; now it does. Stills keep their grid. (6) YOUTUBE WORKS IN THE SAME VIDEO FIELD — paste a YouTube link (watch, youtu.be, or Shorts) in the same CMS field you use for Vimeo on gallery items: the card shows its still with the "Watch with sound" pill and opens the film in the same full-screen player. (Only Vimeo films play the muted hover preview — YouTube's embeds are heavier and carry their branding.)
  * v1.86.0 (client): the hero "Play with sound" button now matches the "About Cedar" button's size exactly — same height and padding — so the two pills in the hero read as a matched pair. (Only the standalone play pills change; the little "Watch with sound" pills on the gallery cards keep their own size.)
  * v1.85.0 (client): TWO /ABOUT FIXES. (1) THE TOOLBAR NOW ACTUALLY APPEARS. v1.84 was meant to keep the white toolbar on screen for the whole About page, but it never came in — the script was asking "is the toolbar currently hidden?" using its own internal note rather than looking at the page, and that note was out of date, so it never lifted the toolbar back down. It now simply shows the toolbar outright, no question asked. It arrives as the opening animation ends and stays put all the way down the page. (2) THE TEAM CARDS ARE THE RIGHT SIZE AGAIN. The team photos had collapsed into thin slivers. The script was still sizing them for the old side-scrolling row — forcing a width on every card — while the row itself had been rebuilt in the Designer as a proper wrapping grid, so the two were fighting and the forced width won. The script now checks how the row is actually laid out: if it's the grid you built, it keeps its hands off entirely and your layout decides the size; only a genuine side-scrolling row gets the old sizing. The team now reads as a clean grid of full-size cards, and the drag-to-scroll and the little prev/next arrows switch themselves off automatically because there's nothing to scroll.
  * v1.84.0 (client edit batch): FOUR CHANGES. (1) STANDARD SCROLL — the smooth "glide" is switched off site-wide; the site now scrolls natively, exactly as the browser does out of the box. (Easily reversible if you change your minds later.) (2) ABOUT NAV — on /about the white toolbar now stays visible for the entire page instead of hiding as you scroll down, so nobody loses their way; it comes in as soon as the opening animation finishes and never leaves. (3) FASTER FILM GRIDS — the preview clips on the home page and the /work grid now stream at a capped 540p, plenty for a card-sized loop, so scrolling those pages costs far less bandwidth and the lag should ease; project pages and the full-screen player keep the full-quality files. (4) PROJECT HEADINGS — the situation/results headings keep their rise-in animation, but their size and alignment now come from the Designer instead of the script (the script no longer centers them, and no longer sets the description size on very large monitors — set those in Webflow).
@@ -145,6 +146,14 @@
     '.filter-pill .cfp-x:hover{opacity:1;}',
     '.filter-pill.icon{width:27px!important;height:27px!important;min-height:0!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;}',   /* client (v1.58): shrink the tag-icon square to match the text pill height (was 32x33) */
     '.filter-pill.icon svg{width:14px!important;height:14px!important;}',
+    /* works SEARCH (v1.87, client) — a square icon button LEFT of the filter icon (same measured size, via
+       syncIcon) that expands in place into a live search bar; the pills after it shift over as it grows */
+    '.cedar-search{overflow:hidden;cursor:pointer;gap:0;transition:width .5s ' + EASE + ';}',
+    '.cedar-search input{flex:1 1 auto;min-width:0;width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;font-family:inherit;font-size:12px;color:inherit;opacity:0;padding:0;margin:0;transition:opacity .25s ' + EASE + ';}',
+    '.cedar-search.is-open{justify-content:flex-start!important;padding:0 12px!important;cursor:text;}',
+    '.cedar-search.is-open svg{margin-right:8px;}',
+    '.cedar-search.is-open input{opacity:1;width:auto;}',
+    '.cedar-search input::placeholder{color:currentColor;opacity:.45;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
     '#cedar-modal-root.is-open{display:flex;}',
@@ -259,6 +268,9 @@
     '@media (hover:none){.cedar-fs-cap{opacity:1;}}',   /* touch has no hover — captions stay visible */
     '.cedar-fs-title{font-size:15px;font-weight:600;}',
     '.cedar-fs-desc{font-size:13px;opacity:.85;margin-top:4px;max-width:50%;}',   /* client (v1.63): stay clear of the "Watch with sound" pill bottom-right */
+    /* film-section HORIZONTAL scroll rows (v1.87) — armed by data-cedar-layout="scroll" (module 12.5); scrollbar hidden, drag-to-scroll on desktop, native swipe on touch */
+    '.cedar-fs-row.cedar-fs-scroll{flex-wrap:nowrap!important;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;}',
+    '.cedar-fs-row.cedar-fs-scroll::-webkit-scrollbar{display:none;}',
     /* poster fit card (v1.71) — a poster/graphic stays in the stills grid but flips to a portrait card, image contained with 10px padding, transparent behind, uncropped */
     '.cedar-gal-fit{background:transparent!important;}',
     '.cedar-gal-fit img,.cedar-gal-fit .img-cover{width:100%!important;height:100%!important;object-fit:contain!important;padding:0!important;box-sizing:border-box!important;background:transparent!important;}',   /* v1.73: no padding — the card is sized to the poster aspect so it fills edge-to-edge, uncropped */
@@ -680,18 +692,17 @@
    *    Flip SMOOTH_SCROLL to true to bring the glide back
    *    (the stations, module 27, are separately off since v1.34).
    * ======================================================= */
-  var SMOOTH_SCROLL = false;
+  var SMOOTH_SCROLL = true;   /* v1.87: back ON (client) — the "stick" they disliked was the stations (module 27, still off); this is just the smoothing */
   onReady(function () {
     if (!SMOOTH_SCROLL || RM || TOUCH || !window.Lenis) return;
     try {
-      /* the train ride (client, v1.31): heavier, slower glide — a gesture travels a touch less
-         (wheelMultiplier) and decays over a long expo tail (duration + easing), so the motion has
-         time to slow INTO a section instead of shooting past it and getting pulled back (module 27
-         brakes forward-only and needs this runway). Tunables: duration, wheelMultiplier. */
+      /* v1.87 tune (client: "simple smooth scrolling with a bit of easing but not too strong"):
+         shorter glide + easeOutCubic's gentle tail — noticeably softer than native, well short of
+         the v1.31 "train ride" (1.55/expo) that needed the stations. Tunables: duration, wheelMultiplier. */
       var lenis = new window.Lenis({
-        duration: 1.55,
-        easing: function (t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); },
-        wheelMultiplier: 0.9
+        duration: 1.0,
+        easing: function (t) { return 1 - Math.pow(1 - t, 3); },
+        wheelMultiplier: 1
       });
       window.__cedarLenis = lenis;                       /* module 27 (scroll snap) rides the same instance */
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
@@ -1042,6 +1053,40 @@
       var pillEl = caption && caption.parentElement;   /* the .filter-pill that holds the caption */
       var xbtn = null;
       if (pillEl) { xbtn = el('button', 'cfp-x', '×'); xbtn.type = 'button'; xbtn.setAttribute('aria-label', 'Clear filters'); xbtn.addEventListener('click', function (e) { e.stopPropagation(); clearAll(); }); pillEl.appendChild(xbtn); }
+      /* ---- v1.87 SEARCH (client): square icon button LEFT of the filter icon, same measured size; a click
+         expands it in place into a live search bar (the buttons after it shift over) that filters the grid
+         as you type — composing with the tag filters (AND). Esc or emptying + blur collapses it. ---- */
+      var Q = '', searchBtn = null, searchInput = null, searchH = 0;
+      var icoPill = document.querySelector('.filter-pill.icon');
+      if (icoPill && icoPill.parentElement) {
+        searchBtn = el('div', 'filter-pill icon cedar-search', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M21 21l-4.8-4.8"/></svg>');
+        searchBtn.setAttribute('role', 'search');
+        searchInput = document.createElement('input');
+        searchInput.type = 'text'; searchInput.placeholder = 'Search projects'; searchInput.setAttribute('aria-label', 'Search projects');
+        searchBtn.appendChild(searchInput);
+        icoPill.parentElement.insertBefore(searchBtn, icoPill);
+        searchBtn.addEventListener('click', function (e) {
+          e.stopPropagation();                                   /* don't toggle the filter panel (search shares the .filter-pill class for its look) */
+          if (!searchBtn.classList.contains('is-open')) { searchBtn.classList.add('is-open'); sizeSearch(); setTimeout(function () { searchInput.focus(); }, 160); }
+        });
+        searchInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { searchInput.value = ''; qUpd(''); searchBtn.classList.remove('is-open'); sizeSearch(); searchInput.blur(); e.stopPropagation(); }
+        });
+        searchInput.addEventListener('blur', function () { setTimeout(function () { if (!Q) { searchBtn.classList.remove('is-open'); sizeSearch(); } }, 150); });   /* stays open while a term is active */
+        var qT; searchInput.addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });
+      }
+      function sizeSearch(h) {
+        if (!searchBtn) return;
+        if (h) searchH = h;
+        if (!searchH) return;
+        var open = searchBtn.classList.contains('is-open');
+        searchBtn.style.setProperty('height', searchH + 'px', 'important');
+        searchBtn.style.setProperty('width', (open ? Math.min(300, Math.round(window.innerWidth * 0.4)) : searchH) + 'px', 'important');
+        var s = searchBtn.querySelector('svg');
+        if (s) { var g = Math.round(searchH * 0.5); s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
+      }
+      function qUpd(v) { Q = (v || '').trim().toLowerCase(); apply(); }
+      function searchText(c) { if (c._sTxt == null) c._sTxt = ((c.textContent || '') + ' ' + (c.getAttribute('data-industry') || '')).toLowerCase(); return c._sTxt; }
       /* v1.75: size the tag-icon square to the MEASURED text-pill height (mac and windows compute the
          pill's line-height differently, so any hardcoded px matches one platform and not the other —
          Ben's Thunderbolt screenshot showed a ~34px pill against the 27px icon) */
@@ -1055,24 +1100,25 @@
         ico.style.setProperty('height', h + 'px', 'important');
         var s = ico.querySelector('svg');
         if (s) { var g = Math.round(h * 0.52); s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
+        sizeSearch(h);                                 /* v1.87: the search square rides the same measured size */
       }
       syncIcon();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setTimeout(syncIcon, 60); });   /* re-measure once the webfont (and its real metrics) is in */
       window.addEventListener('resize', function () { setTimeout(syncIcon, 120); });
       var closeT;
       if (!TOUCH) {
-        controls.addEventListener('mouseenter', function () { clearTimeout(closeT); controls.classList.add('cfp-open'); });
+        controls.addEventListener('mouseenter', function () { if (searchBtn && searchBtn.classList.contains('is-open')) return; clearTimeout(closeT); controls.classList.add('cfp-open'); });   /* v1.87: an expanded search bar owns the row — no panel fly-open under the typing hand */
         controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
       } else {                                          /* touch: tap the pill to toggle, tap outside to close */
         controls.addEventListener('click', function (e) { if (e.target.closest('.filter-pill')) { e.preventDefault(); controls.classList.toggle('cfp-open'); } });
         document.addEventListener('click', function (e) { if (!controls.contains(e.target)) controls.classList.remove('cfp-open'); });
       }
-      function match(c) { return GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }
+      function match(c) { return (!Q || searchText(c).indexOf(Q) > -1) && GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }   /* v1.87: search term ANDs with the tag filters */
       function capUpd() { var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); if (caption) caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); if (xbtn) xbtn.style.display = picks.length ? 'inline-flex' : 'none'; }
       function apply() {
         if (HOME_MODE) {                                /* home: pick the first 6 MATCHING across all works, cross-fade the grid */
           var kept = cards.filter(match).slice(0, HOME_CAP);
-          if (!kept.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); kept = cards.slice(0, HOME_CAP); }
+          if (!kept.length && !Q) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); kept = cards.slice(0, HOME_CAP); }   /* v1.87: an unmatched SEARCH is allowed to read empty (honest feedback while typing); only the tag filters auto-reset */
           capUpd();
           if (!DESK) { homeShow(kept); return; }
           var cur = visible();
@@ -1088,7 +1134,7 @@
           return;
         }
         var keep = cards.filter(match);
-        if (!keep.length) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); keep = cards.slice(); }  /* never empty the grid */
+        if (!keep.length && !Q) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); keep = cards.slice(); }  /* never empty the grid — unless a SEARCH term is live (v1.87): an unmatched search honestly reads empty */
         if (!DESK) {                                    /* touch / reduced motion: simple show-hide, no FLIP reflow */
           cards.forEach(function (c) { c.style.display = keep.indexOf(c) > -1 ? '' : 'none'; });
           capUpd();
@@ -1762,7 +1808,7 @@
     /* v1.84: /about keeps the nav on screen, solid white, for the whole page — client: less
        tech-savvy visitors got lost when it hid. The intro (module 11) still holds it back
        during the logo reveal; the moment that releases, the nav is in and never leaves. */
-    var PIN_ABOUT = ((location.pathname.replace(/\/$/, '') || '/') === '/about');
+    var PIN_ABOUT = false;   /* v1.87 (client): /about nav behaves like every other page — hide on scroll-down, return on scroll-up. (v1.84 pinned it solid; that read was a misunderstanding of the note. The about floor below still holds it back during the intro header.) */
 
     /* the new brand mark, inlined as a data-URI mask (alpha = the chevrons; fill is irrelevant) */
     var MARK_URL = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 374 283"><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 0L0 126.555V137.94L25.0235 144.296L178.04 83.6805H195.051L348.067 144.296L373.09 137.94V126.555L195.051 0H178.04Z" fill="#fff"/><path fill-rule="evenodd" clip-rule="evenodd" d="M178.04 137.979L0 264.534V275.919L25.0235 282.276L178.04 221.66H195.051L348.067 282.276L373.09 275.919V264.534L195.051 137.979H178.04Z" fill="#fff"/></svg>');
@@ -1997,6 +2043,18 @@
        their size relationship. Center-aligned vertically to match the lockup (which is center-, not top-aligned). */
     if (markE) { markE.style.alignSelf = 'center'; markE.style.flex = '0 0 22.3%'; }
     if (cedarE) { cedarE.style.alignSelf = 'center'; cedarE.style.flex = '0 0 68.9%'; }
+    /* v1.87 ULTRAWIDE CLAMP (client): the lockup is sized by ROW WIDTH (22.3% / 68.9%), so on very wide /
+       curved monitors the mark grew taller than the header section and its bottom clipped. Cap the row's
+       width so the mark's height (28.3/37.4 of 22.3% of the row) never passes ~46vh; the row centers when
+       the cap binds (only kicks in past ~2.7× the viewport height — normal monitors are untouched). */
+    var lockRow = (markE || cedarE) && (markE || cedarE).parentElement;
+    if (lockRow) {
+      var clampRow = function () {
+        lockRow.style.maxWidth = Math.round(window.innerHeight * 0.46 / (0.223 * 283 / 374)) + 'px';
+        lockRow.style.marginLeft = 'auto'; lockRow.style.marginRight = 'auto';
+      };
+      clampRow(); window.addEventListener('resize', clampRow);
+    }
 
     /* nav floor — hidden while the header owns the viewport, animates in once scrolled past it (module 9 reads this) */
     function setFloor() { window.__cedarNavFloor = Math.max(200, Math.round((section ? section.getBoundingClientRect().height : window.innerHeight) - 100)); }
@@ -2183,6 +2241,30 @@
     if (location.pathname.indexOf('/work/') !== 0) return;
     var all = [].slice.call(document.querySelectorAll('.gallery-card'));
     if (!all.length) return;
+    /* v1.87 (client, Penske/Unless U): data-cedar-layout="scroll" — Ben bound data-cedar-layout on the
+       gallery cards (2026-08); when the CMS field holds "scroll" on ANY card of the project, the film
+       category rows (Trailer/Films/Edits — not the stills grid) lay as a HORIZONTAL drag-scroll row
+       instead of stacking. Empty/other values = stacked as before. The attribute existed on the page
+       but nothing read it — that's why tagging alone did nothing. */
+    var SCROLL_ROWS = [].slice.call(document.querySelectorAll('[data-cedar-layout]'))
+      .some(function (n) { return /scroll/i.test(n.getAttribute('data-cedar-layout') || ''); });
+    function armFsScroll(row) {                        /* drag-to-scroll + "Click and drag" pill (module 33's treatment); touch keeps native swipe */
+      if (TOUCH) return;
+      row.addEventListener('dragstart', function (e) { e.preventDefault(); });
+      var pill = el('div', 'cedar-cf-pill', 'Click and drag');
+      document.body.appendChild(pill);
+      var mx = 0, my = 0, px = -200, py = -200, raf = null, over = false;
+      function loop() { if (!over) { raf = null; return; } px += (mx - px) * 0.22; py += (my - py) * 0.22; pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px'; raf = requestAnimationFrame(loop); }
+      row.addEventListener('pointerenter', function (e) { over = true; px = mx = e.clientX; py = my = e.clientY; pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
+      row.addEventListener('pointerleave', function () { over = false; pill.classList.remove('is-on'); });
+      var down = false, moved = false, sx = 0, sl = 0;
+      row.addEventListener('pointerdown', function (e) { down = true; moved = false; sx = e.clientX; sl = row.scrollLeft; try { row.setPointerCapture(e.pointerId); } catch (_) {} pill.classList.add('is-down'); });
+      row.addEventListener('pointermove', function (e) { mx = e.clientX; my = e.clientY; if (!down) return; var dx = e.clientX - sx; if (Math.abs(dx) > 5) moved = true; row.scrollLeft = sl - dx; });
+      function up() { down = false; pill.classList.remove('is-down'); }
+      row.addEventListener('pointerup', up); row.addEventListener('pointercancel', up);
+      row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+      row.classList.add('cedar-nocursor');
+    }
     var SECTIONS = [
       { key: 'Trailer', label: 'Trailer' },
       { key: 'Film', label: 'Films' },
@@ -2241,6 +2323,7 @@
         row.appendChild(c);
       });
       sec.appendChild(row);
+      if (SCROLL_ROWS && list.length > 2) { row.classList.add('cedar-fs-scroll'); armFsScroll(row); }   /* v1.87: 3+ films + the scroll tag → horizontal row (1-2 films pair up fine stacked) */
       host.insertBefore(sec, wrapper);                 /* sections stack above the stills grid, in SECTIONS order */
     });
     if (origRow.querySelector('.gallery-card')) {      /* v1.64: stills remain below the labeled sections — label them too */
@@ -2313,8 +2396,35 @@
       var h = (url.match(/[?&]h=([0-9a-z]+)/i) || [])[1] || (url.match(/vimeo\.com\/(?:video\/)?\d+\/([0-9a-z]+)/i) || [])[1] || '';
       return { id: id, hash: h };
     }
+    /* v1.87 (client): the SAME CMS video field accepts a YOUTUBE link — watch / youtu.be / shorts / embed /
+       live. YouTube cards show their still (CMS image, or the YouTube poster if none) with the "Watch with
+       sound" pill; clicking opens the film in the module-14 lightbox (youtube-nocookie). No muted hover
+       preview — YouTube embeds are heavy and carry branding; Vimeo keeps the background-loop treatment. */
+    function parseTube(url) {
+      if (!url) return null;
+      var m = String(url).match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?[^#]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,20})/i);
+      return m ? m[1] : null;
+    }
     function mountBgVideo(c, url) {
-      var parts = parseVimeo(url); if (!parts) return false;
+      var parts = parseVimeo(url);
+      if (!parts) {
+        var tid = parseTube(url);
+        if (!tid) return false;
+        c.setAttribute('data-cedar-tube', tid);
+        var oldT = c.querySelector('.gallery-video'); if (oldT) oldT.style.display = 'none';   /* retire the Webflow embed here too */
+        if (!c.querySelector('img')) {                               /* no CMS still bound → fall back to YouTube's own poster */
+          var po = document.createElement('img'); po.className = 'cedar-tube-poster'; po.alt = '';
+          po.src = 'https://i.ytimg.com/vi/' + tid + '/hqdefault.jpg';
+          po.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+          c.insertBefore(po, c.firstChild);
+        }
+        if (!c.querySelector('.cedar-card-watch')) {
+          var wpt = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound');
+          wpt.setAttribute('data-cedar-tube', tid);
+          c.appendChild(wpt);
+        }
+        return true;
+      }
       c.setAttribute('data-cedar-vimeo', parts.id);                       /* stash for the lightbox (module 14, TODO) */
       if (parts.hash) c.setAttribute('data-cedar-vimeo-h', parts.hash);
       var oldEmbed = c.querySelector('.gallery-video'); if (oldEmbed) oldEmbed.style.display = 'none';   /* retire the flaky Webflow Video embed */
@@ -2395,7 +2505,7 @@
     /* mobile: fixed (full) width, AUTO height following the media's own aspect — nothing crops.
        Films are 16:9; stills take their natural aspect (read from the loaded on-page image). */
     function mediaAR(c) {
-      if (c.getAttribute('data-cedar-vimeo')) return 16 / 9;
+      if (c.getAttribute('data-cedar-vimeo') || c.getAttribute('data-cedar-tube')) return 16 / 9;   /* films are 16:9 (v1.87: YouTube too) */
       var im = c.querySelector('img');
       return (im && im.naturalWidth) ? im.naturalWidth / im.naturalHeight : 16 / 9;
     }
@@ -2412,6 +2522,15 @@
         var gap = parseFloat(cs.columnGap || cs.gap) || 14;
         var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
         if (W <= 0) return;
+        if (p.classList.contains('cedar-fs-scroll')) {            /* v1.87: horizontal film row — uniform fixed-width 16:9 cards, no pattern pairing; the row scrolls */
+          p.style.setProperty('flex-wrap', 'nowrap', 'important');
+          p.style.setProperty('justify-content', 'flex-start', 'important');
+          p.style.setProperty('align-items', 'flex-start', 'important');
+          if (window.innerWidth < 768) { g.items.forEach(function (c) { setMobile(c, Math.round(W * 0.86)); }); return; }   /* mobile: near-full-width cards, native swipe */
+          var sw = Math.min(Math.round((W - (parseFloat(cs.columnGap || cs.gap) || 14)) * 0.46), Math.round(rowH() * 16 / 9));   /* ~2.2 cards visible, never wider than the film's 16:9 at row height */
+          g.items.forEach(function (c) { set(c, sw); });
+          return;
+        }
         p.style.setProperty('flex-wrap', 'wrap', 'important');
         p.style.setProperty('justify-content', 'flex-start', 'important');
         p.style.setProperty('align-items', 'flex-start', 'important');
@@ -2531,13 +2650,15 @@
       if (spin) spin.classList.add('is-off');
     }
     var revealed = false;
-    function show(id, hash) {
+    function show(id, hash, tube) {
       if (!id) return;
       if (!overlay) build();
       revealed = false;
       if (spin) spin.classList.remove('is-off');               /* fresh loading state each open */
-      clearTimeout(spinFallback); spinFallback = setTimeout(reveal, 5000);   /* never strand the mark (or the mute) if Vimeo never reports */
-      frame.src = 'https://player.vimeo.com/video/' + id + '?autoplay=1&muted=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
+      clearTimeout(spinFallback); spinFallback = setTimeout(reveal, tube ? 1200 : 5000);   /* never strand the mark (or the mute) if the player never reports (v1.87: YouTube has no postMessage hookup — drop the mark quickly) */
+      frame.src = tube
+        ? 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1&playsinline=1'   /* v1.87: YouTube films open in the same lightbox */
+        : 'https://player.vimeo.com/video/' + id + '?autoplay=1&muted=1&title=0&byline=0&portrait=0&dnt=1' + (hash ? '&h=' + hash : '');
       document.documentElement.style.overflow = 'hidden';
       requestAnimationFrame(function () { overlay.classList.add('is-open'); });
       if (!spinRaf) spinRaf = requestAnimationFrame(spinLoop);
@@ -2553,10 +2674,12 @@
     }
     function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) hide(); }
     document.addEventListener('click', function (e) {
-      var card = e.target.closest && e.target.closest('.cedar-hero-watch[data-cedar-vimeo]');   /* a direct gallery-card click now opens the coverflow (module 36); the lightbox opens from the coverflow's play button + the hero "watch" pills */
+      var card = e.target.closest && e.target.closest('.cedar-hero-watch[data-cedar-vimeo],.cedar-hero-watch[data-cedar-tube]');   /* a direct gallery-card click now opens the coverflow (module 36); the lightbox opens from the coverflow's play button + the hero "watch" pills */
       if (!card) return;
       e.preventDefault();
-      show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));   /* lightbox is NOT cropped — it's the full-frame "watch it properly" view (cropping would zoom the player controls) */
+      var tube = card.getAttribute('data-cedar-tube');                                        /* v1.87: YouTube pills open the same lightbox */
+      if (tube) show(tube, null, true);
+      else show(card.getAttribute('data-cedar-vimeo'), card.getAttribute('data-cedar-vimeo-h'));   /* lightbox is NOT cropped — it's the full-frame "watch it properly" view (cropping would zoom the player controls) */
     });
   });
 
