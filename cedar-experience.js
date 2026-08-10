@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.0 · built by Origin · loaded site-wide (footer)
+ * v1.87.1 · built by Origin · loaded site-wide (footer)
+ * v1.87.1 (client): works search polish, three fixes — the magnifier icon and the typed/placeholder text are charcoal (the button was inheriting a light ink) · the icon sits centered in the square before it expands (the collapsed input was silently taking half the button's width) · hovering the search square no longer flies the filter panel open (the panel's hover trigger covered the whole control row; it now knows which button you're actually over).
  * v1.87.0 (client edit batch, 2026-08): SIX CHANGES. (1) SMOOTH SCROLL RETURNS, GENTLY — scrolling gets a soft ease in and out again (the premium feel on the typography intros) but the "stick" — the brief stop-and-hold partway down a page — stays gone for good; those were always two separate systems. (2) WORKS SEARCH — a search button sits just left of the filter icon on the home + /work grids, the same size as the filter button; click it and it opens into a search bar (the buttons beside it slide over), and the grid filters live as you type — by project name, project type, or industry, and it composes with the tag filters. A search with no matches shows an empty grid (that's honest feedback), and Esc or clearing the field closes it. (3) /ABOUT NAV — behaves like every other page now: hides as you scroll down, returns the moment you scroll up. (4) /ABOUT ULTRAWIDE — on very wide / curved monitors the big Cedar mark in the opening header no longer clips at the bottom; the lockup now caps its size against the screen's height and centers itself (normal monitors unchanged). (5) FILM ROWS CAN SCROLL SIDEWAYS — the Penske / Unless U ask: set the CMS field bound to data-cedar-layout to the word "scroll" on any gallery item of a project, and that project's film rows (Trailer / Films / Edits, 3+ films) become a horizontal drag-to-scroll row with the "Click and drag" pill — same feel as the team row. The tag existed on Penske but nothing read it yet; now it does. Stills keep their grid. (6) YOUTUBE WORKS IN THE SAME VIDEO FIELD — paste a YouTube link (watch, youtu.be, or Shorts) in the same CMS field you use for Vimeo on gallery items: the card shows its still with the "Watch with sound" pill and opens the film in the same full-screen player. (Only Vimeo films play the muted hover preview — YouTube's embeds are heavier and carry their branding.)
  * v1.86.0 (client): the hero "Play with sound" button now matches the "About Cedar" button's size exactly — same height and padding — so the two pills in the hero read as a matched pair. (Only the standalone play pills change; the little "Watch with sound" pills on the gallery cards keep their own size.)
  * v1.85.0 (client): TWO /ABOUT FIXES. (1) THE TOOLBAR NOW ACTUALLY APPEARS. v1.84 was meant to keep the white toolbar on screen for the whole About page, but it never came in — the script was asking "is the toolbar currently hidden?" using its own internal note rather than looking at the page, and that note was out of date, so it never lifted the toolbar back down. It now simply shows the toolbar outright, no question asked. It arrives as the opening animation ends and stays put all the way down the page. (2) THE TEAM CARDS ARE THE RIGHT SIZE AGAIN. The team photos had collapsed into thin slivers. The script was still sizing them for the old side-scrolling row — forcing a width on every card — while the row itself had been rebuilt in the Designer as a proper wrapping grid, so the two were fighting and the forced width won. The script now checks how the row is actually laid out: if it's the grid you built, it keeps its hands off entirely and your layout decides the size; only a genuine side-scrolling row gets the old sizing. The team now reads as a clean grid of full-size cards, and the drag-to-scroll and the little prev/next arrows switch themselves off automatically because there's nothing to scroll.
@@ -148,11 +149,12 @@
     '.filter-pill.icon svg{width:14px!important;height:14px!important;}',
     /* works SEARCH (v1.87, client) — a square icon button LEFT of the filter icon (same measured size, via
        syncIcon) that expands in place into a live search bar; the pills after it shift over as it grows */
-    '.cedar-search{overflow:hidden;cursor:pointer;gap:0;transition:width .5s ' + EASE + ';}',
-    '.cedar-search input{flex:1 1 auto;min-width:0;width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;font-family:inherit;font-size:12px;color:inherit;opacity:0;padding:0;margin:0;transition:opacity .25s ' + EASE + ';}',
+    '.cedar-search{overflow:hidden;cursor:pointer;gap:0;transition:width .5s ' + EASE + ';color:' + CHARCOAL + '!important;}',   /* v1.87.1: charcoal ink — the container was handing down a light color */
+    '.cedar-search svg{flex:0 0 auto;}',
+    '.cedar-search input{flex:0 0 auto;min-width:0;width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;font-family:inherit;font-size:12px;color:inherit;opacity:0;padding:0;margin:0;transition:opacity .25s ' + EASE + ';}',   /* v1.87.1: collapsed input takes NO flex space, so the icon sits dead-center in the square */
     '.cedar-search.is-open{justify-content:flex-start!important;padding:0 12px!important;cursor:text;}',
     '.cedar-search.is-open svg{margin-right:8px;}',
-    '.cedar-search.is-open input{opacity:1;width:auto;}',
+    '.cedar-search.is-open input{opacity:1;width:auto;flex:1 1 auto;}',
     '.cedar-search input::placeholder{color:currentColor;opacity:.45;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
@@ -1107,7 +1109,12 @@
       window.addEventListener('resize', function () { setTimeout(syncIcon, 120); });
       var closeT;
       if (!TOUCH) {
-        controls.addEventListener('mouseenter', function () { if (searchBtn && searchBtn.classList.contains('is-open')) return; clearTimeout(closeT); controls.classList.add('cfp-open'); });   /* v1.87: an expanded search bar owns the row — no panel fly-open under the typing hand */
+        /* v1.87.1: per-target open (mouseenter can't tell WHERE the pointer entered) — hovering the SEARCH
+           square must never fly the filter panel open; an expanded search bar suppresses it entirely */
+        controls.addEventListener('mouseover', function (e) {
+          if (searchBtn && (searchBtn.classList.contains('is-open') || (e.target.closest && e.target.closest('.cedar-search')))) { controls.classList.remove('cfp-open'); return; }
+          clearTimeout(closeT); controls.classList.add('cfp-open');
+        });
         controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
       } else {                                          /* touch: tap the pill to toggle, tap outside to close */
         controls.addEventListener('click', function (e) { if (e.target.closest('.filter-pill')) { e.preventDefault(); controls.classList.toggle('cfp-open'); } });
