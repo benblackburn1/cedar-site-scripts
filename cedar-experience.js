@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.9 · built by Origin · loaded site-wide (footer)
+ * v1.87.10 · built by Origin · loaded site-wide (footer)
+ * v1.87.10 (client): search and filter now compose in EITHER order — with a search term live you can still hover the funnel and add filter chips (an over-broad guard was suppressing the filter panel whenever the search bar was open, so filter-after-search was unreachable; the panel now only stays away while the pointer is over the search bar itself). Search terms and filter chips have always ANDed together; now both doors to that are open.
  * v1.87.9 (fixup): clicking the clear × momentarily blurs the input, and the empty-bar auto-collapse fired 150ms later — the bar closed right after clearing. The collapse now checks focus actually LEFT the input before closing.
  * v1.87.8 (client): the search bar gains a clear × at its right edge — it appears once you've typed a term, and clicking it clears the search, restores the full grid, and leaves the bar open and focused for the next term. (Esc still clears AND closes.)
  * v1.87.7 (client): two search refinements. (1) SEARCH RESULTS SHOW IMMEDIATELY — cards surfaced by a search no longer wait for the scroll-in reveal animation (the reveal only fires on scroll, so results sat invisible until you moved); any filter/search action now clears that state and the grid's own cross-fade is the entrance. (2) THE SEARCH BAR FITS ITS CONTENT — it expands to the typed term (or the placeholder when empty) plus padding, re-fitting on every keystroke, capped at half the viewport.
@@ -1158,9 +1159,12 @@
       var closeT;
       if (!TOUCH) {
         /* v1.87.1: per-target open (mouseenter can't tell WHERE the pointer entered) — hovering the SEARCH
-           square must never fly the filter panel open; an expanded search bar suppresses it entirely */
+           element must never fly the filter panel open. v1.87.10: that's the ONLY suppression — the old
+           blanket "bar is open" guard made the funnel unreachable mid-search (client: couldn't add a
+           filter after searching). Hovering the funnel/Filter pill now opens the panel even while a
+           search term is live; search + chips compose (AND) as always. */
         controls.addEventListener('mouseover', function (e) {
-          if (searchBtn && (searchBtn.classList.contains('is-open') || (e.target.closest && e.target.closest('.cedar-search')))) { controls.classList.remove('cfp-open'); return; }
+          if (searchBtn && e.target.closest && e.target.closest('.cedar-search')) { controls.classList.remove('cfp-open'); return; }
           clearTimeout(closeT); controls.classList.add('cfp-open');
         });
         controls.addEventListener('mouseleave', function () { closeT = setTimeout(function () { controls.classList.remove('cfp-open'); }, 200); });
