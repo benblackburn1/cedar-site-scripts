@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.6 · built by Origin · loaded site-wide (footer)
+ * v1.87.7 · built by Origin · loaded site-wide (footer)
+ * v1.87.7 (client): two search refinements. (1) SEARCH RESULTS SHOW IMMEDIATELY — cards surfaced by a search no longer wait for the scroll-in reveal animation (the reveal only fires on scroll, so results sat invisible until you moved); any filter/search action now clears that state and the grid's own cross-fade is the entrance. (2) THE SEARCH BAR FITS ITS CONTENT — it expands to the typed term (or the placeholder when empty) plus padding, re-fitting on every keystroke, capped at half the viewport.
  * v1.87.6 (client): the works SEARCH BUTTON is now a real Designer element — place a .search-pill (duplicate of filter-pill, combo .icon, magnifier svg inside) left of the filter icon and the script wires the expand + live filtering onto it, so the Cedar team sees the button design-side. If a page has no .search-pill the script still injects its own (now with the magnifier at the funnel icon's 1.5 stroke weight, matching thickness).
  * v1.87.5 (client): side-scrolling film rows crop NOTHING horizontally — every card is the row's fixed height at its media's own width (films at their true 16:9, stills at their natural shape), so widths vary card to card like a filmstrip and full frames always show. Lazy-loaded stills re-shape the row the moment their real proportions arrive.
  * v1.87.4 (client): the "Watch with sound" pills inside a side-scrolling film row are clickable again. Two causes: the drag handler grabbed the pointer the moment you pressed down (so the click landed on the row, never the button — now it only grabs once you've actually dragged), and the "Click and drag" cursor pill kept showing over the buttons (it now steps aside there, and the pills show a normal pointer).
@@ -1091,7 +1092,14 @@
           if (e.key === 'Escape') { searchInput.value = ''; qUpd(''); searchBtn.classList.remove('is-open'); sizeSearch(); searchInput.blur(); e.stopPropagation(); }
         });
         searchInput.addEventListener('blur', function () { setTimeout(function () { if (!Q) { searchBtn.classList.remove('is-open'); sizeSearch(); } }, 150); });   /* stays open while a term is active */
-        var qT; searchInput.addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });
+        var qT; searchInput.addEventListener('input', function () { sizeSearch(); clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });   /* v1.87.7: the bar re-fits on every keystroke; the grid filter stays debounced */
+      }
+      var _mctx = null;
+      function termW(str) {                              /* v1.87.7: measure the term in the input's own font */
+        if (!_mctx) _mctx = document.createElement('canvas').getContext('2d');
+        var f = getComputedStyle(searchInput);
+        _mctx.font = f.fontWeight + ' ' + f.fontSize + ' ' + f.fontFamily;
+        return _mctx.measureText(str || '').width;
       }
       function sizeSearch(h) {
         if (!searchBtn) return;
@@ -1099,9 +1107,15 @@
         if (!searchH) return;
         var open = searchBtn.classList.contains('is-open');
         searchBtn.style.setProperty('height', searchH + 'px', 'important');
-        searchBtn.style.setProperty('width', (open ? Math.min(300, Math.round(window.innerWidth * 0.4)) : searchH) + 'px', 'important');
+        var g = Math.round(searchH * 0.5);
+        if (open) {                                      /* v1.87.7: the bar hugs its content — icon + gap + the longer of term/placeholder + caret room + the 12px side pads */
+          var t = Math.ceil(Math.max(termW(searchInput.value), termW(searchInput.placeholder)));
+          searchBtn.style.setProperty('width', Math.min(24 + g + 8 + t + 8, Math.round(window.innerWidth * 0.5)) + 'px', 'important');
+        } else {
+          searchBtn.style.setProperty('width', searchH + 'px', 'important');
+        }
         var s = searchBtn.querySelector('svg');
-        if (s) { var g = Math.round(searchH * 0.5); s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
+        if (s) { s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
       }
       function qUpd(v) { Q = (v || '').trim().toLowerCase(); apply(); }
       function searchText(c) { if (c._sTxt == null) c._sTxt = ((c.textContent || '') + ' ' + (c.getAttribute('data-industry') || '')).toLowerCase(); return c._sTxt; }
@@ -1139,6 +1153,11 @@
       function match(c) { return (!Q || searchText(c).indexOf(Q) > -1) && GROUPS.every(function (g) { var sel = Object.keys(g.sel); if (!sel.length) return true; return g.get(c).some(function (v) { return g.sel[v]; }); }); }   /* v1.87: search term ANDs with the tag filters */
       function capUpd() { var picks = GROUPS.reduce(function (a, g) { return a.concat(Object.keys(g.sel)); }, []); if (caption) caption.textContent = 'Filter: ' + (picks.length ? picks.join(', ') : 'All'); if (xbtn) xbtn.style.display = picks.length ? 'inline-flex' : 'none'; }
       function apply() {
+        /* v1.87.7: search/filter results must never wait on the scroll-reveal (module 7 only sweeps on
+           SCROLL, so cards surfaced by a search sat pre-hidden until the user moved). Any filter action
+           strips the reveal state from every card — apply()'s own cross-fade is the entrance. (.cedar-in
+           without .cedar-reveal styles nothing, so module 7's later sweep is harmless on these.) */
+        cards.forEach(function (c) { c.classList.remove('cedar-reveal', 'cedar-in'); });
         if (HOME_MODE) {                                /* home: pick the first 6 MATCHING across all works, cross-fade the grid */
           var kept = cards.filter(match).slice(0, HOME_CAP);
           if (!kept.length && !Q) { GROUPS.forEach(function (g) { g.sel = {}; g.values.forEach(function (v) { g.chips[v].classList.remove('is-on'); }); }); kept = cards.slice(0, HOME_CAP); }   /* v1.87: an unmatched SEARCH is allowed to read empty (honest feedback while typing); only the tag filters auto-reset */
