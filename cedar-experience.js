@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.4 · built by Origin · loaded site-wide (footer)
+ * v1.87.5 · built by Origin · loaded site-wide (footer)
+ * v1.87.5 (client): side-scrolling film rows crop NOTHING horizontally — every card is the row's fixed height at its media's own width (films at their true 16:9, stills at their natural shape), so widths vary card to card like a filmstrip and full frames always show. Lazy-loaded stills re-shape the row the moment their real proportions arrive.
  * v1.87.4 (client): the "Watch with sound" pills inside a side-scrolling film row are clickable again. Two causes: the drag handler grabbed the pointer the moment you pressed down (so the click landed on the row, never the button — now it only grabs once you've actually dragged), and the "Click and drag" cursor pill kept showing over the buttons (it now steps aside there, and the pills show a normal pointer).
  * v1.87.3 (client): the side-scrolling film rows now run EDGE TO EDGE of the screen — the row was clipping at the page container's side padding. The first card still lines up with the section label; the scroll itself bleeds to the viewport edges.
  * v1.87.2 (client): the "View gallery" coverflow now pulls each film's poster straight FROM the film — Vimeo's own thumbnail for that video (works for unlisted links too). The gallery item's Image field is only used if Vimeo doesn't answer. Why: items duplicated in the CMS kept the source item's still, and the project page hides that (the muted loop plays on top), so the wrong image only ever surfaced in the coverflow — now it corrects itself, and films no longer need an Image set at all.
@@ -2557,8 +2558,11 @@
           p.style.setProperty('align-items', 'flex-start', 'important');
           var W2 = p.clientWidth - bpad * 2;                      /* re-measure AFTER the bleed so card widths are right on the first pass */
           if (window.innerWidth < 768) { g.items.forEach(function (c) { setMobile(c, Math.round(W2 * 0.86)); }); return; }   /* mobile: near-full-width cards, native swipe */
-          var sw = Math.min(Math.round((W2 - (parseFloat(cs.columnGap || cs.gap) || 14)) * 0.46), Math.round(rowH() * 16 / 9));   /* ~2.2 cards visible, never wider than the film's 16:9 at row height */
-          g.items.forEach(function (c) { set(c, sw); });
+          g.items.forEach(function (c) {                          /* v1.87.5 (client): FIXED HEIGHT, AUTO WIDTH — each card takes its media's own aspect at the row height (films true 16:9, stills natural), so nothing is cropped horizontally */
+            var im = c.querySelector('img');
+            if (im && !im.naturalWidth && !im._fsAR) { im._fsAR = 1; im.addEventListener('load', function () { layout(); }, { once: true }); }   /* lazy-loaded still: re-lay the row once its true shape is known */
+            set(c, Math.round(rowH() * mediaAR(c)));
+          });
           return;
         }
         p.style.setProperty('flex-wrap', 'wrap', 'important');
