@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.3 · built by Origin · loaded site-wide (footer)
+ * v1.87.4 · built by Origin · loaded site-wide (footer)
+ * v1.87.4 (client): the "Watch with sound" pills inside a side-scrolling film row are clickable again. Two causes: the drag handler grabbed the pointer the moment you pressed down (so the click landed on the row, never the button — now it only grabs once you've actually dragged), and the "Click and drag" cursor pill kept showing over the buttons (it now steps aside there, and the pills show a normal pointer).
  * v1.87.3 (client): the side-scrolling film rows now run EDGE TO EDGE of the screen — the row was clipping at the page container's side padding. The first card still lines up with the section label; the scroll itself bleeds to the viewport edges.
  * v1.87.2 (client): the "View gallery" coverflow now pulls each film's poster straight FROM the film — Vimeo's own thumbnail for that video (works for unlisted links too). The gallery item's Image field is only used if Vimeo doesn't answer. Why: items duplicated in the CMS kept the source item's still, and the project page hides that (the muted loop plays on top), so the wrong image only ever surfaced in the coverflow — now it corrects itself, and films no longer need an Image set at all.
  * v1.87.1 (client): works search polish, three fixes — the magnifier icon and the typed/placeholder text are charcoal (the button was inheriting a light ink) · the icon sits centered in the square before it expands (the collapsed input was silently taking half the button's width) · hovering the search square no longer flies the filter panel open (the panel's hover trigger covered the whole control row; it now knows which button you're actually over).
@@ -275,6 +276,7 @@
     /* film-section HORIZONTAL scroll rows (v1.87) — armed by data-cedar-layout="scroll" (module 12.5); scrollbar hidden, drag-to-scroll on desktop, native swipe on touch */
     '.cedar-fs-row.cedar-fs-scroll{flex-wrap:nowrap!important;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;}',
     '.cedar-fs-row.cedar-fs-scroll::-webkit-scrollbar{display:none;}',
+    '.cedar-fs-row.cedar-fs-scroll .cedar-card-watch,.cedar-fs-row.cedar-fs-scroll .cedar-hero-watch{cursor:pointer!important;}',   /* v1.87.4: the watch pill shows a real pointer inside the (cursor-hidden) drag row */
     /* poster fit card (v1.71) — a poster/graphic stays in the stills grid but flips to a portrait card, image contained with 10px padding, transparent behind, uncropped */
     '.cedar-gal-fit{background:transparent!important;}',
     '.cedar-gal-fit img,.cedar-gal-fit .img-cover{width:100%!important;height:100%!important;object-fit:contain!important;padding:0!important;box-sizing:border-box!important;background:transparent!important;}',   /* v1.73: no padding — the card is sized to the poster aspect so it fills edge-to-edge, uncropped */
@@ -2264,11 +2266,19 @@
       document.body.appendChild(pill);
       var mx = 0, my = 0, px = -200, py = -200, raf = null, over = false;
       function loop() { if (!over) { raf = null; return; } px += (mx - px) * 0.22; py += (my - py) * 0.22; pill.style.left = px.toFixed(1) + 'px'; pill.style.top = py.toFixed(1) + 'px'; raf = requestAnimationFrame(loop); }
-      row.addEventListener('pointerenter', function (e) { over = true; px = mx = e.clientX; py = my = e.clientY; pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
+      function overUI(t) { return !!(t && t.closest && t.closest('.cedar-card-watch,.cedar-hero-watch,a,button')); }   /* v1.87.4: the watch pills (and any real link/button) are CLICK targets, not drag handles */
+      row.addEventListener('pointerenter', function (e) { over = true; px = mx = e.clientX; py = my = e.clientY; if (!overUI(e.target)) pill.classList.add('is-on'); if (!raf) raf = requestAnimationFrame(loop); });
       row.addEventListener('pointerleave', function () { over = false; pill.classList.remove('is-on'); });
-      var down = false, moved = false, sx = 0, sl = 0;
-      row.addEventListener('pointerdown', function (e) { down = true; moved = false; sx = e.clientX; sl = row.scrollLeft; try { row.setPointerCapture(e.pointerId); } catch (_) {} pill.classList.add('is-down'); });
-      row.addEventListener('pointermove', function (e) { mx = e.clientX; my = e.clientY; if (!down) return; var dx = e.clientX - sx; if (Math.abs(dx) > 5) moved = true; row.scrollLeft = sl - dx; });
+      var down = false, moved = false, sx = 0, sl = 0, pid = null;
+      row.addEventListener('pointerdown', function (e) { if (overUI(e.target)) return; down = true; moved = false; sx = e.clientX; sl = row.scrollLeft; pid = e.pointerId; pill.classList.add('is-down'); });
+      row.addEventListener('pointermove', function (e) {
+        mx = e.clientX; my = e.clientY;
+        if (over) pill.classList.toggle('is-on', !overUI(e.target));   /* the drag pill yields over a button — the button's own affordance wins there */
+        if (!down) return;
+        var dx = e.clientX - sx;
+        if (!moved && Math.abs(dx) > 5) { moved = true; try { row.setPointerCapture(pid); } catch (_) {} }   /* v1.87.4 FIX: capture only once a real drag starts — capturing on pointerDOWN retargeted the eventual CLICK to the row, so the "Watch with sound" pills never received it and the player couldn't open */
+        row.scrollLeft = sl - dx;
+      });
       function up() { down = false; pill.classList.remove('is-down'); }
       row.addEventListener('pointerup', up); row.addEventListener('pointercancel', up);
       row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
