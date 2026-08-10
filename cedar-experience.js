@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.1 · built by Origin · loaded site-wide (footer)
+ * v1.87.2 · built by Origin · loaded site-wide (footer)
+ * v1.87.2 (client): the "View gallery" coverflow now pulls each film's poster straight FROM the film — Vimeo's own thumbnail for that video (works for unlisted links too). The gallery item's Image field is only used if Vimeo doesn't answer. Why: items duplicated in the CMS kept the source item's still, and the project page hides that (the muted loop plays on top), so the wrong image only ever surfaced in the coverflow — now it corrects itself, and films no longer need an Image set at all.
  * v1.87.1 (client): works search polish, three fixes — the magnifier icon and the typed/placeholder text are charcoal (the button was inheriting a light ink) · the icon sits centered in the square before it expands (the collapsed input was silently taking half the button's width) · hovering the search square no longer flies the filter panel open (the panel's hover trigger covered the whole control row; it now knows which button you're actually over).
  * v1.87.0 (client edit batch, 2026-08): SIX CHANGES. (1) SMOOTH SCROLL RETURNS, GENTLY — scrolling gets a soft ease in and out again (the premium feel on the typography intros) but the "stick" — the brief stop-and-hold partway down a page — stays gone for good; those were always two separate systems. (2) WORKS SEARCH — a search button sits just left of the filter icon on the home + /work grids, the same size as the filter button; click it and it opens into a search bar (the buttons beside it slide over), and the grid filters live as you type — by project name, project type, or industry, and it composes with the tag filters. A search with no matches shows an empty grid (that's honest feedback), and Esc or clearing the field closes it. (3) /ABOUT NAV — behaves like every other page now: hides as you scroll down, returns the moment you scroll up. (4) /ABOUT ULTRAWIDE — on very wide / curved monitors the big Cedar mark in the opening header no longer clips at the bottom; the lockup now caps its size against the screen's height and centers itself (normal monitors unchanged). (5) FILM ROWS CAN SCROLL SIDEWAYS — the Penske / Unless U ask: set the CMS field bound to data-cedar-layout to the word "scroll" on any gallery item of a project, and that project's film rows (Trailer / Films / Edits, 3+ films) become a horizontal drag-to-scroll row with the "Click and drag" pill — same feel as the team row. The tag existed on Penske but nothing read it yet; now it does. Stills keep their grid. (6) YOUTUBE WORKS IN THE SAME VIDEO FIELD — paste a YouTube link (watch, youtu.be, or Shorts) in the same CMS field you use for Vimeo on gallery items: the card shows its still with the "Watch with sound" pill and opens the film in the same full-screen player. (Only Vimeo films play the muted hover preview — YouTube's embeds are heavier and carry their branding.)
  * v1.86.0 (client): the hero "Play with sound" button now matches the "About Cedar" button's size exactly — same height and padding — so the two pills in the hero read as a matched pair. (Only the standalone play pills change; the little "Watch with sound" pills on the gallery cards keep their own size.)
@@ -3935,6 +3936,28 @@
       }
     });
     if (!assets.length) return;
+
+    /* v1.87.2 (client): a film's poster comes from the FILM — each video asset fetches its own Vimeo
+       thumbnail (oEmbed, hash-aware for unlisted links) and uses that in the coverflow; the card's CMS
+       image is only the fallback if Vimeo doesn't answer. Why: duplicated gallery items kept the copied
+       item's still in the Image field, and the page never exposes it (the muted loop covers it) — the
+       coverflow was the one place the stale image surfaced. Now it self-corrects. */
+    assets.forEach(function (as, i) {
+      if (as.type !== 'video' || !as.id || !window.fetch) return;
+      try {
+        fetch('https://vimeo.com/api/oembed.json?width=1280&url=' + encodeURIComponent('https://vimeo.com/' + as.id + (as.hash ? '/' + as.hash : '')))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !d.thumbnail_url) return;
+            as.src = d.thumbnail_url;
+            var card = gvCards[i];                       /* coverflow already built (opened before the fetch landed)? update it live */
+            if (!card || !card._media) return;
+            var im = card._media.querySelector('img');
+            if (!im) { im = document.createElement('img'); im.alt = ''; im.draggable = false; card._media.insertBefore(im, card._media.firstChild); }
+            im.src = d.thumbnail_url;
+          }).catch(function () {});
+      } catch (e) {}
+    });
 
     var GRID_SVG = '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><g fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="8" y="0" width="6" height="6" rx="1"/><rect x="0" y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></g></svg>';
     var btn = el('button', 'cedar-gv-btn', GRID_SVG + 'View gallery');
