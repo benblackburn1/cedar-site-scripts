@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.10 · built by Origin · loaded site-wide (footer)
+ * v1.87.11 · built by Origin · loaded site-wide (footer)
+ * v1.87.11 (client): INDUSTRY TAGS ARE NOW EDITABLE IN THE CMS — industries moved from a fixed dropdown on each project to their own "Industry Tags" collection, so the Cedar team can rename an industry or add a new one right in the CMS and the Work-page filters pick it up automatically. The script now reads a project's industry from either the existing data-industry attribute OR a text element with class "ind-tag" inside the card (whichever the Designer binding provides), everywhere industry is used: the filter chips, the search, and the "View Other projects" same-industry preference on project pages.
  * v1.87.10 (client): search and filter now compose in EITHER order — with a search term live you can still hover the funnel and add filter chips (an over-broad guard was suppressing the filter panel whenever the search bar was open, so filter-after-search was unreachable; the panel now only stays away while the pointer is over the search bar itself). Search terms and filter chips have always ANDed together; now both doors to that are open.
  * v1.87.9 (fixup): clicking the clear × momentarily blurs the input, and the empty-bar auto-collapse fired 150ms later — the bar closed right after clearing. The collapse now checks focus actually LEFT the input before closing.
  * v1.87.8 (client): the search bar gains a clear × at its right edge — it appears once you've typed a term, and clicking it clears the search, restores the full grid, and leaves the bar open and focused for the next term. (Esc still clears AND closes.)
@@ -1044,9 +1045,18 @@
     var controls = document.querySelector('.filter-controls'), pill = document.querySelector('.filter-pill');
     var caption = document.querySelector('.filter-pill .caption');   /* there are two .filter-pill; the caption lives in the second */
     if (controls && pill) {
+      /* v1.87.11: a card's industry can arrive two ways — the data-industry attribute (the original
+         Option-field binding) or a text element classed .ind-tag inside the card (the new Industry
+         Tags reference binding, for when the Designer can't bind an attribute to a reference's name).
+         Read the attribute first, fall back to the element. */
+      function indText(c) {
+        var v = (c.getAttribute('data-industry') || '').trim();
+        if (!v) { var n = c.querySelector('.ind-tag'); if (n) v = (n.textContent || '').trim(); }
+        return v;
+      }
       var GROUPS = [
         { key: 'Project Type', get: function (c) { return [].map.call(c.querySelectorAll('.pt-tag'), function (t) { return t.textContent.trim(); }).filter(Boolean); } },
-        { key: 'Industry', get: function (c) { var v = (c.getAttribute('data-industry') || '').trim(); return v ? [v] : []; } }
+        { key: 'Industry', get: function (c) { var v = indText(c); return v ? [v] : []; } }
       ];
       GROUPS.forEach(function (g) { var s = [], v = []; cards.forEach(function (c) { g.get(c).forEach(function (x) { if (s.indexOf(x) < 0) { s.push(x); v.push(x); } }); }); g.values = v.sort(); g.sel = {}; g.chips = {}; });
       controls.style.position = 'relative';
@@ -1137,7 +1147,7 @@
         if (s) { s.style.setProperty('width', g + 'px', 'important'); s.style.setProperty('height', g + 'px', 'important'); }
       }
       function qUpd(v) { Q = (v || '').trim().toLowerCase(); apply(); }
-      function searchText(c) { if (c._sTxt == null) c._sTxt = ((c.textContent || '') + ' ' + (c.getAttribute('data-industry') || '')).toLowerCase(); return c._sTxt; }
+      function searchText(c) { if (c._sTxt == null) c._sTxt = ((c.textContent || '') + ' ' + indText(c)).toLowerCase(); return c._sTxt; }   /* v1.87.11: indText covers attribute + .ind-tag (textContent already includes a visible .ind-tag; the attribute path needs the explicit add) */
       /* v1.75: size the tag-icon square to the MEASURED text-pill height (mac and windows compute the
          pill's line-height differently, so any hardcoded px matches one platform and not the other —
          Ben's Thunderbolt screenshot showed a ~34px pill against the 27px icon) */
@@ -1557,10 +1567,11 @@
       var all = [].slice.call(wrap.querySelectorAll('.project-preview'));
       var track = wrap.querySelector('.w-dyn-items');
       function slugOf(c) { var s = c.querySelector('[data-slug]'); return s ? s.getAttribute('data-slug') : null; }
-      function indOf(c) { if (c.hasAttribute('data-industry')) return c.getAttribute('data-industry'); var n = c.querySelector('[data-industry]'); return n ? n.getAttribute('data-industry') : null; }
+      function indOf(c) { if (c.hasAttribute('data-industry')) return c.getAttribute('data-industry'); var n = c.querySelector('[data-industry]'); if (n) return n.getAttribute('data-industry'); var t = c.querySelector('.ind-tag'); return t ? (t.textContent || '').trim() : null; }   /* v1.87.11: .ind-tag element fallback (Industry Tags reference binding) */
       var curSlug = (location.pathname.match(/\/work\/([^/]+)/) || [])[1] || '';
       var curIndEl = document.querySelector('[data-current-industry]');
       var curInd = curIndEl ? (curIndEl.getAttribute('data-current-industry') || '').trim() : '';
+      if (!curInd) { var curTagEl = document.querySelector('.current-ind-tag'); if (curTagEl) curInd = (curTagEl.textContent || '').trim(); }   /* v1.87.11: .current-ind-tag element fallback for the page's own industry */
       var keep = all.filter(function (c) { return slugOf(c) !== curSlug; });
       if (curInd) {
         var match = keep.filter(function (c) { return (indOf(c) || '').trim() === curInd; });
