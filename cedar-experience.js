@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.7 · built by Origin · loaded site-wide (footer)
+ * v1.87.8 · built by Origin · loaded site-wide (footer)
+ * v1.87.8 (client): the search bar gains a clear × at its right edge — it appears once you've typed a term, and clicking it clears the search, restores the full grid, and leaves the bar open and focused for the next term. (Esc still clears AND closes.)
  * v1.87.7 (client): two search refinements. (1) SEARCH RESULTS SHOW IMMEDIATELY — cards surfaced by a search no longer wait for the scroll-in reveal animation (the reveal only fires on scroll, so results sat invisible until you moved); any filter/search action now clears that state and the grid's own cross-fade is the entrance. (2) THE SEARCH BAR FITS ITS CONTENT — it expands to the typed term (or the placeholder when empty) plus padding, re-fitting on every keystroke, capped at half the viewport.
  * v1.87.6 (client): the works SEARCH BUTTON is now a real Designer element — place a .search-pill (duplicate of filter-pill, combo .icon, magnifier svg inside) left of the filter icon and the script wires the expand + live filtering onto it, so the Cedar team sees the button design-side. If a page has no .search-pill the script still injects its own (now with the magnifier at the funnel icon's 1.5 stroke weight, matching thickness).
  * v1.87.5 (client): side-scrolling film rows crop NOTHING horizontally — every card is the row's fixed height at its media's own width (films at their true 16:9, stills at their natural shape), so widths vary card to card like a filmstrip and full frames always show. Lazy-loaded stills re-shape the row the moment their real proportions arrive.
@@ -162,6 +163,10 @@
     '.cedar-search.is-open svg{margin-right:8px;}',
     '.cedar-search.is-open input{opacity:1;width:auto;flex:1 1 auto;}',
     '.cedar-search input::placeholder{color:currentColor;opacity:.45;}',
+    /* clear × (v1.87.8) — right edge of the open bar, only while a term is typed */
+    '.cedar-search .cedar-search-x{display:none;flex:0 0 auto;align-items:center;justify-content:center;width:16px;border:0;background:none;padding:0;margin-left:4px;cursor:pointer;color:currentColor;font-size:16px;line-height:1;opacity:.55;transition:opacity .2s ' + EASE + ';}',
+    '.cedar-search .cedar-search-x:hover{opacity:1;}',
+    '.cedar-search.is-open .cedar-search-x.is-on{display:inline-flex;}',
     /* modal */
     '#cedar-modal-root{position:fixed;inset:0;z-index:99990;display:none;align-items:center;justify-content:center;padding:24px;}',
     '#cedar-modal-root.is-open{display:flex;}',
@@ -1084,15 +1089,26 @@
         searchInput = document.createElement('input');
         searchInput.type = 'text'; searchInput.placeholder = 'Search projects'; searchInput.setAttribute('aria-label', 'Search projects');
         searchBtn.appendChild(searchInput);
+        /* v1.87.8: clear × on the right of the bar — appears once a term is typed; clears + refilters,
+           keeps the bar open and focused (mirrors the filter pill's own × pattern) */
+        var searchX = el('button', 'cedar-search-x', '×');
+        searchX.type = 'button'; searchX.setAttribute('aria-label', 'Clear search');
+        searchX.addEventListener('click', function (e) {
+          e.stopPropagation();
+          searchInput.value = ''; qUpd('');
+          searchX.classList.remove('is-on'); sizeSearch();
+          searchInput.focus();
+        });
+        searchBtn.appendChild(searchX);
         searchBtn.addEventListener('click', function (e) {
           e.stopPropagation();                                   /* don't toggle the filter panel (search shares the .filter-pill class for its look) */
           if (!searchBtn.classList.contains('is-open')) { searchBtn.classList.add('is-open'); sizeSearch(); setTimeout(function () { searchInput.focus(); }, 160); }
         });
         searchInput.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') { searchInput.value = ''; qUpd(''); searchBtn.classList.remove('is-open'); sizeSearch(); searchInput.blur(); e.stopPropagation(); }
+          if (e.key === 'Escape') { searchInput.value = ''; qUpd(''); searchX.classList.remove('is-on'); searchBtn.classList.remove('is-open'); sizeSearch(); searchInput.blur(); e.stopPropagation(); }
         });
         searchInput.addEventListener('blur', function () { setTimeout(function () { if (!Q) { searchBtn.classList.remove('is-open'); sizeSearch(); } }, 150); });   /* stays open while a term is active */
-        var qT; searchInput.addEventListener('input', function () { sizeSearch(); clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });   /* v1.87.7: the bar re-fits on every keystroke; the grid filter stays debounced */
+        var qT; searchInput.addEventListener('input', function () { searchX.classList.toggle('is-on', !!searchInput.value); sizeSearch(); clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });   /* v1.87.7: the bar re-fits on every keystroke; the grid filter stays debounced. v1.87.8: the × shows only with a term */
       }
       var _mctx = null;
       function termW(str) {                              /* v1.87.7: measure the term in the input's own font */
@@ -1108,9 +1124,10 @@
         var open = searchBtn.classList.contains('is-open');
         searchBtn.style.setProperty('height', searchH + 'px', 'important');
         var g = Math.round(searchH * 0.5);
-        if (open) {                                      /* v1.87.7: the bar hugs its content — icon + gap + the longer of term/placeholder + caret room + the 12px side pads */
+        if (open) {                                      /* v1.87.7: the bar hugs its content — icon + gap + the longer of term/placeholder + caret room + the 12px side pads (+ the clear × when a term is live, v1.87.8) */
           var t = Math.ceil(Math.max(termW(searchInput.value), termW(searchInput.placeholder)));
-          searchBtn.style.setProperty('width', Math.min(24 + g + 8 + t + 8, Math.round(window.innerWidth * 0.5)) + 'px', 'important');
+          var xw = searchBtn.querySelector('.cedar-search-x.is-on') ? 20 : 0;
+          searchBtn.style.setProperty('width', Math.min(24 + g + 8 + t + 8 + xw, Math.round(window.innerWidth * 0.5)) + 'px', 'important');
         } else {
           searchBtn.style.setProperty('width', searchH + 'px', 'important');
         }
