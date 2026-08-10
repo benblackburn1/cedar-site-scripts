@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.8 · built by Origin · loaded site-wide (footer)
+ * v1.87.9 · built by Origin · loaded site-wide (footer)
+ * v1.87.9 (fixup): clicking the clear × momentarily blurs the input, and the empty-bar auto-collapse fired 150ms later — the bar closed right after clearing. The collapse now checks focus actually LEFT the input before closing.
  * v1.87.8 (client): the search bar gains a clear × at its right edge — it appears once you've typed a term, and clicking it clears the search, restores the full grid, and leaves the bar open and focused for the next term. (Esc still clears AND closes.)
  * v1.87.7 (client): two search refinements. (1) SEARCH RESULTS SHOW IMMEDIATELY — cards surfaced by a search no longer wait for the scroll-in reveal animation (the reveal only fires on scroll, so results sat invisible until you moved); any filter/search action now clears that state and the grid's own cross-fade is the entrance. (2) THE SEARCH BAR FITS ITS CONTENT — it expands to the typed term (or the placeholder when empty) plus padding, re-fitting on every keystroke, capped at half the viewport.
  * v1.87.6 (client): the works SEARCH BUTTON is now a real Designer element — place a .search-pill (duplicate of filter-pill, combo .icon, magnifier svg inside) left of the filter icon and the script wires the expand + live filtering onto it, so the Cedar team sees the button design-side. If a page has no .search-pill the script still injects its own (now with the magnifier at the funnel icon's 1.5 stroke weight, matching thickness).
@@ -1107,7 +1108,7 @@
         searchInput.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') { searchInput.value = ''; qUpd(''); searchX.classList.remove('is-on'); searchBtn.classList.remove('is-open'); sizeSearch(); searchInput.blur(); e.stopPropagation(); }
         });
-        searchInput.addEventListener('blur', function () { setTimeout(function () { if (!Q) { searchBtn.classList.remove('is-open'); sizeSearch(); } }, 150); });   /* stays open while a term is active */
+        searchInput.addEventListener('blur', function () { setTimeout(function () { if (!Q && document.activeElement !== searchInput) { searchBtn.classList.remove('is-open'); sizeSearch(); } }, 150); });   /* stays open while a term is active — or while focus returned (the clear × refocuses; its momentary blur must not shut the bar, v1.87.9) */
         var qT; searchInput.addEventListener('input', function () { searchX.classList.toggle('is-on', !!searchInput.value); sizeSearch(); clearTimeout(qT); qT = setTimeout(function () { qUpd(searchInput.value); }, 140); });   /* v1.87.7: the bar re-fits on every keystroke; the grid filter stays debounced. v1.87.8: the × shows only with a term */
       }
       var _mctx = null;
