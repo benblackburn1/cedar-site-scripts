@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.5 · built by Origin · loaded site-wide (footer)
+ * v1.87.6 · built by Origin · loaded site-wide (footer)
+ * v1.87.6 (client): the works SEARCH BUTTON is now a real Designer element — place a .search-pill (duplicate of filter-pill, combo .icon, magnifier svg inside) left of the filter icon and the script wires the expand + live filtering onto it, so the Cedar team sees the button design-side. If a page has no .search-pill the script still injects its own (now with the magnifier at the funnel icon's 1.5 stroke weight, matching thickness).
  * v1.87.5 (client): side-scrolling film rows crop NOTHING horizontally — every card is the row's fixed height at its media's own width (films at their true 16:9, stills at their natural shape), so widths vary card to card like a filmstrip and full frames always show. Lazy-loaded stills re-shape the row the moment their real proportions arrive.
  * v1.87.4 (client): the "Watch with sound" pills inside a side-scrolling film row are clickable again. Two causes: the drag handler grabbed the pointer the moment you pressed down (so the click landed on the row, never the button — now it only grabs once you've actually dragged), and the "Click and drag" cursor pill kept showing over the buttons (it now steps aside there, and the pills show a normal pointer).
  * v1.87.3 (client): the side-scrolling film rows now run EDGE TO EDGE of the screen — the row was clipping at the page container's side padding. The first card still lines up with the section label; the scroll itself bleeds to the viewport edges.
@@ -1064,14 +1065,24 @@
          expands it in place into a live search bar (the buttons after it shift over) that filters the grid
          as you type — composing with the tag filters (AND). Esc or emptying + blur collapses it. ---- */
       var Q = '', searchBtn = null, searchInput = null, searchH = 0;
+      /* v1.87.6: Ben owns the button in the DESIGNER now — a .search-pill (duplicated from filter-pill,
+         combo .icon) holding the magnifier svg, so Cedar sees it design-side. The script ADOPTS that
+         element when it exists (wires the expand + input + filtering onto it) and only falls back to
+         injecting its own button on a page where no .search-pill was placed. */
+      var nativeSearch = document.querySelector('.search-pill');
       var icoPill = document.querySelector('.filter-pill.icon');
-      if (icoPill && icoPill.parentElement) {
-        searchBtn = el('div', 'filter-pill icon cedar-search', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M21 21l-4.8-4.8"/></svg>');
+      if (nativeSearch || (icoPill && icoPill.parentElement)) {
+        if (nativeSearch) {
+          searchBtn = nativeSearch;
+          searchBtn.classList.add('cedar-search');       /* picks up the expand/collapse + centering CSS; the pill's look stays Ben's */
+        } else {
+          searchBtn = el('div', 'filter-pill icon cedar-search', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M21 21l-4.8-4.8"/></svg>');   /* stroke 1.5 = the funnel icon's weight */
+          icoPill.parentElement.insertBefore(searchBtn, icoPill);
+        }
         searchBtn.setAttribute('role', 'search');
         searchInput = document.createElement('input');
         searchInput.type = 'text'; searchInput.placeholder = 'Search projects'; searchInput.setAttribute('aria-label', 'Search projects');
         searchBtn.appendChild(searchInput);
-        icoPill.parentElement.insertBefore(searchBtn, icoPill);
         searchBtn.addEventListener('click', function (e) {
           e.stopPropagation();                                   /* don't toggle the filter panel (search shares the .filter-pill class for its look) */
           if (!searchBtn.classList.contains('is-open')) { searchBtn.classList.add('is-open'); sizeSearch(); setTimeout(function () { searchInput.focus(); }, 160); }
