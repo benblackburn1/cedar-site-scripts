@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.87.12 · built by Origin · loaded site-wide (footer)
+ * v1.88.0 · built by Origin · loaded site-wide (footer)
+ * v1.88.0 (client edit batch, 2026-08-25): FIVE CHANGES. (1) PARTNER LOGO MARQUEE NEVER STOPS — the crawl no longer pauses on hover (that pause was also the mobile glitch: a tap "stuck" the hover state and froze the strip), and on phones the logos step up from 50 to 64px with a slightly tighter gap so they hold their own against the color block. (2) HOME CARD ICONS FIT ON PHONES — the Vision / Quality / Sustainability icons now scale themselves to the room the card actually has, so nothing crops at the bottom edge. (3) /ABOUT TEAM SCROLL CUE — on phones the headshot rows get a soft fade on their right edge whenever there's more to scroll; the fade lifts when you reach the end. (4) PROJECT-PAGE OPENING TEXT — the Situation paragraph now rises line by line on mobile just like desktop (the letter-by-letter cascade took ~10 seconds on a phone; lines land in about two). (5) /POST PARTNER CARDS REVEAL ON HOVER — each card rests with just its title at the bottom; hovering lifts the title as the description fades in beneath it. Phones and tablets keep the description always visible, since there's no hover on touch.
  * v1.87.12 (client): the hero "Play with sound" pill now matches the "About Cedar" button's BACKGROUND as well as its size — same translucent off-white, same hover shade — so the two pills in the hero read as a true pair. (The small "Watch with sound" pills on gallery cards keep their darker glass; they sit on film stills where the light fill would wash out.)
  * v1.87.11 (client): INDUSTRY TAGS ARE NOW EDITABLE IN THE CMS — industries moved from a fixed dropdown on each project to their own "Industry Tags" collection, so the Cedar team can rename an industry or add a new one right in the CMS and the Work-page filters pick it up automatically. The script now reads a project's industry from either the existing data-industry attribute OR a text element with class "ind-tag" inside the card (whichever the Designer binding provides), everywhere industry is used: the filter chips, the search, and the "View Other projects" same-industry preference on project pages.
  * v1.87.10 (client): search and filter now compose in EITHER order — with a search term live you can still hover the funnel and add filter chips (an over-broad guard was suppressing the filter panel whenever the search bar was open, so filter-after-search was unreachable; the panel now only stays away while the pointer is over the search bar itself). Search terms and filter chips have always ANDed together; now both doors to that are open.
@@ -438,12 +439,14 @@
     /* logo marquee */
     '.cedar-marquee{overflow:hidden;position:relative;left:50%;transform:translateX(-50%);width:100vw;max-width:100vw;}',   /* full-bleed centred on the viewport (parent .container is centred); track repeats to fill so the -50% loop stays seamless */
     '.cedar-marquee-track{display:flex;width:max-content;align-items:center;animation:cedar-scroll 60s linear infinite;}',   /* duration is recomputed per-width in JS for a constant px/s crawl; 60s is only the pre-measure fallback */
-    '.cedar-marquee:hover .cedar-marquee-track{animation-play-state:paused;}',
+    /* v1.88: hover-pause DROPPED (client) — the crawl never stops. It also glitched on touch: a tap left
+       :hover stuck on the track, freezing the marquee until the next tap elsewhere. */
     /* client: logos standardized — every logo one shared height at its natural width. The SLOTS must hug
        their image too: Webflow's wrappers keep fixed widths, so a resized image overflows its slot and the
        logos pile onto each other (the v1.29.0 overlap). 160px read way too big on the yellow band → 100px. */
     '.cedar-marquee-track > *,.cedar-marquee-track .w-dyn-item{flex:0 0 auto;width:auto!important;max-width:none!important;min-width:0!important;height:auto!important;}',
     '.cedar-marquee-track img{height:50px!important;width:auto!important;max-width:none!important;max-height:none!important;object-fit:contain;display:block;}',   /* client: logos half size (100→50px); gap only drops 20% (module 8) so they read more spaced out */
+    '@media (max-width:767px){.cedar-marquee-track img{height:64px!important;}}',   /* v1.88 (client): logos read too small against the color block on phones — bumped 50→64 (gap also narrows, module 8) */
     '@keyframes cedar-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}',
     /* gallery (project pages) — HOME-GRID RHYTHM: JS lays cards 2-per-row at a fixed height, cycling the home work grid's 3 asymmetric width patterns. Media covers the box (image object-fit:cover; video fills, black behind any non-16:9 film) */
     '.gallery-card.cedar-gal{overflow:hidden;position:relative;}',
@@ -494,6 +497,19 @@
     '@media (min-width:768px){.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}.cedar-hscroll::-webkit-scrollbar{display:none;}.cedar-hscroll.cedar-nocursor{cursor:none;}.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}}',
     /* mobile: the /post partner cards swipe horizontally (native touch scroll; scoped to this row only so the other stacked rows are untouched) */
     '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
+    /* v1.88 (client): home info-card icons were cropping at the card's bottom edge on phones — the mask
+       span is width:100% + the SVG's own aspect, which can outgrow the shorter mobile card. Let the flex
+       column shrink it (min-height:0) and scale the mask to whatever box remains (contain), so the whole
+       icon always fits inside the card. Desktop unchanged. */
+    '@media (max-width:767px){.info-card .cedar-icon-mask{flex:0 1 auto!important;min-height:0!important;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;}}',
+    /* v1.88 (client): /about mobile team — right-edge feather on the horizontally scrolling headshot rows
+       so it reads as "more to scroll"; the fade lifts once you reach the end (JS toggles cedar-fade-end). */
+    '@media (max-width:767px){.cedar-team-fade{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);}.cedar-team-fade.cedar-fade-end{-webkit-mask-image:none;mask-image:none;}}',
+    /* v1.88 (client): /post partner cards — the description hides until hover; the card anchors its text
+       block to the bottom (Ben\'s flex-end), so growing the description pushes the TITLE UP naturally while
+       the copy fades in beneath it. Hover-capable screens only — touch keeps the description visible
+       (phones have no hover, and Chris wants the copy readable there). --pp-h is measured per card (JS). */
+    '@media (hover:hover) and (min-width:768px){.cedar-pp .subhead-2-white{max-height:0;opacity:0;overflow:hidden;margin-bottom:0;transition:max-height .5s ' + EASE + ',opacity .3s ease;}.cedar-pp:hover .subhead-2-white{max-height:var(--pp-h,180px);opacity:1;transition:max-height .5s ' + EASE + ',opacity .45s ease .1s;}}',
     /* "Reply within 24 hours" reads light green (client; module 30 tags the node) */
     '.cedar-reply-24{color:#9fb18f!important;}',
     /* photo slider (module 29) — filmstrip: photos at their natural aspect, one shared height, drag +
@@ -1843,7 +1859,8 @@
       }
       if (slots.length < 2) return;
       var track = el('div', 'cedar-marquee-track', '');
-      track.style.gap = '80px';   /* client: gap 100→80px (−20%) while logos halved (50px) → more spaced out */
+      function setGap() { track.style.gap = window.innerWidth < 768 ? '56px' : '80px'; }   /* v1.88: phones get bigger logos (64px, CSS) with a tighter gap; desktop keeps the v1.33 80px */
+      setGap();
       slots.forEach(function (s) { track.appendChild(s); });   /* one logo set = the repeating unit */
       if (dyn) dyn.style.display = 'none';                     /* emptied wrapper (items moved into the track) */
       row.classList.add('cedar-marquee');
@@ -1866,7 +1883,7 @@
       }
       build();
       var rt;
-      window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(build, 200); });
+      window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { setGap(); build(); }, 200); });
       window.addEventListener('load', build);                  /* re-measure once logos have their final widths */
     });
   });
@@ -3218,7 +3235,7 @@
         if (wi < words.length - 1) h.appendChild(document.createTextNode(' '));
       });
       /* v1.84: no more cedar-center — alignment (and size) come from the Designer; the split + rise-in below is all this module does to the head now */
-      var lineMode = isWork && window.innerWidth >= 768;
+      var lineMode = isWork;   /* v1.88 (client): mobile joins desktop's line-by-line — the per-char cascade on a phone-width Situation paragraph ran ~10s; lines land in ~2s. /contact keeps its char cascade (not isWork). */
       var fired = false;
       function fire() {
         if (fired) return; fired = true;
@@ -3510,6 +3527,61 @@
     check();
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(check, 160); });
     window.addEventListener('load', check);
+  });
+
+  /* =========================================================
+   * 24.5 POST PARTNER CARD HOVER REVEAL (/post) — v1.88 (client):
+   *   at rest the card shows only its title, seated at the bottom
+   *   (the card's own flex-end). On hover the description grows in
+   *   beneath the title — which pushes the title UP — while the
+   *   copy fades in. CSS does the motion (media hover:hover, so
+   *   touch screens keep the description permanently visible);
+   *   this module only tags the cards and measures each
+   *   description's natural height into --pp-h so the max-height
+   *   animation tracks the real copy length, not a guess.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/post') return;
+    var cards = [].slice.call(document.querySelectorAll('.post-partner-card'));
+    if (!cards.length) return;
+    function measure() {
+      cards.forEach(function (c) {
+        var d = c.querySelector('.subhead-2-white');
+        if (!d || !(d.textContent || '').trim()) { c.classList.remove('cedar-pp'); return; }
+        c.classList.remove('cedar-pp');                      /* release max-height so scrollHeight is the natural size */
+        c.style.setProperty('--pp-h', (d.scrollHeight + 6) + 'px');
+        c.classList.add('cedar-pp');
+      });
+    }
+    measure();
+    window.addEventListener('load', measure);                /* fonts/layout settle → remeasure */
+    var mt; window.addEventListener('resize', function () { clearTimeout(mt); mt = setTimeout(measure, 200); });
+  });
+
+  /* =========================================================
+   * 24.6 ABOUT TEAM SCROLL FEATHER (mobile) — v1.88 (client):
+   *   on phones the team headshots scroll sideways with more
+   *   off-screen; nothing said so. The scrolling row gets a
+   *   right-edge fade (CSS mask, .cedar-team-fade) that lifts
+   *   once the row is scrolled to its end.
+   * ======================================================= */
+  onReady(function () {
+    var P = location.pathname.replace(/\/$/, '') || '/';
+    if (P !== '/about') return;
+    var rows = [].slice.call(document.querySelectorAll('.bio-row'));
+    rows.forEach(function (row) {
+      if (!row.clientWidth) return;                          /* the second .bio-row is a hidden leftover — skip it */
+      function upd() {
+        var scrollable = window.innerWidth < 768 && row.scrollWidth > row.clientWidth + 8;
+        row.classList.toggle('cedar-team-fade', scrollable);
+        if (scrollable) row.classList.toggle('cedar-fade-end', row.scrollLeft + row.clientWidth >= row.scrollWidth - 4);
+      }
+      upd();
+      row.addEventListener('scroll', upd, { passive: true });
+      var ft; window.addEventListener('resize', function () { clearTimeout(ft); ft = setTimeout(upd, 200); });
+      window.addEventListener('load', upd);
+    });
   });
 
   /* =========================================================
