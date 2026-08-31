@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.0 · built by Origin · loaded site-wide (footer)
+ * v1.88.1 · built by Origin · loaded site-wide (footer)
+ * v1.88.1 (client, mobile review of v1.88.0): FOUR REFINEMENTS. (1) /POST PARTNER ROW — the row now runs full-bleed: the first card rests 16px from the left edge, and as you swipe, cards travel all the way to the true edge of the screen instead of clipping early at the section's inset. The row also no longer drifts up and down under a finger — a browser quirk had quietly made it vertically scrollable inside its own box; that's pinned shut. (2) HOME CARD ICONS sized way down on phones — capped at 100px tall, sitting left, instead of filling the card's width. (3) HERO PILL ALIGNMENT — the "Play With Sound" pill now sits exactly on the About Cedar button's baseline (measured live, holds at every screen size) instead of a fixed offset. (4) PILL LABELS READ "Play With Sound" / "Watch With Sound" — title case everywhere, no more all-caps (the pill styling stops uppercasing, and every label is written out in title case).
  * v1.88.0 (client edit batch, 2026-08-25): FIVE CHANGES. (1) PARTNER LOGO MARQUEE NEVER STOPS — the crawl no longer pauses on hover (that pause was also the mobile glitch: a tap "stuck" the hover state and froze the strip), and on phones the logos step up from 50 to 64px with a slightly tighter gap so they hold their own against the color block. (2) HOME CARD ICONS FIT ON PHONES — the Vision / Quality / Sustainability icons now scale themselves to the room the card actually has, so nothing crops at the bottom edge. (3) /ABOUT TEAM SCROLL CUE — on phones the headshot rows get a soft fade on their right edge whenever there's more to scroll; the fade lifts when you reach the end. (4) PROJECT-PAGE OPENING TEXT — the Situation paragraph now rises line by line on mobile just like desktop (the letter-by-letter cascade took ~10 seconds on a phone; lines land in about two). (5) /POST PARTNER CARDS REVEAL ON HOVER — each card rests with just its title at the bottom; hovering lifts the title as the description fades in beneath it. Phones and tablets keep the description always visible, since there's no hover on touch.
  * v1.87.12 (client): the hero "Play with sound" pill now matches the "About Cedar" button's BACKGROUND as well as its size — same translucent off-white, same hover shade — so the two pills in the hero read as a true pair. (The small "Watch with sound" pills on gallery cards keep their darker glass; they sit on film stills where the light fill would wash out.)
  * v1.87.11 (client): INDUSTRY TAGS ARE NOW EDITABLE IN THE CMS — industries moved from a fixed dropdown on each project to their own "Industry Tags" collection, so the Cedar team can rename an industry or add a new one right in the CMS and the Work-page filters pick it up automatically. The script now reads a project's industry from either the existing data-industry attribute OR a text element with class "ind-tag" inside the card (whichever the Designer binding provides), everywhere industry is used: the filter chips, the search, and the "View Other projects" same-industry preference on project pages.
@@ -273,7 +274,7 @@
     /* work-card hover label: the film TITLE reads stronger than the situation line (client note) */
     '.card-label p.caption:first-of-type{font-size:17px;font-weight:500;line-height:1.25;}',
     /* project hero: glass "watch with sound" pill (opens the lightbox with full controls + audio) */
-    '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:6px 12px;font-size:12px;letter-spacing:.7px;text-transform:uppercase;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',   /* v1.86: padding + letter-spacing matched to the Webflow .btn-pill.white ("About Cedar") so the hero "Play with sound" pill is the same height (32px). Gallery-card pills keep their own size via .cedar-card-watch below. */
+    '.cedar-hero-watch{position:absolute;bottom:22px;right:22px;z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;border-radius:12px;padding:6px 12px;font-size:12px;letter-spacing:.7px;color:#f4f4f2;background:rgba(20,15,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background-color .25s ' + EASE + ';}',   /* v1.86: padding + letter-spacing matched to the Webflow .btn-pill.white ("About Cedar") so the hero "Play with sound" pill is the same height (32px). Gallery-card pills keep their own size via .cedar-card-watch below. */
     '.cedar-hero-watch:hover{background:rgba(20,15,10,.68);}',
     /* v1.87.12: the STANDALONE hero pill matches the Webflow .btn-pill background exactly ("About Cedar":
        #f9f8f633, hover #f9f8f621, no blur) so the two hero pills read as a true pair. Scoped with
@@ -495,13 +496,22 @@
        DESKTOP-ONLY — on mobile these rules would force nowrap over the stacked layout, so they live behind
        a min-width query and phones keep the native Webflow layout. */
     '@media (min-width:768px){.cedar-hscroll{overflow-x:auto!important;flex-wrap:nowrap!important;scrollbar-width:none;-ms-overflow-style:none;}.cedar-hscroll::-webkit-scrollbar{display:none;}.cedar-hscroll.cedar-nocursor{cursor:none;}.cedar-hscroll .info-card,.cedar-hscroll .post-partner-card{flex:0 0 auto;}}',
-    /* mobile: the /post partner cards swipe horizontally (native touch scroll; scoped to this row only so the other stacked rows are untouched) */
-    '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
+    /* mobile: the /post partner cards swipe horizontally (native touch scroll; scoped to this row only so the
+       other stacked rows are untouched). v1.88.1 (client): the row is now FULL-BLEED — it spans the whole
+       viewport (margin-left:calc(50% - 50vw)) with its own 16px side padding, so the first card rests 16px
+       in but scrolled cards run to the true screen edge instead of clipping at the container's inset. A
+       scroll container clips at its padding box, so cards stay visible through the 16px strip while moving.
+       overflow-y is pinned to hidden: overflow-x:auto silently computes overflow-y to auto too, which let a
+       vertical finger-drag scroll the row's CONTENT up and down inside its box (the drifting/cut-off cards). */
+    '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-left:16px;scrollbar-width:none;-ms-overflow-style:none;width:100vw!important;max-width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:0!important;padding:0 16px!important;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
     /* v1.88 (client): home info-card icons were cropping at the card's bottom edge on phones — the mask
        span is width:100% + the SVG's own aspect, which can outgrow the shorter mobile card. Let the flex
        column shrink it (min-height:0) and scale the mask to whatever box remains (contain), so the whole
        icon always fits inside the card. Desktop unchanged. */
-    '@media (max-width:767px){.info-card .cedar-icon-mask{flex:0 1 auto!important;min-height:0!important;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;}}',
+    /* v1.88.1 (client): the flex-shrink fit still left the icons huge on phones (full card width). Hard cap
+       instead: 100px tall, contained at the left. The span's inline width:100% stays (the mask only paints
+       where the icon is, so the box being wide is invisible); the explicit height overrides its aspect-ratio. */
+    '@media (max-width:767px){.info-card .cedar-icon-mask{height:100px!important;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;}}',
     /* v1.88 (client): /about mobile team — right-edge feather on the horizontally scrolling headshot rows
        so it reads as "more to scroll"; the fade lifts once you reach the end (JS toggles cedar-fade-end). */
     '@media (max-width:767px){.cedar-team-fade{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);}.cedar-team-fade.cedar-fade-end{-webkit-mask-image:none;mask-image:none;}}',
@@ -2525,7 +2535,7 @@
           c.insertBefore(po, c.firstChild);
         }
         if (!c.querySelector('.cedar-card-watch')) {
-          var wpt = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound');
+          var wpt = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch With Sound');
           wpt.setAttribute('data-cedar-tube', tid);
           c.appendChild(wpt);
         }
@@ -2539,7 +2549,7 @@
       var f = document.createElement('iframe'); f.allow = 'autoplay; fullscreen; picture-in-picture'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
       f.src = vimeoEmbed(url);                                            /* shared builder: background/autoplay/muted/loop */
       wrap.appendChild(f); c.appendChild(wrap);                           /* sits above the CMS image → image is a natural fallback */
-      var wp = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch with sound');   /* v1.67: pill carries the film id so module 14's delegate opens the player DIRECTLY on click (no coverflow stop) */
+      var wp = el('div', 'cedar-hero-watch cedar-card-watch', PLAY_SVG + 'Watch With Sound');   /* v1.67: pill carries the film id so module 14's delegate opens the player DIRECTLY on click (no coverflow stop) */
       wp.setAttribute('data-cedar-vimeo', parts.id);
       if (parts.hash) wp.setAttribute('data-cedar-vimeo-h', parts.hash);
       c.appendChild(wp);
@@ -2838,6 +2848,17 @@
         var h = hashFrom(src);
         if (h) b.setAttribute('data-cedar-vimeo-h', h);
         band.appendChild(b);
+        if (!isWork && P === '/') {                         /* v1.88.1 (client): home hero — seat the pill on the About Cedar button's baseline instead of a fixed 22px, so the two pills bottom-align at every width */
+          var alignRef = function () {
+            var ref = band.querySelector('.btn-pill') || (band.parentElement && band.parentElement.querySelector('.btn-pill'));
+            if (!ref || !ref.offsetParent) return;
+            var d = band.getBoundingClientRect().bottom - ref.getBoundingClientRect().bottom;
+            if (d >= 0 && d < 300) b.style.bottom = d.toFixed(1) + 'px';
+          };
+          alignRef();
+          window.addEventListener('load', alignRef);
+          var art; window.addEventListener('resize', function () { clearTimeout(art); art = setTimeout(alignRef, 160); });
+        }
         if (clickAnywhere) {                                /* clicking anywhere on the film opens it with sound */
           band.style.cursor = 'pointer';
           band.addEventListener('click', function (e) { if (!e.target.closest('.cedar-hero-watch')) b.click(); });
@@ -2852,14 +2873,14 @@
     /* the page hero (existing behavior): /work/* = click-anywhere, home hero = pill only (its overlay owns the About CTA) */
     var band = isWork ? document.querySelector('.hero-band, .photo-band')
                       : (P === '/' ? document.querySelector('.hero-media') : null);
-    if (band) mountWatch(band, isWork ? 'Watch with sound' : 'Play with sound', isWork, null);
+    if (band) mountWatch(band, isWork ? 'Watch With Sound' : 'Play With Sound', isWork, null);
     /* client: tag ANY video container with data-cedar-watch to give it the same pill + lightbox (e.g. the /post
        Cedar Suite film). Value can be a Vimeo URL/id, or left blank/"true" to read the container's own embed.
        Add data-cedar-watch-click to also make the whole film clickable. */
     [].slice.call(document.querySelectorAll('[data-cedar-watch]')).forEach(function (m) {
       var v = (m.getAttribute('data-cedar-watch') || '').trim();
       var forced = /\d/.test(v) ? (/^\d+$/.test(v) ? 'https://vimeo.com/' + v : (/vimeo/i.test(v) ? v : null)) : null;
-      mountWatch(m, 'Play with sound', m.hasAttribute('data-cedar-watch-click'), forced);
+      mountWatch(m, 'Play With Sound', m.hasAttribute('data-cedar-watch-click'), forced);
     });
   });
 
