@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.4 · built by Origin · loaded site-wide (footer)
+ * v1.88.5 · built by Origin · loaded site-wide (footer)
+ * v1.88.5 (client): the script's own right-edge fade on the /about team headshot rows is removed — Ben built the feather natively in the Designer, and the two would have stacked on top of each other.
  * v1.88.4 (client): the /about opening animation — the yellow-field logo reveal that breaks apart into the header — now plays on PHONES too. It had been switched off under 768px since it was built; nothing about it was actually desktop-only (the lockup sizes itself to the screen and the fly-out measures where the mark and "Cedar" live in the real header), so phones just get the same entrance. Visitors who've turned on "reduce motion" still skip straight to the finished header.
  * v1.88.3 (client): the home card icons (Vision / Quality / Sustainability) are ACTUALLY fixed on phones this time. The two earlier attempts adjusted a different icon element than the one these cards use — these are the animated draw-in icons on a fixed 200px stage, which overfilled the narrower mobile cards and clipped at the card edge. The stage now sizes to 120px on phones (verified in-browser: fully inside the card, animation intact). Desktop unchanged; also applies to the same icons on /about.
  * v1.88.2 (client): on phones the "Play With Sound" pill tucks in to 10px from the right edge of the screen (it was 22px; desktop keeps 22px).
@@ -515,9 +516,8 @@
        its edge (overflow:clip). The stage now caps at 120px on phones — verified live in-browser: icon
        fully inside the card, draw-in animation intact. Applies wherever the value cards render (home + /about). */
     '@media (max-width:767px){.about-card .cedar-value-icon{width:120px!important;height:120px!important;}}',
-    /* v1.88 (client): /about mobile team — right-edge feather on the horizontally scrolling headshot rows
-       so it reads as "more to scroll"; the fade lifts once you reach the end (JS toggles cedar-fade-end). */
-    '@media (max-width:767px){.cedar-team-fade{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);}.cedar-team-fade.cedar-fade-end{-webkit-mask-image:none;mask-image:none;}}',
+    /* v1.88.5: the v1.88.0 team-row feather (cedar-team-fade mask + module 24.6) is REMOVED — Ben built the
+       feather natively in the Designer instead, and two feathers would compound. */
     /* v1.88 (client): /post partner cards — the description hides until hover; the card anchors its text
        block to the bottom (Ben\'s flex-end), so growing the description pushes the TITLE UP naturally while
        the copy fades in beneath it. Hover-capable screens only — touch keeps the description visible
@@ -3584,30 +3584,8 @@
     var mt; window.addEventListener('resize', function () { clearTimeout(mt); mt = setTimeout(measure, 200); });
   });
 
-  /* =========================================================
-   * 24.6 ABOUT TEAM SCROLL FEATHER (mobile) — v1.88 (client):
-   *   on phones the team headshots scroll sideways with more
-   *   off-screen; nothing said so. The scrolling row gets a
-   *   right-edge fade (CSS mask, .cedar-team-fade) that lifts
-   *   once the row is scrolled to its end.
-   * ======================================================= */
-  onReady(function () {
-    var P = location.pathname.replace(/\/$/, '') || '/';
-    if (P !== '/about') return;
-    var rows = [].slice.call(document.querySelectorAll('.bio-row'));
-    rows.forEach(function (row) {
-      if (!row.clientWidth) return;                          /* the second .bio-row is a hidden leftover — skip it */
-      function upd() {
-        var scrollable = window.innerWidth < 768 && row.scrollWidth > row.clientWidth + 8;
-        row.classList.toggle('cedar-team-fade', scrollable);
-        if (scrollable) row.classList.toggle('cedar-fade-end', row.scrollLeft + row.clientWidth >= row.scrollWidth - 4);
-      }
-      upd();
-      row.addEventListener('scroll', upd, { passive: true });
-      var ft; window.addEventListener('resize', function () { clearTimeout(ft); ft = setTimeout(upd, 200); });
-      window.addEventListener('load', upd);
-    });
-  });
+  /* (module 24.6, the /about mobile team scroll feather, lived here v1.88.0–v1.88.4 — removed in v1.88.5;
+     Ben built the feather natively in the Designer instead) */
 
   /* =========================================================
    * 25. MOBILE HERO BAND SIZER (/work/* templates) — Ben set the
