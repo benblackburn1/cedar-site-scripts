@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.5 · built by Origin · loaded site-wide (footer)
+ * v1.88.6 · built by Origin · loaded site-wide (footer)
+ * v1.88.6 (client, QA pass): /POST PARTNER CARDS ON PHONES, PROPERLY THIS TIME. The QA sweep caught the row rendering broken on mobile: the cards were stacked vertically and shoved ~90px off the left of the screen. Two causes — the full-bleed math assumed the row's container spanned the screen (it renders ~250px wide in the rebuilt layout), and the Designer's mobile layout had the cards stacking in a column. The row is now positioned by direct measurement (its left edge lands exactly on the screen edge, first card resting 16px in) and the sideways direction is enforced, so the cards swipe horizontally edge-to-edge as intended. Everything else in the sweep passed: marquee crawl + sizing, card icons, line-by-line project text, Play/Watch With Sound casing and alignment, the About mobile intro, and the desktop hover reveal on the post cards.
  * v1.88.5 (client): the script's own right-edge fade on the /about team headshot rows is removed — Ben built the feather natively in the Designer, and the two would have stacked on top of each other.
  * v1.88.4 (client): the /about opening animation — the yellow-field logo reveal that breaks apart into the header — now plays on PHONES too. It had been switched off under 768px since it was built; nothing about it was actually desktop-only (the lockup sizes itself to the screen and the fly-out measures where the mark and "Cedar" live in the real header), so phones just get the same entrance. Visitors who've turned on "reduce motion" still skip straight to the finished header.
  * v1.88.3 (client): the home card icons (Vision / Quality / Sustainability) are ACTUALLY fixed on phones this time. The two earlier attempts adjusted a different icon element than the one these cards use — these are the animated draw-in icons on a fixed 200px stage, which overfilled the narrower mobile cards and clipped at the card edge. The stage now sizes to 120px on phones (verified in-browser: fully inside the card, animation intact). Desktop unchanged; also applies to the same icons on /about.
@@ -508,7 +509,12 @@
        scroll container clips at its padding box, so cards stay visible through the 16px strip while moving.
        overflow-y is pinned to hidden: overflow-x:auto silently computes overflow-y to auto too, which let a
        vertical finger-drag scroll the row's CONTENT up and down inside its box (the drifting/cut-off cards). */
-    '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-left:16px;scrollbar-width:none;-ms-overflow-style:none;width:100vw!important;max-width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:0!important;padding:0 16px!important;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
+    /* v1.88.6: the calc(50% - 50vw) full-bleed BROKE against Ben's rebuilt /post layout — the collection
+       wrapper renders ~250px wide there, so "50%" was half of 250, not half of the viewport, and the row
+       (and every card) landed ~90px off-screen left. Geometry now comes from module 24's bleed(), which
+       MEASURES where the row sits and margins it to the true screen edge. flex-direction is pinned to row:
+       the Designer's mobile layout had gone column, which stacked the cards and killed the swipe entirely. */
+    '@media (max-width:767px){.post-partner-row{flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-left:16px;scrollbar-width:none;-ms-overflow-style:none;padding:0 16px!important;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
     /* v1.88.3 (client): the CORRECT fix for the home value-card icons on phones. v1.88.0/.1 aimed at
        .info-card .cedar-icon-mask — but the homepage "What makes Cedar different" cards are .about-card
        with the LOTTIE value icons (.cedar-value-icon, inline 200×200 stage + overflow-visible artwork),
@@ -3511,7 +3517,27 @@
     var row = document.querySelector('.post-partner-row.w-dyn-items');
     if (!row) return;
     var armed = false;
+    /* v1.88.6: mobile full-bleed by MEASUREMENT (the CSS calc approach broke against the ~250px collection
+       wrapper — see the stylesheet note). Widen the wrapper to its container, size the row to the real
+       viewport width, then margin it left by exactly where it sits so its edge hits x=0. The row's own
+       16px padding (CSS) gives the first card its resting inset; a scroll container clips at its padding
+       box, so swiped cards run to the true screen edge. Undone cleanly at >=768px. */
+    function bleed() {
+      var p = row.parentElement;
+      if (window.innerWidth >= 768) {
+        row.style.removeProperty('margin-left'); row.style.removeProperty('width'); row.style.removeProperty('max-width');
+        if (p) p.style.removeProperty('width');
+        return;
+      }
+      if (p) p.style.setProperty('width', '100%', 'important');
+      var vw = document.documentElement.clientWidth;
+      row.style.setProperty('width', vw + 'px', 'important');
+      row.style.setProperty('max-width', vw + 'px', 'important');
+      row.style.marginLeft = '0px';
+      row.style.marginLeft = (-row.getBoundingClientRect().left) + 'px';
+    }
     function check() {
+      bleed();
       var need = row.scrollWidth > row.clientWidth + 8;
       row.classList.toggle('cedar-hscroll', need);
       if (!TOUCH) row.classList.toggle('cedar-nocursor', need);
