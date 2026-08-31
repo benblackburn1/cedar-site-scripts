@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.2 · built by Origin · loaded site-wide (footer)
+ * v1.88.3 · built by Origin · loaded site-wide (footer)
+ * v1.88.3 (client): the home card icons (Vision / Quality / Sustainability) are ACTUALLY fixed on phones this time. The two earlier attempts adjusted a different icon element than the one these cards use — these are the animated draw-in icons on a fixed 200px stage, which overfilled the narrower mobile cards and clipped at the card edge. The stage now sizes to 120px on phones (verified in-browser: fully inside the card, animation intact). Desktop unchanged; also applies to the same icons on /about.
  * v1.88.2 (client): on phones the "Play With Sound" pill tucks in to 10px from the right edge of the screen (it was 22px; desktop keeps 22px).
  * v1.88.1 (client, mobile review of v1.88.0): FOUR REFINEMENTS. (1) /POST PARTNER ROW — the row now runs full-bleed: the first card rests 16px from the left edge, and as you swipe, cards travel all the way to the true edge of the screen instead of clipping early at the section's inset. The row also no longer drifts up and down under a finger — a browser quirk had quietly made it vertically scrollable inside its own box; that's pinned shut. (2) HOME CARD ICONS sized way down on phones — capped at 100px tall, sitting left, instead of filling the card's width. (3) HERO PILL ALIGNMENT — the "Play With Sound" pill now sits exactly on the About Cedar button's baseline (measured live, holds at every screen size) instead of a fixed offset. (4) PILL LABELS READ "Play With Sound" / "Watch With Sound" — title case everywhere, no more all-caps (the pill styling stops uppercasing, and every label is written out in title case).
  * v1.88.0 (client edit batch, 2026-08-25): FIVE CHANGES. (1) PARTNER LOGO MARQUEE NEVER STOPS — the crawl no longer pauses on hover (that pause was also the mobile glitch: a tap "stuck" the hover state and froze the strip), and on phones the logos step up from 50 to 64px with a slightly tighter gap so they hold their own against the color block. (2) HOME CARD ICONS FIT ON PHONES — the Vision / Quality / Sustainability icons now scale themselves to the room the card actually has, so nothing crops at the bottom edge. (3) /ABOUT TEAM SCROLL CUE — on phones the headshot rows get a soft fade on their right edge whenever there's more to scroll; the fade lifts when you reach the end. (4) PROJECT-PAGE OPENING TEXT — the Situation paragraph now rises line by line on mobile just like desktop (the letter-by-letter cascade took ~10 seconds on a phone; lines land in about two). (5) /POST PARTNER CARDS REVEAL ON HOVER — each card rests with just its title at the bottom; hovering lifts the title as the description fades in beneath it. Phones and tablets keep the description always visible, since there's no hover on touch.
@@ -506,14 +507,13 @@
        overflow-y is pinned to hidden: overflow-x:auto silently computes overflow-y to auto too, which let a
        vertical finger-drag scroll the row's CONTENT up and down inside its box (the drifting/cut-off cards). */
     '@media (max-width:767px){.post-partner-row{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-left:16px;scrollbar-width:none;-ms-overflow-style:none;width:100vw!important;max-width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:0!important;padding:0 16px!important;}.post-partner-row::-webkit-scrollbar{display:none;}.post-partner-row .post-partner-card{flex:0 0 auto!important;width:80vw!important;max-width:340px;scroll-snap-align:start;}}',
-    /* v1.88 (client): home info-card icons were cropping at the card's bottom edge on phones — the mask
-       span is width:100% + the SVG's own aspect, which can outgrow the shorter mobile card. Let the flex
-       column shrink it (min-height:0) and scale the mask to whatever box remains (contain), so the whole
-       icon always fits inside the card. Desktop unchanged. */
-    /* v1.88.1 (client): the flex-shrink fit still left the icons huge on phones (full card width). Hard cap
-       instead: 100px tall, contained at the left. The span's inline width:100% stays (the mask only paints
-       where the icon is, so the box being wide is invisible); the explicit height overrides its aspect-ratio. */
-    '@media (max-width:767px){.info-card .cedar-icon-mask{height:100px!important;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;}}',
+    /* v1.88.3 (client): the CORRECT fix for the home value-card icons on phones. v1.88.0/.1 aimed at
+       .info-card .cedar-icon-mask — but the homepage "What makes Cedar different" cards are .about-card
+       with the LOTTIE value icons (.cedar-value-icon, inline 200×200 stage + overflow-visible artwork),
+       so those rules matched nothing and the 200px stage overfilled the ~230px mobile card and clipped at
+       its edge (overflow:clip). The stage now caps at 120px on phones — verified live in-browser: icon
+       fully inside the card, draw-in animation intact. Applies wherever the value cards render (home + /about). */
+    '@media (max-width:767px){.about-card .cedar-value-icon{width:120px!important;height:120px!important;}}',
     /* v1.88 (client): /about mobile team — right-edge feather on the horizontally scrolling headshot rows
        so it reads as "more to scroll"; the fade lifts once you reach the end (JS toggles cedar-fade-end). */
     '@media (max-width:767px){.cedar-team-fade{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 56px),transparent);}.cedar-team-fade.cedar-fade-end{-webkit-mask-image:none;mask-image:none;}}',
