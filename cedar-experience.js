@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.3 · built by Origin · loaded site-wide (footer)
+ * v1.88.4 · built by Origin · loaded site-wide (footer)
+ * v1.88.4 (client): the /about opening animation — the yellow-field logo reveal that breaks apart into the header — now plays on PHONES too. It had been switched off under 768px since it was built; nothing about it was actually desktop-only (the lockup sizes itself to the screen and the fly-out measures where the mark and "Cedar" live in the real header), so phones just get the same entrance. Visitors who've turned on "reduce motion" still skip straight to the finished header.
  * v1.88.3 (client): the home card icons (Vision / Quality / Sustainability) are ACTUALLY fixed on phones this time. The two earlier attempts adjusted a different icon element than the one these cards use — these are the animated draw-in icons on a fixed 200px stage, which overfilled the narrower mobile cards and clipped at the card edge. The stage now sizes to 120px on phones (verified in-browser: fully inside the card, animation intact). Desktop unchanged; also applies to the same icons on /about.
  * v1.88.2 (client): on phones the "Play With Sound" pill tucks in to 10px from the right edge of the screen (it was 22px; desktop keeps 22px).
  * v1.88.1 (client, mobile review of v1.88.0): FOUR REFINEMENTS. (1) /POST PARTNER ROW — the row now runs full-bleed: the first card rests 16px from the left edge, and as you swipe, cards travel all the way to the true edge of the screen instead of clipping early at the section's inset. The row also no longer drifts up and down under a finger — a browser quirk had quietly made it vertically scrollable inside its own box; that's pinned shut. (2) HOME CARD ICONS sized way down on phones — capped at 100px tall, sitting left, instead of filling the card's width. (3) HERO PILL ALIGNMENT — the "Play With Sound" pill now sits exactly on the About Cedar button's baseline (measured live, holds at every screen size) instead of a fixed offset. (4) PILL LABELS READ "Play With Sound" / "Watch With Sound" — title case everywhere, no more all-caps (the pill styling stops uppercasing, and every label is written out in title case).
@@ -2129,8 +2130,9 @@
    *   their header positions (mark bottom-left, big "Cedar"
    *   bottom-right). The nav is held hidden through the header and
    *   animates in once the user scrolls past it (see the nav floor in
-   *   module 9). Small screens / reduced motion / Lottie failure just
-   *   show the finished header with the nav floor still in effect.
+   *   module 9). Reduced motion / Lottie failure just show the
+   *   finished header with the nav floor still in effect. (v1.88.4:
+   *   phones get the reveal too — the old <768px skip is gone.)
    * ======================================================= */
   onReady(function () {
     var P = location.pathname.replace(/\/$/, '') || '/';
@@ -2172,7 +2174,7 @@
     window.addEventListener('resize', setFloor);
     if (nav && (window.pageYOffset || 0) < window.__cedarNavFloor) nav.classList.add('cedar-nav-hidden');
 
-    if (RM || window.innerWidth < 768 || !(markE || cedarE)) return;   /* no reveal: finished header + nav floor already in place */
+    if (RM || !(markE || cedarE)) return;   /* no reveal: finished header + nav floor already in place. v1.88.4 (client): the <768px gate is GONE — phones get the reveal too (the lockup stage sizes from the viewport and the fly-out measures live header rects, so nothing in it was actually desktop-bound; verified the mobile header lays out the mark + Cedar landing targets). Reduced-motion still skips it. */
     try { window.scrollTo(0, 0); } catch (e) {}
     window.__cedarAboutIntro = true;
     if (markE) markE.style.opacity = '0';
