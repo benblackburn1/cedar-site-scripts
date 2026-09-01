@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.88.6 · built by Origin · loaded site-wide (footer)
+ * v1.89.0 · built by Origin · loaded site-wide (footer)
+ * v1.89.0 (client): TABLET GRIDS GO MOBILE-STYLE. On tablet widths (768-991px) the home and /work grids were still getting the desktop multi-column treatment, which read broken squeezed into that band. Both grids now switch to the mobile layout there instead: full-width stacked cards (a bit taller than on phones — 320px vs 240px — so they don't read squat at ~900px wide), titles always visible on the cards. The script's desktop grid machinery now starts at 992px, matching Webflow's own desktop/tablet breakpoint line.
  * v1.88.6 (client, QA pass): /POST PARTNER CARDS ON PHONES, PROPERLY THIS TIME. The QA sweep caught the row rendering broken on mobile: the cards were stacked vertically and shoved ~90px off the left of the screen. Two causes — the full-bleed math assumed the row's container spanned the screen (it renders ~250px wide in the rebuilt layout), and the Designer's mobile layout had the cards stacking in a column. The row is now positioned by direct measurement (its left edge lands exactly on the screen edge, first card resting 16px in) and the sideways direction is enforced, so the cards swipe horizontally edge-to-edge as intended. Everything else in the sweep passed: marquee crawl + sizing, card icons, line-by-line project text, Play/Watch With Sound casing and alignment, the About mobile intro, and the desktop hover reveal on the post cards.
  * v1.88.5 (client): the script's own right-edge fade on the /about team headshot rows is removed — Ben built the feather natively in the Designer, and the two would have stacked on top of each other.
  * v1.88.4 (client): the /about opening animation — the yellow-field logo reveal that breaks apart into the header — now plays on PHONES too. It had been switched off under 768px since it was built; nothing about it was actually desktop-only (the lockup sizes itself to the screen and the fly-out measures where the mark and "Cedar" live in the real header), so phones just get the same entrance. Visitors who've turned on "reduce motion" still skip straight to the finished header.
@@ -262,11 +263,12 @@
     '.navbar.cedar-nav-light .cedar-mmenu-btn{color:' + CHARCOAL + ';}',
     '@media (max-width:767px){.navbar{margin-top:0!important;}.navbar a.nav-logo{display:none!important;}.navbar .nav-links{display:none!important;}.navbar a.nav-mark{display:flex!important;position:absolute;left:20px;top:50%;transform:translateY(-50%);}.cedar-mmenu-btn{display:inline-block;}}',   /* client: mobile navbar had a 10px top margin on a fixed element → a strip of gap above it; sit it flush */
     /* mobile: no hover exists, so the work-card label is always visible — TITLE ONLY, pinned bottom-left (desktop keeps the full hover reveal from module 3) */
-    '@media (max-width:767px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;top:auto!important;bottom:16px!important;left:16px!important;right:auto!important;}.work-card .card-label p.caption:nth-of-type(2){display:none!important;}}',
+    '@media (max-width:991px){.work-card .card-label{display:flex!important;opacity:1!important;pointer-events:none;z-index:4;top:auto!important;bottom:16px!important;left:16px!important;right:auto!important;}.work-card .card-label p.caption:nth-of-type(2){display:none!important;}}',   /* v1.89: tablets join the mobile treatment (labels always shown — no reliable hover) */
     /* mobile work grid: the desktop width-pattern rules (first-child 35%, last-child aspect 1/1, nth-child basis 40%)
        leak into the stacked COLUMN layout as height rules and crush cards — neutralize them; every card is
        full-width at the breakpoint\'s design height */
-    '@media (min-width:480px) and (max-width:767px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:240px!important;aspect-ratio:auto!important;}}',
+    '@media (min-width:480px) and (max-width:991px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:240px!important;aspect-ratio:auto!important;}}',   /* v1.89: was ≤767 — the tablet band joins the mobile full-width stack (the desktop 2/3-up patterns read broken at ~820px) */
+    '@media (min-width:768px) and (max-width:991px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{height:320px!important;}}',   /* v1.89: tablets get a taller card — 240px stretched across ~900px reads too squat */
     '@media (max-width:479px){.work-grid .work-card,.work-grid .work-card:first-child,.work-grid .work-card:last-child{flex:0 0 auto!important;width:100%!important;height:40vh!important;aspect-ratio:auto!important;}}',
     /* project mobile: Ben set the top photo/video band to 50vh — cover-size the vimeo iframe to that box */
     '@media (max-width:767px){.hero-band,.photo-band{overflow:hidden;position:relative;}.hero-band .vimeo-container iframe,.photo-band .vimeo-container iframe{width:max(100vw,88.9vh)!important;height:max(50vh,56.25vw)!important;min-width:0!important;min-height:0!important;max-width:none!important;position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;}}',
@@ -794,6 +796,7 @@
     var cards = [].slice.call(document.querySelectorAll('.work-grid .work-card'));
     if (cards.length < 2) return;
     var DESK = !RM && !TOUCH;                          /* hover video/expand + FLIP reflow are desktop-only; the FILTER runs everywhere */
+    var GRID_MIN = 992;                                /* v1.89 (client): the script's multi-up grid takes over at DESKTOP widths only — the 768-991 tablet band now uses the mobile full-width stack (the desktop patterns squeezed badly at ~820px). Was 768. */
     var TRANS = 'flex-basis .85s ' + EASE + ',opacity .8s ' + EASE + ',transform .8s ' + EASE;   /* width expand slowed .55->.85 per Ben */
     /* /work: the Designer only styles the first grid rows, so deeper cards go full-width — lay the whole
        list in repeating asymmetric THREE-UP rows at a shorter height (client: faster to scan). Home keeps
@@ -803,7 +806,7 @@
     function workH() { return window.innerWidth > 2200 ? Math.round(window.innerHeight * 0.5) : (window.innerWidth >= 1920 ? 480 : 420); }   /* /work card height; 50vh on ultra-wide (v1.80), taller on big monitors (v1.74) */
     function assignPattern() {
       if (path !== '/work') return;
-      if (window.innerWidth < 768) {                   /* mobile: our ≤767 CSS owns the layout — strip stale inline sizing */
+      if (window.innerWidth < GRID_MIN) {              /* below the desktop band: the mobile/tablet CSS owns the layout — strip stale inline sizing */
         cards.forEach(function (c) { c.style.removeProperty('height'); });
         return;
       }
@@ -850,7 +853,7 @@
       var p = cards[0].parentElement, cs = getComputedStyle(p);
       var gap = parseFloat(cs.columnGap || cs.gap) || 14;
       var W = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-      if (W <= 0 || window.innerWidth < 768) return null;
+      if (W <= 0 || window.innerWidth < GRID_MIN) return null;
       var cols = window.innerWidth < 1100 ? 2 : 3, out = [];
       for (var i = 0; i < HOME_CAP; i += cols) {
         if (cols === 3) {
@@ -871,7 +874,7 @@
       cards.forEach(function (c) { c.style.display = show.indexOf(c) > -1 ? '' : 'none'; });
       show.forEach(function (c, i) {
         c._nat = SLOTS[i % SLOTS.length] || c._nat;
-        if (window.innerWidth >= 768) c.style.setProperty('height', HOME_H() + 'px', 'important');   /* mobile keeps the Webflow full-width CSS height */
+        if (window.innerWidth >= GRID_MIN) c.style.setProperty('height', HOME_H() + 'px', 'important');   /* below GRID_MIN the mobile/tablet CSS owns the height */
         else c.style.removeProperty('height');
       });
     }
@@ -880,6 +883,7 @@
     function visible() { return cards.filter(function (c) { return c.style.display !== 'none'; }); }
     function relock(enableTrans) {                     /* grow visible cards to fill their rows, then freeze as px so hover can animate flex-basis cleanly */
       var vis = visible();
+      if (window.innerWidth < GRID_MIN) { vis.forEach(function (c) { c.style.removeProperty('flex'); c.style.removeProperty('transition'); }); return; }   /* v1.89: tablet/mobile — clear any stale desktop sizing and let the CSS stack own it */
       vis.forEach(function (c) { c.style.transition = 'none'; c.style.flex = '1 1 ' + Math.round(c._nat) + 'px'; });
       vis.forEach(function (c) { c._rw = c.getBoundingClientRect().width; });
       vis.forEach(function (c) { c.style.flex = '0 1 ' + c._rw + 'px'; coverCV(c, c._rw); });   /* shrink:1 + exact (unrounded) so a sub-pixel total never wraps a card to the next row; clips re-cover the new width (a filtered-down row can grow a card well past 16:9) */
