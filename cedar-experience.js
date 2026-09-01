@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.89.1 · built by Origin · loaded site-wide (footer)
+ * v1.89.2 · built by Origin · loaded site-wide (footer)
+ * v1.89.2 (client): on phones, a project card's THUMBNAIL now stays up until its film is actually showing frames. The card's clip layer (black backdrop + stream) was revealing itself the moment the card scrolled to mid-screen, so on slower connections you saw a black card while the film buffered. The reveal now waits for Vimeo's own "frames are rendering" signal — the same precise cue the loading spinner uses — and then crossfades from the still into the already-playing film. Each card's loop starts from its beginning when it scrolls into view, so nothing meaningful is missed under the half-second fade.
  * v1.89.1 (client): two footer refinements from Ben's mobile review. (1) "Built by Origin" now sits on the same baseline as the copyright line — extra mobile spacing on the copyright alone was pushing the two out of alignment; the spacing moved to the row and the pair bottom-align. (2) The big "Cedar Creative" wordmark no longer shaves the left edge of the C — the logo file is cropped flush, so the C's curve was painted at the exact edge of its box; it now keeps a couple of pixels of breathing room on each side (the size difference is invisible).
  * v1.89.0 (client): TABLET GRIDS GO MOBILE-STYLE. On tablet widths (768-991px) the home and /work grids were still getting the desktop multi-column treatment, which read broken squeezed into that band. Both grids now switch to the mobile layout there instead: full-width stacked cards (a bit taller than on phones — 320px vs 240px — so they don't read squat at ~900px wide), titles always visible on the cards. The script's desktop grid machinery now starts at 992px, matching Webflow's own desktop/tablet breakpoint line.
  * v1.88.6 (client, QA pass): /POST PARTNER CARDS ON PHONES, PROPERLY THIS TIME. The QA sweep caught the row rendering broken on mobile: the cards were stacked vertically and shoved ~90px off the left of the screen. Two causes — the full-bleed math assumed the row's container spanned the screen (it renders ~250px wide in the rebuilt layout), and the Designer's mobile layout had the cards stacking in a column. The row is now positioned by direct measurement (its left edge lands exactly on the screen edge, first card resting 16px in) and the sideways direction is enforced, so the cards swipe horizontally edge-to-edge as intended. Everything else in the sweep passed: marquee crawl + sizing, card icons, line-by-line project text, Play/Watch With Sound casing and alignment, the About mobile intro, and the desktop hover reveal on the post cards.
@@ -1035,6 +1036,7 @@
       if (d.event === 'playing' || d.event === 'bufferend' || (d.event === 'timeupdate' && d.data && d.data.seconds > 0)) {
         c._playing = true; clearWatch(c);               /* frames genuinely rendering -> drop the mark (v1.78: 'play' alone fires while still black) */
         if (c === active) hideGridSpin();
+        if (c._mobShow) c.classList.add('cedar-playing');   /* v1.89.2 (client): the mobile clip reveals HERE — on the first genuinely-rendered frame — so the thumbnail holds until the film is truly up (no black card while it buffers, and only a fraction of a second of the loop plays under the crossfade) */
       }
     });
     /* single active card + debounced hover (intent-in, settle-out) so the moving edges can't ping-pong */
@@ -1067,8 +1069,12 @@
       var mio = new IntersectionObserver(function (ents) {
         ents.forEach(function (en) {
           var c = en.target;
-          if (en.intersectionRatio >= 0.5) { mountVideo(c); playVid(c); c.classList.add('cedar-playing'); }
-          else { stopVid(c); c.classList.remove('cedar-playing'); }
+          /* v1.89.2 (client): DON'T reveal the clip layer yet — its black backdrop was covering the
+             thumbnail the moment the card hit mid-viewport, so slow streams showed a black card. The
+             card is only FLAGGED here; the message handler adds cedar-playing on the first rendered
+             frame, so the thumbnail holds until the film is genuinely visible. */
+          if (en.intersectionRatio >= 0.5) { mountVideo(c); playVid(c); c._mobShow = true; if (c._playing) c.classList.add('cedar-playing'); }
+          else { c._mobShow = false; stopVid(c); c.classList.remove('cedar-playing'); }
         });
       }, { threshold: [0, 0.5, 1] });
       cards.forEach(function (c) { mio.observe(c); });
