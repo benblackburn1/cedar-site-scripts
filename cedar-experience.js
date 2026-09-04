@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.89.3 · built by Origin · loaded site-wide (footer)
+ * v1.89.4 · built by Origin · loaded site-wide (footer)
+ * v1.89.4 (client): partner logo scroller — the REAL mobile bug, found from Ben's screen recordings. The logo images were set to load lazily, and on phones the browser never got around to loading most of the copies inside the moving strip — an unloaded logo takes up no width, so the band crawled along with long empty stretches and logos popping in late (which read as jumping and clipping). Every logo now loads immediately, and the strip re-measures itself as they arrive, so it settles into the full, evenly spaced loop right away. The v1.89.3 seam and rebuild fixes stay — all three together make the scroller genuinely seamless.
  * v1.89.3 (client): the partner-logo scroller is now genuinely seamless. Two fixes: (1) on phones, the browser bar showing/hiding while you scroll was making the strip rebuild itself mid-crawl — the visible jump that clipped logos; it now rebuilds only when the screen's width actually changes. (2) The loop's wrap point was landing about half a logo-gap short every cycle (a subtle snap, more noticeable the wider the screen) — the spacing math is reworked so the loop joins exactly, on any screen size.
  * v1.89.2 (client): on phones, a project card's THUMBNAIL now stays up until its film is actually showing frames. The card's clip layer (black backdrop + stream) was revealing itself the moment the card scrolled to mid-screen, so on slower connections you saw a black card while the film buffered. The reveal now waits for Vimeo's own "frames are rendering" signal — the same precise cue the loading spinner uses — and then crossfades from the still into the already-playing film. Each card's loop starts from its beginning when it scrolls into view, so nothing meaningful is missed under the half-second fade.
  * v1.89.1 (client): two footer refinements from Ben's mobile review. (1) "Built by Origin" now sits on the same baseline as the copyright line — extra mobile spacing on the copyright alone was pushing the two out of alignment; the spacing moved to the row and the pair bottom-align. (2) The big "Cedar Creative" wordmark no longer shaves the left edge of the C — the logo file is cropped flush, so the C's curve was painted at the exact edge of its box; it now keeps a couple of pixels of breathing room on each side (the size difference is invisible).
@@ -1900,6 +1901,21 @@
       row.classList.add('cedar-marquee');
       row.appendChild(track);
       var unit = [].slice.call(track.children);                /* keep the original nodes as templates */
+      /* v1.89.4 — THE ACTUAL MOBILE BUG (diagnosed from Ben's screen recordings): the CMS logo imgs ship
+         loading="lazy", and inside the transformed track iOS defers the clones indefinitely — unloaded
+         imgs are ZERO-WIDTH, so the band crawled with long empty voids and logos popping in as widths
+         arrived (read as jumping/clipping). Force every logo eager NOW — before cloning, so clones
+         inherit — and rebuild (debounced) as each late arrival lands, so the strip settles once. */
+      (function () {
+        var lt;
+        slots.forEach(function (s) {
+          var imgs = s.tagName === 'IMG' ? [s] : [].slice.call(s.querySelectorAll('img'));
+          imgs.forEach(function (im) {
+            im.setAttribute('loading', 'eager'); im.loading = 'eager';   /* flipping lazy->eager starts the fetch immediately */
+            if (!im.complete) im.addEventListener('load', function () { clearTimeout(lt); lt = setTimeout(build, 150); }, { once: true });
+          });
+        });
+      })();
       function build() {
         track.innerHTML = '';
         unit.forEach(function (n) { track.appendChild(n); });
