@@ -1,5 +1,6 @@
 /* Cedar Creative — experience layer
- * v1.89.2 · built by Origin · loaded site-wide (footer)
+ * v1.89.3 · built by Origin · loaded site-wide (footer)
+ * v1.89.3 (client): the partner-logo scroller is now genuinely seamless. Two fixes: (1) on phones, the browser bar showing/hiding while you scroll was making the strip rebuild itself mid-crawl — the visible jump that clipped logos; it now rebuilds only when the screen's width actually changes. (2) The loop's wrap point was landing about half a logo-gap short every cycle (a subtle snap, more noticeable the wider the screen) — the spacing math is reworked so the loop joins exactly, on any screen size.
  * v1.89.2 (client): on phones, a project card's THUMBNAIL now stays up until its film is actually showing frames. The card's clip layer (black backdrop + stream) was revealing itself the moment the card scrolled to mid-screen, so on slower connections you saw a black card while the film buffered. The reveal now waits for Vimeo's own "frames are rendering" signal — the same precise cue the loading spinner uses — and then crossfades from the still into the already-playing film. Each card's loop starts from its beginning when it scrolls into view, so nothing meaningful is missed under the half-second fade.
  * v1.89.1 (client): two footer refinements from Ben's mobile review. (1) "Built by Origin" now sits on the same baseline as the copyright line — extra mobile spacing on the copyright alone was pushing the two out of alignment; the spacing moved to the row and the pair bottom-align. (2) The big "Cedar Creative" wordmark no longer shaves the left edge of the C — the logo file is cropped flush, so the C's curve was painted at the exact edge of its box; it now keeps a couple of pixels of breathing room on each side (the size difference is invisible).
  * v1.89.0 (client): TABLET GRIDS GO MOBILE-STYLE. On tablet widths (768-991px) the home and /work grids were still getting the desktop multi-column treatment, which read broken squeezed into that band. Both grids now switch to the mobile layout there instead: full-width stacked cards (a bit taller than on phones — 320px vs 240px — so they don't read squat at ~900px wide), titles always visible on the cards. The script's desktop grid machinery now starts at 992px, matching Webflow's own desktop/tablet breakpoint line.
@@ -1889,8 +1890,11 @@
       }
       if (slots.length < 2) return;
       var track = el('div', 'cedar-marquee-track', '');
-      function setGap() { track.style.gap = window.innerWidth < 768 ? '56px' : '80px'; }   /* v1.88: phones get bigger logos (64px, CSS) with a tighter gap; desktop keeps the v1.33 80px */
-      setGap();
+      /* v1.89.3: spacing is PER-ITEM margin, not flex gap. Flex gap sits only BETWEEN children (2N items =
+         2N-1 gaps), so the seamless wrap needed 50% + gap/2 and translateX(-50%) landed half a gap short —
+         a small snap every loop, worse the wider the screen. With margin-right on every item the track is
+         exactly N x (item + space) and -50% is mathematically seamless. */
+      function gapPx() { return window.innerWidth < 768 ? 56 : 80; }   /* v1.88: phones get bigger logos (64px, CSS) with a tighter gap; desktop keeps the v1.33 80px */
       slots.forEach(function (s) { track.appendChild(s); });   /* one logo set = the repeating unit */
       if (dyn) dyn.style.display = 'none';                     /* emptied wrapper (items moved into the track) */
       row.classList.add('cedar-marquee');
@@ -1907,13 +1911,21 @@
         }
         /* duplicate the whole half once -> two identical halves -> seamless translateX(-50%) */
         [].slice.call(track.children).forEach(function (c) { var cl = c.cloneNode(true); cl.setAttribute('aria-hidden', 'true'); track.appendChild(cl); });
+        var g = gapPx();
+        [].slice.call(track.children).forEach(function (c) { c.style.marginRight = g + 'px'; });   /* every item, clones included — see the per-item-margin note above */
         /* constant crawl: duration follows the loop width so the speed never changes with logo count
            or viewport (a fixed duration made wide tracks race and narrow ones crawl). 35px/s = slow. */
         track.style.animationDuration = Math.max(20, (track.scrollWidth / 2) / 35).toFixed(1) + 's';
       }
       build();
-      var rt;
-      window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { setGap(); build(); }, 200); });
+      /* v1.89.3: rebuild ONLY when the WIDTH changes. Phone browsers fire resize as the URL bar
+         shows/hides while scrolling; the full rebuild (innerHTML wipe + animation restart from 0)
+         was the visible mid-scroll jump/clip on mobile. Height-only resizes are ignored. */
+      var rt, lastW = window.innerWidth;
+      window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () {
+        if (window.innerWidth === lastW) return;
+        lastW = window.innerWidth; build();
+      }, 200); });
       window.addEventListener('load', build);                  /* re-measure once logos have their final widths */
     });
   });
